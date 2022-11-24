@@ -10,3 +10,4 @@ public/assets/styles/app-*
 public/assets/images/projects/*
 open-payment-host
 .vscode/*
+node_modules
