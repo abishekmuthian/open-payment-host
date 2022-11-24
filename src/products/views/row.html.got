@@ -1,0 +1,21 @@
+<tr>
+  <th>{{ .story.ID }}</th>
+  <th>
+    <div>
+      <div>
+        <a href="{{.story.PrimaryURL}}" class="name">{{.story.NameDisplay}}</a>
+      </div>
+      <div>
+        {{ range .story.Tags }}
+        <span class="badge badge-ghost badge-sm">{{.}}</span>
+        {{ end }}
+      </div>
+    </div>
+  </th>
+  <th>
+  </th>
+  <th>
+    <a href="/products/{{.story.ID}}/update" class="btn btn-sm">edit</a>
+    <a href="/products/{{.story.ID}}/destroy" method="post" class="btn btn-sm">delete</a>
+  </th>
+</tr>

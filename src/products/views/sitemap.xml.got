@@ -1,0 +1,17 @@
+{{ xmlpreamble }}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url>
+   <loc>{{root_url}}</loc>
+   <lastmod>{{ date .pubdate.UTC "2006-01-02" }}</lastmod>
+   <changefreq>daily</changefreq>
+   <priority>1.0</priority>
+</url>
+{{ range .products }}
+ <url>
+    <loc>{{root_url}}{{.CanonicalURL}}</loc>
+    <lastmod>{{ date .CreatedAt.UTC "2006-01-02" }}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+ </url>
+{{ end }}
+</urlset>

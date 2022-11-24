@@ -1,0 +1,7 @@
+    <div class="card">
+      <img class="card-img" src="{{.story.FeaturedImage}}" alt="Avatar">
+      <div class="text">
+        <h4><b></b>{{.story.NameDisplay}}<b></b></h4>
+        <p>Some text</p>
+      </div>
+    </div>

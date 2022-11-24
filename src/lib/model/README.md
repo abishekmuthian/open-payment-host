@@ -1,0 +1,2 @@
+# Package model
+This was an early sketch of helper utilities for resources. I've since decided that this code is best included within the apps, as a shared resources package, so you should consider this package and those under it deprecated. It will be removed in version 2.0.

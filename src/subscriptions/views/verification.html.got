@@ -1,0 +1,5 @@
+<article class="narrow story">
+    <h1>{{.title}}</h1>
+    <br/>
+    <p>{{.message}}</p>
+</article>

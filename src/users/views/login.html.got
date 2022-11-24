@@ -1,0 +1,53 @@
+<div
+  class="h-screen bg-white flex flex-col space-y-10 justify-center items-center"
+>
+  <div class="bg-white w-96 shadow-xl rounded p-5">
+    <h1 class="text-3xl font-medium">Login</h1>
+    <form id="login" class="space-y-5 mt-5" action="/users/login" method="post">
+      <label for="email" class="block mt-2 text-xs font-semibold text-gray-600 uppercase">E-mail</label>
+      <input
+        type="email"
+        class="input input-bordered input-secondary w-full max-w-xs"
+        name="email"
+        placeholder="Email"
+        required
+      />
+      <label for="password" class="block mt-2 text-xs font-semibold text-gray-600 uppercase">Password</label>
+      <input
+        type="password"
+        class="input input-bordered input-secondary w-full max-w-xs"
+        name="password"
+        placeholder="Password"
+        required
+      />
+
+      <div class="cf-turnstile" data-sitekey="{{ .turnstile_site_key }}"></div>
+      {{ if .error }}
+      {{ if eq .error "security_challenge_not_completed_login"}}
+      <p class="bg-error mt-2 px-2">
+        Please verify that you are a human.<br />If you don't see the
+        verification widget,<br />Please refresh page.
+      </p>
+      {{ else if eq .error "security_challenge_failed_login"}}
+      <p class="bg-error mt-2 px-2">
+        Security challenge failed,<br />Try again later if you are not a bot!
+      </p>
+      {{ end }}
+      {{ end }}
+      <input name="redirectURL" type="hidden" value="{{.redirectURL}}" />
+
+      <div class="btn-group">
+        <button class="btn">Login</button>
+      </div>
+    </form>
+
+    {{ if .error }}
+      {{ if eq .error "not_a_valid_login"}}
+      <div>
+        <p class="bg-error mt-2 px-2">Invalid login credentials, Check email and password.</p>
+      </div>
+      {{ end }}
+    {{ end }}
+  </div>
+</div>
+

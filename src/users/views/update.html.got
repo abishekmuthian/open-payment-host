@@ -1,0 +1,23 @@
+<section class="padded">
+<h1>Update Account</h1>
+{{ template "users/views/form.html.got" . }}
+    {{ if .currentUser.Subscription }}
+        <button class="button manage-billing">MANAGE BILLING</button>
+    {{ end }}
+    <a href="/users/{{.user.ID}}/password/update" class="button">UPDATE PASSWORD</a>
+    {{ if .products}}
+    <h2>Subscribed products</h2>
+    {{ $0 := . }}
+    <section class="container  user_activity">
+
+        <div class="column">
+            <ul class="products">
+                {{ range .products }}
+                    {{ set $0 "story" . }}
+                    {{ template "products/views/row.html.got" $0 }}
+                {{ end }}
+            </ul>
+        </div>
+    </section>
+    {{ end }}
+</section>

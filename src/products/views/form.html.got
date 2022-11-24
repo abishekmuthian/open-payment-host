@@ -1,0 +1,62 @@
+<div class="row products_form">
+<form method="post" enctype="multipart/form-data" class="resource-update-form">
+    <div class="actions">
+
+      <a class="button grey" method="back">Cancel</a>
+        <input type="submit" class="button" value="Save">
+    </div>
+  
+    {{ if .currentUser.Admin }}
+    
+    <div class="wide-fields">
+      <!--Not having Url submission now-->
+      <!--{{ field "Url" "url" .story.URL }}-->
+      {{ field "Title - define your product in under 50 characters and followed by 2 hashtags for categories" "name" .story.Name "id='title'"}}
+        <span id="spnTitleCharLeft" class="characterLimit"></span>
+    <div class="actions">
+      <label>Select the featured image for this product, Recommended dimension: 1200x600 </label>
+      <label>Current featured image set: {{ .featuredImagePath }}</label>
+      <input type="file" name="featured_image"/>
+    </div>  
+      <div class="field">
+        <label>Description - add description explaining the product, What does product do, What do the subscribers get...</label>
+        {{ template "lib/editable/views/editable-toolbar.html.got"}}
+        <textarea name="summary" class="content-textarea" id="story-content-textarea">{{.story.Summary}}</textarea>
+        <div contenteditable class="content-editable" id="story-content-editable">{{html .story.Summary}}</div>
+          <span id="spnEditableCharLeft" class="characterLimit"></span>
+        {{ field "Mailchimp API Key - Optional to add the subscribers to your Mailchimp list" "mailchimp_token" .story.MailchimpToken}}
+        {{ field "Mailchimp Audience ID - Optional to add the subscribers to your Mailchimp list" "mailchimp_list_id" .story.MailchimpListID}}
+        {{ field "Stripe Price API ID - Country Code:Price API ID in JSON e.g. {\"US\":\"price_1KlnKhSI4oTPH3MZmvAkvjiG\",\"IN\":\"price_1KlnKhSI4oTPH3MZX9LVIZxb\"}" "price" .price}}
+      </div>
+    </div>
+    
+    <div class="inline-fields">
+      {{ select "Status" "status" .story.Status .story.StatusOptions }}
+      {{ field "UserId" "user_id" .story.UserID }}
+      {{ field "Points" "points" .story.Points }}
+    </div>
+    
+    {{ else }}
+    
+    <div class="wide-fields">
+    <!--Not having Url submission now-->
+    <!-- {{ field "Url" "url" .story.URL }} -->
+        {{ field "Title - define your product in under 50 characters and followed by 2 hashtags for categories, e.g. Curated list of startup tools #startup #tools" "name" .story.Name "id='title'"}}
+        <span id="spnTitleCharLeft" class="characterLimit"></span>
+        <div class="field">
+            <label>Description - add description explaining the product, What product does it solve, What features are planned for the future if you receive support ...</label>
+            {{ template "lib/editable/views/editable-toolbar.html.got"}}
+            <textarea name="summary" class="content-textarea" id="story-content-textarea">{{.story.Summary}}</textarea>
+            <div contenteditable class="content-editable" id="story-content-editable">{{html .story.Summary}}</div>
+            <span id="spnEditableCharLeft" class="characterLimit"></span>
+            {{ field "Mailchimp API Key - Optional to add the subscribers to your Mailchimp list" "mailchimp_token" .story.MailchimpToken}}
+            {{ field "Mailchimp Audience ID - Optional to add the subscribers to your Mailchimp list" "mailchimp_list_id" .story.MailchimpListID}}
+        </div>
+    </div>
+  
+    {{ end }}
+    
+
+    <input name="authenticity_token" type="hidden" value="{{.authenticity_token}}">
+</form>
+</div>

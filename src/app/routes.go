@@ -1,0 +1,101 @@
+package app
+
+import (
+	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
+	"github.com/abishekmuthian/open-payment-host/src/lib/mux/middleware/gzip"
+	"github.com/abishekmuthian/open-payment-host/src/lib/mux/middleware/secure"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
+
+	// Resource Actions
+	appactions "github.com/abishekmuthian/open-payment-host/src/app/actions"
+	"github.com/abishekmuthian/open-payment-host/src/lib/session"
+	paymentactions "github.com/abishekmuthian/open-payment-host/src/payment/actions"
+	storyactions "github.com/abishekmuthian/open-payment-host/src/products/actions"
+	subscriberactions "github.com/abishekmuthian/open-payment-host/src/subscriptions/actions"
+	useractions "github.com/abishekmuthian/open-payment-host/src/users/actions"
+)
+
+// SetupRoutes creates a new router and adds the routes for this app to it.
+func SetupRoutes() *mux.Mux {
+
+	router := mux.New()
+	mux.SetDefault(router)
+
+	// Add the home page route
+	router.Get("/", appactions.HandleHome)
+
+	// Add a route to handle static files
+	router.Get("/favicon.ico", fileHandler)
+	router.Get("/icons/{path:.*}", fileHandler)
+	router.Get("/files/{path:.*}", fileHandler)
+	router.Get("/assets/{path:.*}", fileHandler)
+
+	// Resource Routes
+
+	// Add story routes
+	router.Get("/index{format:(.xml)?}", storyactions.HandleIndex)
+	router.Get("/products/create", storyactions.HandleCreateShow)
+	router.Post("/products/create", storyactions.HandleCreate)
+	router.Get("/products/code{format:(.xml)?}", storyactions.HandleListCode)
+	router.Get("/products/upvoted{format:(.xml)?}", storyactions.HandleListUpvoted)
+	router.Get("/products/{id:[0-9]+}/update", storyactions.HandleUpdateShow)
+	router.Post("/products/{id:[0-9]+}/update", storyactions.HandleUpdate)
+	router.Post("/products/{id:[0-9]+}/destroy", storyactions.HandleDestroy)
+	router.Get("/products/{id:[0-9]+}/subscription", storyactions.HandleSubscriptionShow)
+	router.Post("/products/{id:[0-9]+}/subscription/subscribe", storyactions.HandleSubscription)
+	router.Post("/products/{id:[0-9]+}/subscription/unsubscribe", storyactions.HandleUnSubscription)
+	// For show insights link the product page
+	//router.Post("/products/{id:[0-9]+}/insights", storyactions.HandleInsights)
+	router.Get("/products/{id:[0-9]+}", storyactions.HandleShow)
+	router.Get("/products{format:(.xml)?}", storyactions.HandleIndex)
+	router.Get("/sitemap.xml", storyactions.HandleSiteMap)
+
+	// Add subscription routes for razorpay
+	/*	router.Get("/subscriptions/payment/{plan:.*}", payment.HandlePaymentShow)
+		router.Post("/subscriptions/payment/{id:[0-9]+}/success", payment.HandlePayment)
+		router.Post("/subscriptions/payment/razorpay/verification", subscriberactions.HandleRazorpayPaymentVerification)*/
+
+	// Add subscription routes for PayPal
+	/*	router.Get("/subscriptions/verification", subscriberactions.HandleVerificationShow)
+		router.Post("/subscriptions/verification", subscriberactions.HandleVerification)*/
+
+	// Add subscription routes for Stripe
+	router.Post("/subscriptions/create-checkout-session", subscriberactions.HandleCreateCheckoutSession)
+	router.Get("/payment/success", paymentactions.HandlePaymentSuccess)
+	router.Get("/payment/cancel", paymentactions.HandlePaymentCancel)
+	router.Post("/payment/webhook", paymentactions.HandleWebhook)
+	router.Post("/subscriptions/manage-billing", subscriberactions.HandleCustomerPortal)
+
+	/* 	router.Get("/comments", commentactions.HandleIndex)
+	   	router.Get("/comments/create", commentactions.HandleCreateShow)
+	   	router.Post("/comments/create", commentactions.HandleCreate)
+	   	router.Get("/comments/{id:[0-9]+}/update", commentactions.HandleUpdateShow)
+	   	router.Post("/comments/{id:[0-9]+}/update", commentactions.HandleUpdate)
+	   	router.Post("/comments/{id:[0-9]+}/destroy", commentactions.HandleDestroy)
+	   	router.Post("/comments/{id:[0-9]+}/upvote", commentactions.HandleUpvote)
+	   	router.Post("/comments/{id:[0-9]+}/downvote", commentactions.HandleDownvote)
+	   	router.Post("/comments/{id:[0-9]+}/flag", commentactions.HandleFlag)
+	   	router.Get("/comments/{id:[0-9]+}", commentactions.HandleShow)
+	*/
+	router.Get("/users", useractions.HandleIndex)
+	router.Post("/users/{id:[0-9]+}/destroy", useractions.HandleDestroy)
+	router.Get("/users/{id:[0-9]+}/password/change", useractions.HandlePasswordChangeShow)
+	router.Post("/users/{id:[0-9]+}/password/change", useractions.HandlePasswordChange)
+	router.Get("/users/{id:[0-9]+}", useractions.HandleShow)
+	router.Get("/u/{name:.*}", useractions.HandleShowName)
+	router.Get("/users/login", useractions.HandleLoginShow)
+	router.Post("/users/login", useractions.HandleLogin)
+	router.Post("/users/logout", useractions.HandleLogout)
+
+	// Set the default file handler
+	router.FileHandler = fileHandler
+	router.ErrorHandler = errHandler
+
+	// Add middleware
+	router.AddMiddleware(log.Middleware)
+	router.AddMiddleware(session.Middleware)
+	router.AddMiddleware(gzip.Middleware)
+	router.AddMiddleware(secure.Middleware)
+
+	return router
+}

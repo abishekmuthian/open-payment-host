@@ -1,0 +1,31 @@
+
+<form method="post" class="resource-update-form">
+  
+    <div class="inline-fields">
+    {{ if .currentUser.Admin }}
+    {{ select "Status" "status" .user.Status .user.StatusOptions }}
+    {{ select "Role" "role" .user.Role .user.RoleOptions }}
+    {{ end }}
+    {{ field "Email" "email" .user.Email "id='email'"}}
+    {{ field "Name" "name" .user.Name }}
+    {{ if .user.Notification }}
+    {{ field "Notification" "notification" "true" "checked" "type=checkbox"}}
+    {{ else }}
+    {{ field "Notification" "notification" "true" "type=checkbox"}}
+    {{ end }}
+    </div>
+
+    <div class="page-content clear">
+        <label>Profile</label>
+        {{ template "lib/editable/views/editable-toolbar.html.got"}}
+        <textarea name="summary" class="content-textarea" id="profile-content-textarea">{{.user.Summary}}</textarea>
+        <div contenteditable class="content-editable" id="profile-content-editable">{{html .user.Summary}}</div>
+    </div>
+    <span id="spnEditableCharLeft" class="characterLimit"></span>
+
+    <div class="actions clear">
+        <input type="submit" class="button small grey flag" value="Save">
+    </div>
+    
+    <input name="authenticity_token" type="hidden" value="{{.authenticity_token}}">
+</form>

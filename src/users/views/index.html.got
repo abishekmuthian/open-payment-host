@@ -1,0 +1,12 @@
+<article class="users padded">
+
+<ul class="users">
+  <li class="user">{{.count}} users, {{.adminsCount}} admins</li>
+    {{ $0 := . }}
+    {{ range $i,$m := .users }}
+      {{ set $0 "i" $i }}
+      {{ set $0 "user" $m }}
+      {{ template "users/views/row.html.got" $0 }}
+    {{ end }}
+</ul>
+</article>

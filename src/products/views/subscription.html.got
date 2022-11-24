@@ -1,0 +1,63 @@
+{{ $owner := (.story.OwnedBy .currentUser.ID) }}
+<article class="narrow subscription">
+    <h1>
+        Subscribe to the need gap, <a href="{{.story.DestinationURL}}" class="name">{{.story.NameDisplay}}</a>
+    </h1>
+    <br/>
+    <p>If you are seeking solution for this product (or) If you want deeper insights for this product, need gap, to understand whether
+    people really want this product to be solved.
+    </p>
+    <table>
+        <tr>
+            <th>Seeker</th>
+            <th>Ideator</th>
+        </tr>
+        <tr>
+            <td>Receive notifications of latest discussions</td>
+            <td>Receive notifications of latest discussions</td>
+
+        </tr>
+
+        <tr>
+            <td>Receive notification of top need gaps</td>
+            <td>Receive notification of top need gaps</td>
+        </tr>
+
+        <tr>
+            <td></td>
+            <td class="special-row">Show Insights for all products on open-payment-host with single subscription : Weekly views with top 3 countries, Monthly views with top 3 countries</td>
+        </tr>
+
+        <tr>
+        <td></td>
+        <td class="special-row">Receive monthly Insights for all subscribed products with single subscription</td>
+        </tr>
+
+        <tr>
+            <td></td>
+            <td class="special-row">'Ideator' flair near your name throughout the open-payment-host, to show appreciation.</td>
+        </tr>
+
+        <tr>
+            <td>
+                <div class="subscription_actions payment_button">
+                    <a href="/products/{{.story.ID}}/subscription/subscribe" method="post" class="button subscription">FREE</a>
+                </div>
+            </td>
+            <td>
+                <div class="subscription_actions payment_button">
+                    <button class="button checkout">{{.price}}</button>
+                </div>
+            </td>
+        </tr>
+
+    </table>
+    <br/>
+    <ul>
+        <li>Payment will be securely processed by Stripe. Billing name and address is required for verifying the card details by Stripe and for the tax invoice.</li>
+        <li>If you don't have an email ID attached to your open-payment-host profile,
+        The email ID you enter during payment would be added to your profile
+            which can be changed later in the profile settings.</li>
+    </ul>
+
+</article>

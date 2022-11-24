@@ -1,0 +1,13 @@
+<div class="flex items-center justify-center p-12">
+  <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
+    <h1 class="text-4xl font-medium">{{ .story.NameDisplay }}</h1>
+    <div class="prose lg:prose-xl">
+      {{ markup .story.Description }}
+    </div>
+    <div>
+      {{ range .story.Tags }}
+      <span class="badge badge-ghost badge-lg mt-2">{{.}}</span>
+      {{ end }}
+    </div>
+  </div>
+</div>

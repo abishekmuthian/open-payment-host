@@ -1,0 +1,6 @@
+# See http://www.robotstxt.org/wc/norobots.html
+# Spiders (uncomment to ban all)
+# User-Agent: *
+# Disallow: /
+
+Sitemap: https://open-payment-host.com/sitemap.xml

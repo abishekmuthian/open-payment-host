@@ -1,0 +1,35 @@
+<html>
+<head>
+    <title>open-payment-host Weekly Digest [Test]</title>
+</head>
+<body>
+<article>
+<h1>open-payment-host Weekly Digest</h1>
+
+<h2>Popular products</h2>
+{{ range .products }}
+<div class="story">
+  <h3><a href="{{root_url}}/{{.URLShow}}">{{.Name}}</a></h3>
+  <p><a href="{{.DestinationURL}}" class="domain">{{ .Domain }}</a></p>
+  <p>{{ sanitize .Summary}}</p>
+    <ul class="tags">
+         {{ range .Tags }}
+           <li style="display:inline;list-style:none;"><a href="{{root_url}}/products?q=%23{{.}}">{{.}}</a></li>
+         {{ end }}
+     </ul>
+</div>
+{{ end }}
+
+<h2>Jobs</h2>
+{{ range .jobs }}
+<div class="job story">
+  <h3><a href="{{root_url}}/{{.URLShow}}">{{.Name}}</a></h3>
+</div>
+{{ end }}
+
+</article>
+<footer>
+  <p>Sent from <a href="{{root_url}}">open-payment-host.com</a></p>
+</footer>  
+</body>
+</html>

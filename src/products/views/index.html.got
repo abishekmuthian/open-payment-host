@@ -1,0 +1,38 @@
+<ul class="products">
+  {{ $0 := . }}
+  <div class="flex items-center justify-center p-12">
+    <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
+      <h1 class="text-4xl font-medium">Products</h1>
+      <div class="overflow-x-auto mt-5">
+        <table class="table w-full">
+          <!-- head -->
+          <thead>
+            <tr>
+              <th>Id</th>
+              <th>Product Name</th>
+              <th>Subscribers</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{
+              range.products
+            }}
+            {{ set $0 "story" . }}
+            {{ template "products/views/row.html.got" $0 }}
+            {{
+              end
+            }}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{ if eq (len .products) 50 }}
+  <li class="more_link story">
+    <a href="?page={{add .page 1 }}">Show More</a>
+  </li>
+  {{
+    end
+  }}
+</ul>

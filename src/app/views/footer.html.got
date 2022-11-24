@@ -1,0 +1,3 @@
+  <div>
+    <p>Copyright © {{ .year }} - {{ .name }}</p>
+  </div>

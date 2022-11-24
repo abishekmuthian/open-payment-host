@@ -1,0 +1,6 @@
+<article class="narrow subscription">
+    <h1>Payment</h1>
+    <br/>
+    <p>Your payment for the subscription would be securely handled by Razorpay and can be cancelled at any time.</p>
+    <a href id="rzp-button1" class="button small">Pay 5USD</a>
+</article>

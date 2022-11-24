@@ -1,0 +1,70 @@
+package [[ .fragmenta_resource ]]actions
+
+import (
+	"net/http"
+
+	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
+	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server"
+	"github.com/abishekmuthian/open-payment-host/src/lib/view"
+
+	"github.com/abishekmuthian/open-payment-host/src/lib/session"
+	"github.com/abishekmuthian/open-payment-host/src/[[ .fragmenta_resources ]]"
+)
+
+// HandleCreateShow serves the create form via GET for [[ .fragmenta_resources ]].
+func HandleCreateShow(w http.ResponseWriter, r *http.Request) error {
+
+	[[ .fragmenta_resource ]] := [[ .fragmenta_resources ]].New()
+
+	// Authorise
+	err := can.Create([[ .fragmenta_resource ]], session.CurrentUser(w, r))
+	if err != nil {
+		return server.NotAuthorizedError(err)
+	}
+
+	// Render the template
+	view := view.NewRenderer(w, r)
+	view.AddKey("[[ .fragmenta_resource ]]", [[ .fragmenta_resource ]])
+	return view.Render()
+}
+
+// HandleCreate handles the POST of the create form for [[ .fragmenta_resources ]]
+func HandleCreate(w http.ResponseWriter, r *http.Request) error {
+
+	[[ .fragmenta_resource ]] := [[ .fragmenta_resources ]].New()
+
+	// Check the authenticity token
+	err := session.CheckAuthenticity(w, r)
+	if err != nil {
+		return err
+	}
+
+	// Authorise
+	err = can.Create([[ .fragmenta_resource ]], session.CurrentUser(w, r))
+	if err != nil {
+		return server.NotAuthorizedError(err)
+	}
+
+	// Setup context
+	params, err := mux.Params(r)
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	// Validate the params, removing any we don't accept
+	[[ .fragmenta_resource ]]Params := [[ .fragmenta_resource ]].ValidateParams(params.Map(), [[ .fragmenta_resources ]].AllowedParams())
+
+	id, err := [[ .fragmenta_resource ]].Create([[ .fragmenta_resource ]]Params)
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	// Redirect to the new [[ .fragmenta_resource ]]
+	[[ .fragmenta_resource ]], err = [[ .fragmenta_resources ]].Find(id)
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	return server.Redirect(w, r, [[ .fragmenta_resource ]].IndexURL())
+}

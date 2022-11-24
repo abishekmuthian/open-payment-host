@@ -1,0 +1,8 @@
+<article class="narrow story">
+    <h1>Email Required</h1>
+    <br/>
+    <p>Email ID is required to make use of the subscription features.
+    You can add your email ID by updating your profile.
+    </p>
+    <a href="/users/{{.currentUser.ID}}/update" class="button grey">UPDATE PROFILE</a>
+</article>

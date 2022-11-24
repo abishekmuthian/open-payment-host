@@ -1,0 +1,21 @@
+.subscription .subscription_actions{
+    margin: 0 0 0 0;
+}
+.subscription .subscription_actions .button {
+    margin: 0 0 0 1rem;
+}
+.subscription table {
+    font-family: Roboto, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.subscription td, .story th {
+    border: 1px solid #D32F2F;
+    text-align: left;
+    padding: 8px;
+}
+
+.subscription tr .special-row {
+    background-color: #dddddd;
+}
