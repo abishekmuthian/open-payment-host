@@ -127,6 +127,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 		texttoimage.TextToImage(name, ID)
 	} */
 
+	// Featured Image
 	for _, fh := range params.Files {
 
 		fileType := fh[0].Header.Get("Content-Type")
@@ -161,7 +162,12 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 			outFile, err := os.Create("public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", ID, filehelper.SanitizeName(name), "featured_image") + fileExtension)
 			if err != nil {
 				log.Error(log.V{"msg": "Image creation, Creating empty file", "error": err})
-				os.Exit(1)
+			} else {
+				storyParams["featured_image"] = "/assets/images/products/" + fmt.Sprintf("%d-%s-%s", ID, filehelper.SanitizeName(name), "featured_image") + fileExtension
+				err = story.Update(storyParams)
+				if err != nil {
+					return server.InternalError(err)
+				}
 			}
 			defer outFile.Close()
 

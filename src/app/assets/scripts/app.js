@@ -17,14 +17,26 @@ DOM.Ready(function() {
     // Clear Session Storage
     ClearSessionStorage();
 
-    //Initialize the editor
-    ActivateEditor();
+    // Manage the burger menu
+    ActivateBurgerMenu(); 
 });
 
-// Activate the tip-tap editor
-function ActivateEditor(){
+// Handles the burger menu for the mobile screens
+function ActivateBurgerMenu() {
 
+    DOM.On('#burger','click', function(e){
+        var burger = this;
+        const menu = DOM.First('#menu')
+
+        if (DOM.HasClass(menu, 'hidden')) {
+           DOM.RemoveClass(menu,'hidden')
+        }else{
+            DOM.AddClass(menu,'hidden')
+        }
+    })
 }
+
+
 
 // Perform AJAX post on click on method=post|delete anchors
 function ActivateMethodLinks() {

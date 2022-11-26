@@ -1,9 +1,10 @@
 package subscriptions
 
 import (
+	"time"
+
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
 	"github.com/abishekmuthian/open-payment-host/src/lib/resource"
-	"time"
 )
 
 const (
@@ -40,6 +41,7 @@ func NewWithColumns(cols map[string]interface{}) *Subscription {
 	subscription.SubscriptionId = resource.ValidateString(cols["subscr_id"])
 	subscription.UserId = resource.ValidateInt(cols["user_id"])
 	subscription.Plan = resource.ValidateString(cols["transaction_subject"])
+	subscription.ProductId = resource.ValidateInt(cols["item_number"])
 
 	return subscription
 }
@@ -66,6 +68,30 @@ func FindFirst(format string, args ...interface{}) (*Subscription, error) {
 
 // Find fetches a single subscription record from the database by id.
 func Find(id string) (*Subscription, error) {
+	result, err := Query().Where("subscr_id=?", id).FirstResult()
+	if err != nil {
+		return nil, err
+	}
+	return NewWithColumns(result), nil
+}
+
+// FindPayment fetches a single subscription record from the database by PaymentIntent id.
+func FindPayment(id string) (*Subscription, error) {
+	if id == "" {
+		return nil, nil
+	}
+	result, err := Query().Where("txn_id=?", id).FirstResult()
+	if err != nil {
+		return nil, err
+	}
+	return NewWithColumns(result), nil
+}
+
+// FindSubscription fetches a single subscription record from the database by Subscriber id.
+func FindSubscription(id string) (*Subscription, error) {
+	if id == "" {
+		return nil, nil
+	}
 	result, err := Query().Where("subscr_id=?", id).FirstResult()
 	if err != nil {
 		return nil, err

@@ -1,6 +1,9 @@
 package storyactions
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
@@ -12,8 +15,6 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
 	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
-	"net/http"
-	"strconv"
 )
 
 // HandleSubscriptionShow shows the subscriptions page by responding to the GET request
@@ -45,7 +46,6 @@ func HandleSubscriptionShow(w http.ResponseWriter, r *http.Request) error {
 	view.CacheKey(story.CacheKey())
 	view.AddKey("story", story)
 	view.AddKey("currentUser", currentUser)
-	view.AddKey("publishingKey", config.Get("stripe_key"))
 
 	clientCountry := r.Header.Get("CF-IPCountry")
 	log.Info(log.V{"Subscription, Client Country": clientCountry})
@@ -102,7 +102,7 @@ func HandleSubscription(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	//products.AddSubscribers(currentUser.ID,story.ID)
-	err = AddSubscribers(story.ID, currentUser.ID)
+	err = AddSubscribers(story.ID)
 
 	return server.Redirect(w, r, story.ShowURL())
 }
@@ -138,25 +138,26 @@ func HandleUnSubscription(w http.ResponseWriter, r *http.Request) error {
 		return server.NotAuthorizedError(err)
 	}
 
-	err = RemoveSubscribers(story.ID, currentUser.ID)
+	err = RemoveSubscribers(story.ID)
 
 	return server.Redirect(w, r, story.ShowURL())
 }
 
 // AddSubscribers adds subscribers to the product
-func AddSubscribers(productId int64, userId int64) error {
-	_, err := query.Exec("UPDATE products SET subscribers=array_append(subscribers, $1) WHERE id=$2", userId, productId)
+func AddSubscribers(productId int64) error {
+	_, err := query.Exec("UPDATE products SET subscribers= subscribers + 1 WHERE id=$1", productId)
 	return err
 }
 
 // RemoveSubscribers removes subscribers to the product
-func RemoveSubscribers(productId int64, userId int64) error {
-	_, err := query.Exec("UPDATE products SET subscribers=array_remove(subscribers, $1) WHERE id=$2", userId, productId)
+func RemoveSubscribers(productId int64) error {
+	_, err := query.Exec("UPDATE products SET subscribers= subscribers - 1 WHERE id=$1", productId)
 	return err
 }
 
 // Subscribed returns true or false depending upon when the user has subscribed to the product
-func Subscribed(productId int64, userId int64) (bool, error) {
+// FIX ME: Sqlite3 doesn't have Any
+/* func Subscribed(productId int64, userId int64) (bool, error) {
 	q := products.Query()
 
 	q.Where("? = ANY(subscribers)", userId).Where("id=?", productId)
@@ -166,7 +167,7 @@ func Subscribed(productId int64, userId int64) (bool, error) {
 		return true, nil
 	}
 	return false, err
-}
+} */
 
 // ListSubscriptions returns the list of subscriptions for the user
 func ListSubscriptions(userId int64) ([]*products.Story, error) {

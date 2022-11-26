@@ -1,11 +1,14 @@
 package paymentactions
 
 import (
+	"net/http"
+	"time"
+
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/stats"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
-	"net/http"
 )
 
 // HandlePaymentFailure handles the success routine of the payment
@@ -19,6 +22,9 @@ func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 	// Render the template
 	view := view.NewRenderer(w, r)
 	view.AddKey("currentUser", currentUser)
+	// Set the name and year
+	view.AddKey("name", config.Get("name"))
+	view.AddKey("year", time.Now().Year())
 
 	view.Template("payment/views/payment_cancel.html.got")
 

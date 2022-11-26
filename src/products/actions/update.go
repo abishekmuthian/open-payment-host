@@ -126,17 +126,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 	}
 	storyParams := story.ValidateParams(params.Map(), accepted)
 
-	err = story.Update(storyParams)
-	if err != nil {
-		return server.InternalError(err)
-	}
-
-	//Update featured image for other than default posts
-	// FIXME : Add error handling
-	/* 	if id > 5 && (file.SanitizeName(name) != file.SanitizeName(story.Name)) {
-		texttoimage.TextToImage(name, id)
-	} */
-
+	// Featured Image
 	for _, fh := range params.Files {
 
 		fileType := fh[0].Header.Get("Content-Type")
@@ -171,16 +161,25 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 			outFile, err := os.Create("public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", id, filehelper.SanitizeName(name), "featured_image") + fileExtension)
 			if err != nil {
 				log.Error(log.V{"msg": "Image creation, Creating empty file", "error": err})
-				os.Exit(1)
+			} else {
+				storyParams["featured_image"] = "/assets/images/products/" + fmt.Sprintf("%d-%s-%s", id, filehelper.SanitizeName(name), "featured_image") + fileExtension
 			}
 			defer outFile.Close()
 
 			outFile.Write(fileData)
-		} else {
-
 		}
-
 	}
+
+	err = story.Update(storyParams)
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	//Update featured image for other than default posts
+	// FIXME : Add error handling
+	/* 	if id > 5 && (file.SanitizeName(name) != file.SanitizeName(story.Name)) {
+		texttoimage.TextToImage(name, id)
+	} */
 
 	// Redirect to story
 	return server.Redirect(w, r, story.ShowURL())

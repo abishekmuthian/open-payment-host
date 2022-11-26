@@ -2,9 +2,10 @@
 package subscriptions
 
 import (
+	"time"
+
 	"github.com/abishekmuthian/open-payment-host/src/lib/resource"
 	"github.com/abishekmuthian/open-payment-host/src/lib/status"
-	"time"
 )
 
 // Subscription handles saving and retrieving users from the database
@@ -24,4 +25,5 @@ type Subscription struct {
 	SubscriptionId string
 	UserId         int64
 	Plan           string
+	ProductId      int64
 }

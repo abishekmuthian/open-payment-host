@@ -79,11 +79,6 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 
 	metaImage := config.Get("root_url") + "/assets/images/products/" + story.FileName() + ".png"
 
-	subscribed, err := Subscribed(story.ID, currentUser.ID)
-	if err != nil {
-		log.Error(log.V{"Show product, Error checking if the user has subscribed to the product": err})
-	}
-
 	// Render the template
 	view := view.NewRenderer(w, r)
 	view.CacheKey(story.CacheKey())
@@ -97,11 +92,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("meta_keywords", fmt.Sprintf("%s%s", MetaHashTag(story.GetHashTag()), config.Get("meta_keywords")))
 	// view.AddKey("comments", comments)
 	view.AddKey("currentUser", currentUser)
-	view.AddKey("subscribed", subscribed)
-	view.AddKey("publishingKey", config.Get("stripe_key"))
 
-	// To show the scripts in the show page
-	view.AddKey("loadTrixScript", true)
 	// Set the name and year
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
@@ -130,7 +121,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 		if p.Type == "recurring" {
 			view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+string(p.Recurring.Interval))
 		} else if p.Type == "one_time" {
-			view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency))
+			view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+"One Time")
 		}
 
 	}

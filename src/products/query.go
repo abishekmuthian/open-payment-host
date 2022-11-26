@@ -3,10 +3,6 @@ package products
 import (
 	"time"
 
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
-	"github.com/abishekmuthian/open-payment-host/src/users"
-
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/resource"
@@ -48,6 +44,7 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	story.Rank = resource.ValidateInt(cols["rank"])
 	story.Summary = resource.ValidateString(cols["summary"])
 	story.Description = resource.ValidateString(cols["description"])
+	story.FeaturedImage = resource.ValidateString(cols["featured_image"])
 	story.URL = resource.ValidateString(cols["url"])
 	story.DownloadURL = resource.ValidateString(cols["download_url"])
 	story.UserID = resource.ValidateInt(cols["user_id"])
@@ -67,17 +64,17 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 
 	//Flair
 	// FIXME - Create and join the flair column
-	storyOwner, err := users.Find(story.UserID)
-	if err == nil {
-		if storyOwner.Subscription {
-			if storyOwner.Plan == config.Get("subscription_plan_name") {
-				story.Flair = config.Get("subscription_plan_name_subscriber_flair")
-			}
-		}
-	} else {
-		log.Error(log.V{"Story query flair, Error finding story owner": err})
-	}
-
+	/* 	storyOwner, err := users.Find(story.UserID)
+	   	if err == nil {
+	   		if storyOwner.Subscription {
+	   			if storyOwner.Plan == config.Get("subscription_plan_name") {
+	   				story.Flair = config.Get("subscription_plan_name_subscriber_flair")
+	   			}
+	   		}
+	   	} else {
+	   		log.Error(log.V{"Story query flair, Error finding story owner": err})
+	   	}
+	*/
 	return story
 }
 

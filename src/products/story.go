@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	filehelper "github.com/abishekmuthian/open-payment-host/src/lib/model/file"
-
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/model/file"
@@ -25,15 +23,16 @@ type Story struct {
 	// status.ResourceStatus defines a status field and associated behaviour
 	status.ResourceStatus
 
-	Name         string
-	Summary      string
-	Description  string
-	URL          string
-	DownloadURL  string
-	UserID       int64
-	Points       int64
-	Rank         int64
-	CommentCount int64
+	Name          string
+	Summary       string
+	Description   string
+	FeaturedImage string
+	URL           string
+	DownloadURL   string
+	UserID        int64
+	Points        int64
+	Rank          int64
+	CommentCount  int64
 
 	// UserName denormalises the user name - pull from users join
 	UserName string
@@ -194,9 +193,10 @@ func (s *Story) NameDisplay() string {
 }
 
 // FeaturedImage returns the featured image of the story
-func (s *Story) FeaturedImage() string {
+// Not used since its now included in the database
+/* func (s *Story) FeaturedImage() string {
 	return "/assets/images/products/" + fmt.Sprintf("%d-%s-%s", s.ID, filehelper.SanitizeName(s.Name), "featured_image") + ".png"
-}
+} */
 
 // Tags are defined as words beginning with # in the title
 // TODO: for speed and clarity we could extract at submit time instead and store in db

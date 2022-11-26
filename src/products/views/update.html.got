@@ -103,7 +103,6 @@
           class="textarea w-full prose lg:prose-xl"
           name="price"
           placeholder='{"US":"price_1KlnKhSI4oTPH3MZmvAkvjiG","IN":"price_1KlnKhSI4oTPH3MZX9LVIZxb"}'
-          required
         >{{ .story.PriceJSON }}</textarea>
 
         <label class="label">

@@ -18,6 +18,7 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"github.com/stripe/stripe-go/v72"
 	stripesession "github.com/stripe/stripe-go/v72/checkout/session"
+	"github.com/stripe/stripe-go/v72/price"
 )
 
 func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
@@ -43,8 +44,20 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	req.Price = params.Get("priceId")
-	req.Product = params.Get("projectId")
+	req.Product = params.Get("productId")
 
+	successURL := stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
+	productID, err := strconv.ParseInt(req.Product, 10, 64)
+
+	if err == nil {
+		product, err := products.Find(productID)
+
+		if err == nil {
+			successURL = stripe.String(product.DownloadURL)
+		}
+	}
+
+	// Needed when using stripe JS
 	/*	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error(log.V{"Checkout json.NewDecoder.Decode: %v": err})
@@ -78,10 +91,30 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 	// the actual Session ID is returned in the query parameter when your customer
 	// is redirected to the success page.
 
-	// If the customer has email
-	var email *string = nil
-	if currentUser.Email != "" {
-		email = stripe.String(currentUser.Email)
+	// Subscription or One Time Payment
+	var mode *string
+	var taxRate []*string
+	var subscriptionData *stripe.CheckoutSessionSubscriptionDataParams
+
+	// Check if the price is recurring or one time
+	p, err := price.Get(req.Price, nil)
+
+	if err == nil {
+		log.Info(log.V{"Currency:": p.Currency})
+
+		if p.Type == "recurring" {
+			mode = stripe.String(string(stripe.CheckoutSessionModeSubscription))
+			subscriptionData = &stripe.CheckoutSessionSubscriptionDataParams{
+				DefaultTaxRates: stripe.StringSlice([]string{
+					config.Get("stripe_tax_rate_IN"),
+				}),
+			}
+		} else if p.Type == "one_time" {
+			mode = stripe.String(string(stripe.CheckoutSessionModePayment))
+			taxRate = stripe.StringSlice([]string{
+				config.Get("stripe_tax_rate_IN"),
+			})
+		}
 	}
 
 	clientCountry := r.Header.Get("CF-IPCountry")
@@ -101,200 +134,93 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
-	var customerId *string = nil
-	existingSubscription, err := subscriptions.FindCustomerId(currentUser.ID)
-	if existingSubscription != nil && err == nil {
-		customerId = &existingSubscription.CustomerId
-	}
-
 	if clientCountry == "IN" {
 		// If India, add tax ID
-		if customerId != nil {
-			params := &stripe.CheckoutSessionParams{
-				Customer:                 customerId,
-				BillingAddressCollection: stripe.String("required"),
-				CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/payment/cancel"),
-				LineItems: []*stripe.CheckoutSessionLineItemParams{
-					{
-						Price: stripe.String(req.Price),
-						// For metered billing, do not pass quantity
-						Quantity: stripe.Int64(1),
-					},
+		params := &stripe.CheckoutSessionParams{
+			BillingAddressCollection: stripe.String("required"),
+			CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/payment/cancel"),
+			LineItems: []*stripe.CheckoutSessionLineItemParams{
+				{
+					Price: stripe.String(req.Price),
+					// For metered billing, do not pass quantity
+					Quantity: stripe.Int64(1),
+					TaxRates: taxRate,
 				},
-				Mode: stripe.String(string(stripe.CheckoutSessionModeSubscription)),
-				PaymentMethodTypes: stripe.StringSlice([]string{
-					"card",
-				}),
-				SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
-					DefaultTaxRates: stripe.StringSlice([]string{
-						config.Get("stripe_tax_rate_IN"),
-					}),
-				},
-				SuccessURL: stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}"),
-			}
-			params.AddMetadata("user_id", strconv.FormatInt(currentUser.ID, 10))
-			params.AddMetadata("user_name", currentUser.Name)
+			},
+			Mode: mode,
+			PaymentMethodTypes: stripe.StringSlice([]string{
+				"card",
+			}),
+			SubscriptionData: subscriptionData,
 
-			params.AddMetadata("plan", story.Name)
-
-			if req.Product != "" {
-				params.AddMetadata("product_id", req.Product)
-			}
-
-			s, err := stripesession.New(params)
-			if err != nil {
-				return server.InternalError(err)
-				// Needed when using stripe JS
-				/*			w.WriteHeader(http.StatusBadRequest)
-							writeJSON(w, nil, err)
-							return nil*/
-			}
-
-			// Needed when using stripe JS
-			/*		writeJSON(w, struct {
-						SessionID string `json:"sessionId"`
-					}{
-						SessionID: s.ID,
-					}, nil)*/
-
-			// Then redirect to the URL on the Checkout Session
-			http.Redirect(w, r, s.URL, http.StatusSeeOther)
-		} else {
-			params := &stripe.CheckoutSessionParams{
-				BillingAddressCollection: stripe.String("required"),
-				CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/payment/cancel"),
-				LineItems: []*stripe.CheckoutSessionLineItemParams{
-					{
-						Price: stripe.String(req.Price),
-						// For metered billing, do not pass quantity
-						Quantity: stripe.Int64(1),
-					},
-				},
-				CustomerEmail: email,
-				Mode:          stripe.String(string(stripe.CheckoutSessionModeSubscription)),
-				PaymentMethodTypes: stripe.StringSlice([]string{
-					"card",
-				}),
-				SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
-					DefaultTaxRates: stripe.StringSlice([]string{
-						config.Get("stripe_tax_rate_IN"),
-					}),
-				},
-				SuccessURL: stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}"),
-			}
-			params.AddMetadata("user_id", strconv.FormatInt(currentUser.ID, 10))
-			params.AddMetadata("user_name", currentUser.Name)
-
-			params.AddMetadata("plan", story.Name)
-
-			if req.Product != "" {
-				params.AddMetadata("product_id", req.Product)
-			}
-
-			s, err := stripesession.New(params)
-			if err != nil {
-				/*			w.WriteHeader(http.StatusBadRequest)
-							writeJSON(w, nil, err)
-							return nil*/
-				return server.InternalError(err)
-			}
-			// Needed when using stripe JS
-			/*		writeJSON(w, struct {
-						SessionID string `json:"sessionId"`
-					}{
-						SessionID: s.ID,
-					}, nil)*/
-			// Then redirect to the URL on the Checkout Session
-			http.Redirect(w, r, s.URL, http.StatusSeeOther)
+			SuccessURL: successURL,
 		}
+
+		params.AddMetadata("plan", story.NameDisplay())
+
+		if req.Product != "" {
+			params.AddMetadata("product_id", req.Product)
+		}
+
+		s, err := stripesession.New(params)
+		if err != nil {
+			// Needed when using stripe JS
+			/*			w.WriteHeader(http.StatusBadRequest)
+						writeJSON(w, nil, err)
+						return nil*/
+			return server.InternalError(err)
+		}
+		// Needed when using stripe JS
+		/*		writeJSON(w, struct {
+					SessionID string `json:"sessionId"`
+				}{
+					SessionID: s.ID,
+				}, nil)*/
+		// Then redirect to the URL on the Checkout Session
+		http.Redirect(w, r, s.URL, http.StatusSeeOther)
+
 	} else {
 		// No Tax ID for rest of the world
-		if customerId != nil {
-			params := &stripe.CheckoutSessionParams{
-				Customer:                 customerId,
-				BillingAddressCollection: stripe.String("required"),
-				SuccessURL:               stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}"),
-				CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/payment/cancel"),
-				PaymentMethodTypes: stripe.StringSlice([]string{
-					"card",
-				}),
-				Mode: stripe.String(string(stripe.CheckoutSessionModeSubscription)),
-				LineItems: []*stripe.CheckoutSessionLineItemParams{
-					{
-						Price: stripe.String(req.Price),
-						// For metered billing, do not pass quantity
-						Quantity: stripe.Int64(1),
-					},
+		params := &stripe.CheckoutSessionParams{
+			BillingAddressCollection: stripe.String("required"),
+			SuccessURL:               successURL,
+			CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/payment/cancel"),
+			PaymentMethodTypes: stripe.StringSlice([]string{
+				"card",
+			}),
+			Mode: mode,
+			LineItems: []*stripe.CheckoutSessionLineItemParams{
+				{
+					Price: stripe.String(req.Price),
+					// For metered billing, do not pass quantity
+					Quantity: stripe.Int64(1),
 				},
-			}
-			params.AddMetadata("user_id", strconv.FormatInt(currentUser.ID, 10))
-			params.AddMetadata("user_name", currentUser.Name)
-
-			params.AddMetadata("plan", story.Name)
-
-			if req.Product != "" {
-				params.AddMetadata("product_id", req.Product)
-			}
-
-			s, err := stripesession.New(params)
-			if err != nil {
-				/*			w.WriteHeader(http.StatusBadRequest)
-							writeJSON(w, nil, err)
-							return nil*/
-				return server.InternalError(err)
-			}
-			// Needed when using stripe JS
-			/*		writeJSON(w, struct {
-						SessionID string `json:"sessionId"`
-					}{
-						SessionID: s.ID,
-					}, nil)*/
-			// Then redirect to the URL on the Checkout Session
-			http.Redirect(w, r, s.URL, http.StatusSeeOther)
-
-		} else {
-			params := &stripe.CheckoutSessionParams{
-				BillingAddressCollection: stripe.String("required"),
-				SuccessURL:               stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}"),
-				CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/payment/cancel"),
-				PaymentMethodTypes: stripe.StringSlice([]string{
-					"card",
-				}),
-				Mode: stripe.String(string(stripe.CheckoutSessionModeSubscription)),
-				LineItems: []*stripe.CheckoutSessionLineItemParams{
-					{
-						Price: stripe.String(req.Price),
-						// For metered billing, do not pass quantity
-						Quantity: stripe.Int64(1),
-					},
-				},
-				CustomerEmail: email,
-			}
-			params.AddMetadata("user_id", strconv.FormatInt(currentUser.ID, 10))
-			params.AddMetadata("user_name", currentUser.Name)
-
-			params.AddMetadata("plan", story.Name)
-
-			if req.Product != "" {
-				params.AddMetadata("product_id", req.Product)
-			}
-
-			s, err := stripesession.New(params)
-			if err != nil {
-				/*			w.WriteHeader(http.StatusBadRequest)
-							writeJSON(w, nil, err)
-							return nil*/
-				return server.InternalError(err)
-			}
-			// Needed when using stripe JS
-			/*		writeJSON(w, struct {
-						SessionID string `json:"sessionId"`
-					}{
-						SessionID: s.ID,
-					}, nil)*/
-			// Then redirect to the URL on the Checkout Session
-			http.Redirect(w, r, s.URL, http.StatusSeeOther)
+			},
 		}
+
+		params.AddMetadata("plan", story.NameDisplay())
+
+		if req.Product != "" {
+			params.AddMetadata("product_id", req.Product)
+		}
+
+		s, err := stripesession.New(params)
+		if err != nil {
+			// Needed when using stripe JS
+			/*			w.WriteHeader(http.StatusBadRequest)
+						writeJSON(w, nil, err)
+						return nil*/
+			return server.InternalError(err)
+		}
+		// Needed when using stripe JS
+		/*		writeJSON(w, struct {
+					SessionID string `json:"sessionId"`
+				}{
+					SessionID: s.ID,
+				}, nil)*/
+		// Then redirect to the URL on the Checkout Session
+		http.Redirect(w, r, s.URL, http.StatusSeeOther)
+
 	}
 
 	return err
