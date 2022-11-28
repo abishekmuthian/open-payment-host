@@ -26,9 +26,9 @@ func SetupRoutes() *mux.Mux {
 
 	// Add a route to handle static files
 	router.Get("/favicon.ico", fileHandler)
-	router.Get("/icons/{path:.*}", fileHandler)
 	router.Get("/files/{path:.*}", fileHandler)
 	router.Get("/assets/{path:.*}", fileHandler)
+	router.Get("/assets/icons/{path:.*}", fileHandler)
 
 	// Resource Routes
 

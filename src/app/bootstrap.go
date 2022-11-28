@@ -82,7 +82,7 @@ func generateConfig(projectPath string) error {
 		"meta_title":                  "Sell what you want without paying commissions",
 		"meta_desc":                   "Sell Subscriptions, Newsletters, Digital Files without paying commissions.",
 		"meta_keywords":               "payments,subscription,projects,products",
-		"meta_image":                  "https://open-payment-host.com/assets/images/app/oph_featured_image.png",
+		"meta_image":                  "/assets/images/app/oph_featured_image.png",
 		"port":                        "3000",
 		"root_url":                    "http://localhost:3000",
 		"session_name":                "open_payment_host_session",

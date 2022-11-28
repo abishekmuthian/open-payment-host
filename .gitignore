@@ -16,3 +16,4 @@ oph.db*
 package-lock.json
 package.json
 __debug_bin
+*_test.go
