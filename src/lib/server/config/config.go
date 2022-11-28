@@ -56,7 +56,8 @@ func (c *Config) Load(path string) error {
 		return fmt.Errorf("error reading config %s %v", path, err)
 	}
 
-	if len(data) < 3 {
+	// If there's test config check for 3, Now its 2
+	if len(data) < 2 {
 		return fmt.Errorf("error reading config - not enough configs, got :%d expected 3", len(data))
 	}
 

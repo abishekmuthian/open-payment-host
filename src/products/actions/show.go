@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
-	"github.com/abishekmuthian/open-payment-host/src/lib/stats"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
@@ -27,7 +26,6 @@ import (
 
 // HandleShow displays a single story.
 func HandleShow(w http.ResponseWriter, r *http.Request) error {
-	stats.RegisterHit(r)
 
 	// Fetch the  params
 	params, err := mux.Params(r)
@@ -97,33 +95,39 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
 
-	clientCountry := r.Header.Get("CF-IPCountry")
-	log.Info(log.V{"Subscription, Client Country": clientCountry})
-	if !config.Production() {
-		// There will be no CF request header in the development/test
-		clientCountry = config.Get("subscription_client_country")
-	}
+	// Set subscribe button if price is set
 
-	priceId := story.Price[clientCountry]
-
-	log.Info(log.V{"Price ID: ": priceId})
-
-	stripe.Key = config.Get("stripe_secret")
-
-	p, err := price.Get(priceId, nil)
-
-	if err == nil {
-
-		log.Info(log.V{"Currency:": p.Currency})
-
-		view.AddKey("priceId", priceId)
-
-		if p.Type == "recurring" {
-			view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+string(p.Recurring.Interval))
-		} else if p.Type == "one_time" {
-			view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+"One Time")
+	if story.PriceJSON != "" {
+		clientCountry := r.Header.Get("CF-IPCountry")
+		log.Info(log.V{"Subscription, Client Country": clientCountry})
+		if !config.Production() {
+			// There will be no CF request header in the development/test
+			clientCountry = config.Get("subscription_client_country")
 		}
 
+		priceId := story.Price[clientCountry]
+
+		log.Info(log.V{"Price ID: ": priceId})
+
+		stripe.Key = config.Get("stripe_secret")
+
+		p, err := price.Get(priceId, nil)
+
+		if err == nil {
+
+			log.Info(log.V{"Currency:": p.Currency})
+
+			view.AddKey("priceId", priceId)
+
+			if p.Type == "recurring" {
+				view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+string(p.Recurring.Interval))
+			} else if p.Type == "one_time" {
+				view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+"One Time")
+			}
+		}
+		view.AddKey("showSubscribe", true)
+	} else {
+		view.AddKey("showSubscribe", false)
 	}
 
 	return view.Render()

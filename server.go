@@ -18,6 +18,15 @@ func main() {
 
 	mu := &sync.RWMutex{}
 
+	// Bootstrap if required (no config file found).
+	if app.RequiresBootStrap() {
+		err := app.Bootstrap(mu)
+		if err != nil {
+			fmt.Printf("Error bootstrapping server %s\n", err)
+			return
+		}
+	}
+
 	// Setup our server
 	server, err := SetupServer(mu)
 	if err != nil {

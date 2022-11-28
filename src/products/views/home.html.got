@@ -7,7 +7,7 @@
     </div>
   </div>
 </div>
-  <div class="mt-8 grid lg:grid-cols-3 gap-10">
+  <div class="mt-8 grid  gap-10 lg:grid-cols-3">
     {{ range $index, $value := .products }}
       {{ set $0 "story" $value }}
       {{ template "products/views/card.html.got" $0 }}      

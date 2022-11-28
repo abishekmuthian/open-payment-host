@@ -6,27 +6,26 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
-	"github.com/abishekmuthian/open-payment-host/src/lib/query"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
-	"github.com/abishekmuthian/open-payment-host/src/lib/session"
-	"github.com/abishekmuthian/open-payment-host/src/lib/stats"
-	"github.com/abishekmuthian/open-payment-host/src/lib/view"
-	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
+	"github.com/abishekmuthian/open-payment-host/src/lib/query"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
+	"github.com/abishekmuthian/open-payment-host/src/lib/session"
+	"github.com/abishekmuthian/open-payment-host/src/lib/view"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
+
 	"github.com/abishekmuthian/open-payment-host/src/lib/paypal"
 )
 
 // HandleVerificationShow shows the subscriptions page by responding to the GET request
 func HandleVerificationShow(w http.ResponseWriter, r *http.Request) error {
-	stats.RegisterHit(r)
 
 	var verificationTitle, verificationMessage string
 

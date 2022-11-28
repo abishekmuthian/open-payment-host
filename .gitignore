@@ -13,3 +13,6 @@ open-payment-host
 .vscode
 node_modules
 oph.db*
+package-lock.json
+package.json
+__debug_bin

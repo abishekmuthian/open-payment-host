@@ -7,13 +7,11 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
-	"github.com/abishekmuthian/open-payment-host/src/lib/stats"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
 )
 
 // HandlePaymentFailure handles the success routine of the payment
 func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
-	stats.RegisterHit(r)
 
 	// Authorise
 	currentUser := session.CurrentUser(w, r)

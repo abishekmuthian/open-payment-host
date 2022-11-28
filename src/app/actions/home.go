@@ -19,7 +19,6 @@ import (
 // used for the home page for gravity rank see votes.go
 // responds to GET /
 func HandleHome(w http.ResponseWriter, r *http.Request) error {
-	stats.RegisterHit(r)
 
 	// FIXME listLimit should be int64 to reflect page, so needs changes in query limit
 	const listLimit = 3
@@ -28,7 +27,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) error {
 	q := products.Query().Limit(listLimit)
 
 	// Select only above 0 points and status is null or not suspended or in draft,  Order by rank, then points, then name
-	q.Where("points > 0").Order("points desc")
+	q.Where("points > 0").Order("points desc, points desc")
 
 	// Fetch the  params
 	params, err := mux.Params(r)

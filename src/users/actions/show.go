@@ -5,7 +5,6 @@ import (
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/lib/stats"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
@@ -18,8 +17,6 @@ import (
 
 // HandleShow displays a single user.
 func HandleShow(w http.ResponseWriter, r *http.Request) error {
-	stats.RegisterHit(r)
-
 	// No authorisation on user show
 
 	// Fetch the  params
