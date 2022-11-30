@@ -84,6 +84,7 @@ func generateConfig(projectPath string) error {
 		"meta_keywords":               "payments,subscription,projects,products",
 		"meta_image":                  "/assets/images/app/oph_featured_image.png",
 		"port":                        "3000",
+		"domain":                      "localhost",
 		"root_url":                    "http://localhost:3000",
 		"session_name":                "open_payment_host_session",
 		"admin_email":                 "test@test.com",

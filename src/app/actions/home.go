@@ -21,7 +21,7 @@ import (
 func HandleHome(w http.ResponseWriter, r *http.Request) error {
 
 	// FIXME listLimit should be int64 to reflect page, so needs changes in query limit
-	const listLimit = 3
+	const listLimit = 9
 
 	// Build a query
 	q := products.Query().Limit(listLimit)

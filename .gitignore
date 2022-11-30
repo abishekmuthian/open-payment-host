@@ -8,7 +8,7 @@ vendor
 secrets/*
 public/assets/scripts/app-*
 public/assets/styles/app-*
-public/assets/images/projects/*
+public/assets/images/products/*
 open-payment-host
 .vscode
 node_modules

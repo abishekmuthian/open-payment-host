@@ -67,7 +67,7 @@ func (s *Story) Domain() string {
 		return s.URL
 	}
 
-	return "openpaymenthost"
+	return config.Get("domain")
 }
 
 // ShowAsk returns true if this is a Show: or Ask: story

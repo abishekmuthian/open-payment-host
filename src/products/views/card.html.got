@@ -1,16 +1,18 @@
-<div class="card md:w-96 bg-base-100 shadow-xl">
-    <figure class="px-10 pt-10"><img src="{{ .story.FeaturedImage }}" alt="Featured image of the post" /></figure>
+<div class="card w-80 shadow-xl bg-base-100">
+  <a href="{{ .story.DestinationURL }}">
+    <figure class="pt-10"><img src="{{ .story.FeaturedImage }}" alt="Featured image of the post" /></figure>
     <div class="card-body">
       <h2 class="card-title">
         {{.story.NameDisplay}}
       </h2>
       <p>{{ .story.Summary }}</p>
-      <div class=" card-actionsjustify-end">
+      <div class="card-actionsjustify-end">
         {{ range .story.Tags }}
         <span class="badge badge-ghost badge-sm">{{.}}</span>
         {{ end }}
+      </div>
     </div>
-    </div>
-  </div>
+  </a>  
+</div>
 
 
