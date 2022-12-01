@@ -92,7 +92,7 @@ func SetupDefaultUser() {
 
 		if strings.Contains(err.Error(), "No results found") {
 			log.Info(log.V{"App": "Creating admin user..."})
-			useractions.HandleCreate(config.Get("admin_email"), config.Get("default_admin_password"))
+			useractions.HandleCreate(config.Get("admin_email"), config.Get("admin_default_password"))
 			if err != nil {
 				log.Error(log.V{"App, Error creating admin user": err})
 			}
@@ -103,7 +103,7 @@ func SetupDefaultUser() {
 
 	if config.Get("reset_admin") == "true" {
 		log.Info(log.V{"App": "Resetting the email and password of the admin to default credentials"})
-		useractions.HandleUpdate(1, config.Get("admin_email"), config.Get("default_admin_password"))
+		useractions.HandleUpdate(1, config.Get("admin_email"), config.Get("admin_default_password"))
 	}
 
 }

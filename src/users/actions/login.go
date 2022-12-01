@@ -170,7 +170,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	log.Info(log.V{"msg": "login", "user_email": user.Email, "user_name": user.Name, "user_id": user.ID})
 
 	// Check if the default password wasn't changed
-	err = auth.CheckPassword(config.Get("default_admin_password"), user.PasswordHash)
+	err = auth.CheckPassword(config.Get("admin_default_password"), user.PasswordHash)
 	if err == nil {
 		return server.Redirect(w, r, "/users/"+strconv.FormatInt(user.ID, 10)+"/password/change")
 	}

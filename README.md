@@ -36,16 +36,18 @@ More features are being added every day.
 Note: Open Payment Host can be tested without fulfilling above requirements, But payments and adding subscribers to the list wouldn't work.
 
 ### Docker
-Open Payment Host docker image can be download here -  
+Open Payment Host docker image is available at [abishekmuthian/open-payment-host:latest-slim]()
 
-Use docker-compose in the root to run the image.
+Use docker-compose in the open-payment-host folder to run the image.
 
 ```
+$ docker pull abishekmuthian/open-payment-host:latest
+
 $ git clone https://github.com/abishekmuthian/open-payment-host.git
 
 $ cd open-payment-host
 
-$ 
+$ docker-compose up
 ```
 
 

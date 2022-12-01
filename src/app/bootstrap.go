@@ -88,7 +88,7 @@ func generateConfig(projectPath string) error {
 		"root_url":                    "http://localhost:3000",
 		"session_name":                "open_payment_host_session",
 		"admin_email":                 "test@test.com",
-		"default_admin_password":      "OpenPaymentHost",
+		"admin_default_password":      "OpenPaymentHost",
 		"reset_admin":                 "false",
 		"turnstile_site_key":          "1x00000000000000000000AA",
 		"turnstile_secret_key":        "1x0000000000000000000000000000000AA",

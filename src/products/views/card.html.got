@@ -1,6 +1,6 @@
 <div class="card w-80 shadow-xl bg-base-100">
   <a href="{{ .story.DestinationURL }}">
-    <figure class="pt-10"><img src="{{ .story.FeaturedImage }}" alt="Featured image of the post" /></figure>
+    <figure><img src="{{ .story.FeaturedImage }}" alt="Featured image of the post" /></figure>
     <div class="card-body">
       <h2 class="card-title">
         {{.story.NameDisplay}}

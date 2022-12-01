@@ -1,4 +1,4 @@
-.DS_Store
+**.DS_Store
 *-workspace
 bin/*
 db/backup/*
@@ -8,7 +8,7 @@ vendor
 secrets/*
 public/assets/scripts/app-*
 public/assets/styles/app-*
-public/assets/images/projects/*
+public/assets/images/products/*
 open-payment-host
 .vscode
 node_modules
@@ -17,3 +17,5 @@ package-lock.json
 package.json
 __debug_bin
 *_test.go
+**.git
+**.cache

@@ -1,12 +1,14 @@
-version: '3.5'
+version: '3.8'
 
 services:
   oph:
     build: ${PWD}
     image: abishekmuthian/open-payment-host
     container_name: oph-container
-    command: /open-payment-host
     ports:
       - '3000:3000'
     volumes:
-      - ${PWD}:/build
+      - ${PWD}:/home/default/build
+      - /home/default/build/exec
+    command: /home/default/build/exec/open-payment-host
+        
