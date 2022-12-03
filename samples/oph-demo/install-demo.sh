@@ -34,7 +34,7 @@ setup_db(){
 }
 
 setup_containers() {
-	#curl -o docker-compose.yml https://github.com/abishekmuthian/open-payment-host/master/samples/oph-demo/docker-compose.yml
+	curl -o docker-compose.yml https://github.com/abishekmuthian/open-payment-host/master/samples/oph-demo/docker-compose.yml
 	docker-compose up -d
 }
 
