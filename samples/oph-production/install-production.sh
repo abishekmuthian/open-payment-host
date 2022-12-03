@@ -38,12 +38,14 @@ setup_env(){
 setup_db(){
 	cd db
 	curl -o Create-Tables.sql https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/db/Create-Tables.sql
+    cd ..
 }
 
 setup_images(){
 	curl -o favicon.ico https://raw.githubusercontent.com/abishekmuthian/open-payment-host/blob/main/public/favicon.ico
     cd public/assets/images/app
 	curl -o favicon.ico https://raw.githubusercontent.com/abishekmuthian/open-payment-host/blob/main/public/assets/images/app/oph_featured_image.png
+    cd -
 }
 
 setup_containers() {

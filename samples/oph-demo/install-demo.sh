@@ -31,6 +31,7 @@ setup_folders(){
 setup_db(){
 	cd db
 	curl -o Create-Tables.sql https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/db/Create-Tables.sql
+	cd ..
 }
 
 setup_containers() {
