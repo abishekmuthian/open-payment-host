@@ -30,11 +30,11 @@ setup_folders(){
 
 setup_db(){
 	cd db
-	curl -o Create-Tables.sql https://github.com/abishekmuthian/open-payment-host/blob/main/db/Create-Tables.sql
+	curl -o Create-Tables.sql https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/db/Create-Tables.sql
 }
 
 setup_containers() {
-	curl -o docker-compose.yml https://github.com/abishekmuthian/open-payment-host/master/samples/oph-demo/docker-compose.yml
+	curl -o docker-compose.yml https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/samples/oph-demo/docker-compose.yml
 	docker-compose up -d
 }
 

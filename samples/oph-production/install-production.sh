@@ -32,22 +32,22 @@ setup_folders(){
 }
 
 setup_env(){
-	curl -o fragmenta.env https://github.com/abishekmuthian/open-payment-host/blob/main/db/fragmenta.env
+	curl -o fragmenta.env https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/samples/oph-production/fragmenta.env
 }
 
 setup_db(){
 	cd db
-	curl -o Create-Tables.sql https://github.com/abishekmuthian/open-payment-host/blob/main/db/Create-Tables.sql
+	curl -o Create-Tables.sql https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/db/Create-Tables.sql
 }
 
 setup_images(){
-	curl -o favicon.ico https://github.com/abishekmuthian/open-payment-host/blob/main/public/favicon.ico
+	curl -o favicon.ico https://raw.githubusercontent.com/abishekmuthian/open-payment-host/blob/main/public/favicon.ico
     cd public/assets/images/app
-	curl -o favicon.ico https://github.com/abishekmuthian/open-payment-host/blob/main/public/assets/images/app/oph_featured_image.png
+	curl -o favicon.ico https://raw.githubusercontent.com/abishekmuthian/open-payment-host/blob/main/public/assets/images/app/oph_featured_image.png
 }
 
 setup_containers() {
-	curl -o docker-compose.yml https://github.com/abishekmuthian/open-payment-host/main/samples/oph-production/docker-compose.yml
+	curl -o docker-compose.yml https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/samples/oph-production/docker-compose.yml
 	docker-compose --env-file fragmenta.env up -d
 }
 
