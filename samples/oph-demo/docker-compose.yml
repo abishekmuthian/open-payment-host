@@ -9,3 +9,6 @@ services:
       - '3000:3000'
     volumes:
       - ${PWD}/secrets:/home/default/build/secrets
+      - ${PWD}/db:/home/default/build/db
+      - ${PWD}/log:/home/default/build/log
+      - ${PWD}/public/assets/images/products:/home/default/build/public/assets/images/products

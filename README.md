@@ -5,7 +5,7 @@
 Sell Subscriptions, Newsletters, Digital Files without paying commissions.
 
 ## What
-Open Payment Host is a easy to run self-hosted, minimalist Payments Host through which we can easily sell our digital items without paying double commissions while owning our data.
+Open Payment Host is an easy to run self-hosted, minimalist Payments Host through which we can easily sell our digital items without paying double commissions while having total control over our sales and data.
 
 ## Why
 Selling digital items on web as an indie now requires using platforms where we have to pay double commissions(to the platform and the payment gateway) and our content is forever locked within those platforms.
@@ -36,18 +36,33 @@ More features are being added every day.
 Note: Open Payment Host can be tested without fulfilling above requirements, But payments and adding subscribers to the list wouldn't work.
 
 ### Docker
-Open Payment Host docker image is available at [abishekmuthian/open-payment-host:latest-slim]()
+The latest image is available on DockerHub at [`abishekmuthian/open-payment-host:latest`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest).
 
-Use docker-compose in the open-payment-host folder to run the image.
+The latest slimmed image is available on DockerHub at [`abishekmuthian/open-payment-host:latest-slim`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest-slim)
 
+#### Slim.AI container page
+
+
+#### Demo
+
+```bash
+mkdir oph-demo && cd oph-demo
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/samples/oph-demo/install-demo.sh)"
 ```
-$ docker pull abishekmuthian/open-payment-host:latest
 
-$ git clone https://github.com/abishekmuthian/open-payment-host.git
+Visit `http://localhost:3000`.
 
-$ cd open-payment-host
+DO NOT use this demo setup in production.
 
-$ docker-compose up
+#### Production
+
+It's recommended to try the demo application first before using the production application. The production application requires special config variables detailed in the configuration section.
+
+```bash
+mkdir oph-production && cd oph-production
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/samples/oph-production/install-production.sh)"
 ```
+Visit `http://localhost:443`.
+
 
 

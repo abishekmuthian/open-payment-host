@@ -6,9 +6,10 @@ services:
     container_name: oph-container
     command: /home/default/build/exec/open-payment-host
     ports:
-      - '3000:3000'
+      - '443:443'
     volumes:
       - ${PWD}/secrets:/home/default/build/secrets
+      - ${PWD}/certs:/home/default/build/certs
       - ${PWD}/public/favicon.ico:/home/default/build/public/favicon.ico
       - ${PWD}/public/assets/images/app/oph_featured_image.png:/home/default/build/public/assets/images/app/oph_featured_image.png
       - ${PWD}/public/assets/images/icons:/home/default/build/public/assets/images/icons

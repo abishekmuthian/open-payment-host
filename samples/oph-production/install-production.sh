@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-# Open Payment Host demo setup using `docker-compose`.
+# Open Payment Host production setup using `docker-compose`.
 # See https://github.com/abishekmuthian/open-payment-host for detailed installation steps.
 
 check_dependencies() {
@@ -25,9 +25,14 @@ setup_folders(){
 	mkdir secrets
 	mkdir db
 	mkdir log
+	mkdir certs
 	mkdir --p public/assets/icons
 	mkdir --p public/assets/images/app
 	mkdir --p public/assets/images/products
+}
+
+setup_env(){
+	curl -o fragmenta.env https://github.com/abishekmuthian/open-payment-host/blob/main/db/fragmenta.env
 }
 
 setup_db(){
@@ -43,16 +48,17 @@ setup_images(){
 
 setup_containers() {
 	curl -o docker-compose.yml https://github.com/abishekmuthian/open-payment-host/main/samples/oph-production/docker-compose.yml
-	docker-compose up -d
+	docker-compose --env-file fragmenta.env up -d
 }
 
 show_output(){
-	echo -e "\nOpen Payment Host is now up and running. Visit http://localhost:3000 in your browser.\n"
+	echo -e "\nOpen Payment Host is now up and running. Visit http://localhost:443 in your browser.\n"
 }
 
 
 check_dependencies
 setup_folders
+setup_env
 setup_db
 setup_images
 setup_containers

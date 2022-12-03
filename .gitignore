@@ -9,6 +9,7 @@ secrets/*
 public/assets/scripts/app-*
 public/assets/styles/app-*
 public/assets/images/products/*
+exec/*
 open-payment-host
 .vscode
 node_modules

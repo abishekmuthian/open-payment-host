@@ -21,12 +21,20 @@ check_dependencies() {
 	fi
 }
 
-setup_secrets() {
+setup_folders(){
 	mkdir secrets
+	mkdir db
+	mkdir log
+	mkdir --p public/assets/images/products
+}
+
+setup_db(){
+	cd db
+	curl -o Create-Tables.sql https://github.com/abishekmuthian/open-payment-host/blob/main/db/Create-Tables.sql
 }
 
 setup_containers() {
-	curl -o docker-compose.yml https://github.com/abishekmuthian/open-payment-host/master/samples/oph-demo/docker-compose.yml
+	#curl -o docker-compose.yml https://github.com/abishekmuthian/open-payment-host/master/samples/oph-demo/docker-compose.yml
 	docker-compose up -d
 }
 
@@ -36,6 +44,7 @@ show_output(){
 
 
 check_dependencies
-setup_secrets
+setup_folders
+setup_db
 setup_containers
 show_output
