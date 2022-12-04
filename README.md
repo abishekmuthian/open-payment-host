@@ -65,8 +65,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/abishekmuthian/open-paymen
 
 Visit `http://localhost:3000`.
 
-DO NOT use this demo setup in production.
-
+Demo version prints more detailed level of errors if any, DO NOT use this demo setup in production.
 
 **Login**:
 
