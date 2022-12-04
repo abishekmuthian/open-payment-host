@@ -149,6 +149,8 @@ npx tailwindcss -i tailwind/tailwind.css src/app/assets/styles/app.css --watch
 ## Slim AI
 Open Payment Host uses [slim.ai](https://slim.ai) to secure, harden and reduce the size of the container.
 
+You can use the following tools to explore Open Payment Host container [on slim.ai](https://portal.slim.dev/home/profile/dockerhub%3A%2F%2Fdockerhub.public%2Fabishekmuthian%2Fopen-payment-host%3Alatest).
+
 ### Overview
 
 slim.ai provides overview of the image to spot issues like **root user** and the size of the container image.
