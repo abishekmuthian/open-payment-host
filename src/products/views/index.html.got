@@ -10,8 +10,7 @@
             <tr>
               <th>Id</th>
               <th>Product Name</th>
-              <th>Subscribers</th>
-              <th></th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>

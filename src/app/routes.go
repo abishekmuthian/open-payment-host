@@ -5,10 +5,10 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux/middleware/gzip"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux/middleware/secure"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
+	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 
 	// Resource Actions
 	appactions "github.com/abishekmuthian/open-payment-host/src/app/actions"
-	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	paymentactions "github.com/abishekmuthian/open-payment-host/src/payment/actions"
 	storyactions "github.com/abishekmuthian/open-payment-host/src/products/actions"
 	subscriberactions "github.com/abishekmuthian/open-payment-host/src/subscriptions/actions"
@@ -30,14 +30,12 @@ func SetupRoutes() *mux.Mux {
 	router.Get("/assets/{path:.*}", fileHandler)
 	router.Get("/assets/icons/{path:.*}", fileHandler)
 
-	// Resource Routes
-
 	// Add story routes
 	router.Get("/index{format:(.xml)?}", storyactions.HandleIndex)
 	router.Get("/products/create", storyactions.HandleCreateShow)
 	router.Post("/products/create", storyactions.HandleCreate)
-	router.Get("/products/code{format:(.xml)?}", storyactions.HandleListCode)
-	router.Get("/products/upvoted{format:(.xml)?}", storyactions.HandleListUpvoted)
+	// No voting for the products yet
+	// router.Get("/products/upvoted{format:(.xml)?}", storyactions.HandleListUpvoted)
 	router.Get("/products/{id:[0-9]+}/update", storyactions.HandleUpdateShow)
 	router.Post("/products/{id:[0-9]+}/update", storyactions.HandleUpdate)
 	router.Post("/products/{id:[0-9]+}/destroy", storyactions.HandleDestroy)
@@ -63,26 +61,14 @@ func SetupRoutes() *mux.Mux {
 	router.Post("/subscriptions/create-checkout-session", subscriberactions.HandleCreateCheckoutSession)
 	router.Get("/payment/success", paymentactions.HandlePaymentSuccess)
 	router.Get("/payment/cancel", paymentactions.HandlePaymentCancel)
-	router.Post("/payment/webhook", paymentactions.HandleWebhook)
-	router.Post("/subscriptions/manage-billing", subscriberactions.HandleCustomerPortal)
+	// Webhook not yet active
+	// router.Post("/payment/webhook", paymentactions.HandleWebhook)
+	// Billing not yet active
+	// router.Post("/subscriptions/manage-billing", subscriberactions.HandleCustomerPortal)
 
-	/* 	router.Get("/comments", commentactions.HandleIndex)
-	   	router.Get("/comments/create", commentactions.HandleCreateShow)
-	   	router.Post("/comments/create", commentactions.HandleCreate)
-	   	router.Get("/comments/{id:[0-9]+}/update", commentactions.HandleUpdateShow)
-	   	router.Post("/comments/{id:[0-9]+}/update", commentactions.HandleUpdate)
-	   	router.Post("/comments/{id:[0-9]+}/destroy", commentactions.HandleDestroy)
-	   	router.Post("/comments/{id:[0-9]+}/upvote", commentactions.HandleUpvote)
-	   	router.Post("/comments/{id:[0-9]+}/downvote", commentactions.HandleDownvote)
-	   	router.Post("/comments/{id:[0-9]+}/flag", commentactions.HandleFlag)
-	   	router.Get("/comments/{id:[0-9]+}", commentactions.HandleShow)
-	*/
-	router.Get("/users", useractions.HandleIndex)
-	router.Post("/users/{id:[0-9]+}/destroy", useractions.HandleDestroy)
+	// Add user routes
 	router.Get("/users/{id:[0-9]+}/password/change", useractions.HandlePasswordChangeShow)
 	router.Post("/users/{id:[0-9]+}/password/change", useractions.HandlePasswordChange)
-	router.Get("/users/{id:[0-9]+}", useractions.HandleShow)
-	router.Get("/u/{name:.*}", useractions.HandleShowName)
 	router.Get("/users/login", useractions.HandleLoginShow)
 	router.Post("/users/login", useractions.HandleLogin)
 	router.Post("/users/logout", useractions.HandleLogout)

@@ -13,8 +13,6 @@
     </div>
   </th>
   <th>
-  </th>
-  <th>
     <a href="/products/{{.story.ID}}/update" class="btn btn-sm">edit</a>
     <a href="/products/{{.story.ID}}/destroy" method="post" class="btn btn-sm">delete</a>
   </th>

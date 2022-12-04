@@ -8,14 +8,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/products"
-	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"github.com/stripe/stripe-go/v72"
 	stripesession "github.com/stripe/stripe-go/v72/checkout/session"
 	"github.com/stripe/stripe-go/v72/price"
@@ -46,7 +44,8 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 	req.Price = params.Get("priceId")
 	req.Product = params.Get("productId")
 
-	successURL := stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
+	var successURL *string
+
 	productID, err := strconv.ParseInt(req.Product, 10, 64)
 
 	if err == nil {
@@ -55,6 +54,10 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		if err == nil {
 			successURL = stripe.String(product.DownloadURL)
 		}
+	}
+
+	if *successURL == "" || successURL == nil {
+		successURL = stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
 	}
 
 	// Needed when using stripe JS
@@ -74,16 +77,17 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// Authorise
-	currentUser := session.CurrentUser(w, r)
+	// Anon users are allowed to subscribe
+	/* 	// Authorise
+	   	currentUser := session.CurrentUser(w, r)
 
-	subscription := subscriptions.New()
+	   	subscription := subscriptions.New()
 
-	err = can.Create(subscription, currentUser)
-	if err != nil {
-		// FIXME: Redirection to to error page not working
-		return server.NotAuthorizedError(err)
-	}
+	   	err = can.Create(subscription, currentUser)
+	   	if err != nil {
+	   		// FIXME: Redirection to to error page not working
+	   		return server.NotAuthorizedError(err)
+	   	} */
 
 	// See https://stripe.com/docs/api/checkout/sessions/create
 	// for additional parameters to pass.
