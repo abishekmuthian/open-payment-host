@@ -110,6 +110,7 @@ User configurable values are included in the table below.
 | meta_url | Meta URL for the page when its not generated automatically. | Dev: http://localhost:3000, Prod: https://example.com
 | stripe_key | Stripe developer key. | Dev: pk_test_..., Prod: pk_live_...
 | stripe_secret | Stripe developer secret key. | Dev: sk_test_..., Prod: sk_live_...
+| stripe_webhook_secret | Stripe webhook signing secret | Dev: whsec_xxx, Prod: whsec_xxx
 | stripe_tax_rate_IN | Stripe tax id for India. | Dev: txr_..., Prod: txr_...
 | stripe_callback_domain | Root URL for callback after Stripe event. | Dev: [Use tunnel like ngrok], Prod: [Use root_url]
 | subscription_client_country | Test country for testing multi-country pricing. | Dev: US, IN, FR etc. Prod: NA
@@ -117,9 +118,21 @@ User configurable values are included in the table below.
 | turnstile_secret_key | Cloudflare turnstile secret key for captcha. | Dev: 1x00000000000000000000AA, Prod: 0x...
 | turnstile_site_key | Cloudflare turnstile key for captcha. | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...
 
+### Stripe Webhook Setup
+Webhook needs to be setup at [Stripe](https://stripe.com) Developer's section for receiving subscription details post payment.
+
+Set the webhook to `root_url/payment/webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+
+Set the following events to send:
+
+1. `checkout.session.completed`
+2. `payment_method.attached`
+3. `invoice.paid`
+4. `invoice.payment_failed`
+5. `customer.subscription.deleted`
+
 
 ## Developer
-
 
 ### Build Open Payment Host
 

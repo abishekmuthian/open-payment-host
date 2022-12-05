@@ -95,6 +95,7 @@ func generateConfig(projectPath string) error {
 		"mailchimp_token":             "",
 		"stripe_key":                  "",
 		"stripe_secret":               "",
+		"stripe_webhook_secret":       "",
 		"stripe_callback_domain":      "",
 		"stripe_tax_rate_IN":          "",
 		"subscription_client_country": "US",

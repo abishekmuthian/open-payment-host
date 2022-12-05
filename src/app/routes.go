@@ -61,8 +61,7 @@ func SetupRoutes() *mux.Mux {
 	router.Post("/subscriptions/create-checkout-session", subscriberactions.HandleCreateCheckoutSession)
 	router.Get("/payment/success", paymentactions.HandlePaymentSuccess)
 	router.Get("/payment/cancel", paymentactions.HandlePaymentCancel)
-	// Webhook not yet active
-	// router.Post("/payment/webhook", paymentactions.HandleWebhook)
+	router.Post("/payment/webhook", paymentactions.HandleWebhook)
 	// Billing not yet active
 	// router.Post("/subscriptions/manage-billing", subscriberactions.HandleCustomerPortal)
 
