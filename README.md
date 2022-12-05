@@ -14,7 +14,7 @@ Selling digital items on web as an indie requires using platforms where we have 
 Open Payment Host is a minimalist yet highly performant Go web application with innovative features which helps indies self-host and sell digital items with little effort.
 
 ## Video Demo
-[![Video Demo](demo/thumbnail-site.png)](https://youtu.be/cRK97mB1GUI)
+[![Video Demo](/demo/thumbnail-site.png)](https://youtu.be/cRK97mB1GUI)
 
 Clicking the above image would open the video in YouTube.
 
