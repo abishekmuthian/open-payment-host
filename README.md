@@ -168,7 +168,7 @@ slim.ai's harden feature reduces the overall size of the image by removing unwan
 
 Open Payment Host image was compressed 91% using slim.ai tools.
 
-![Slim Ai Harden](/demo/slimai_harden_compress.png)
+![Slim Ai Harden](/demo/slimai_vulnerability_harden.gif)
 
 ### License
 The MIT License (MIT)
