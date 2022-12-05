@@ -116,6 +116,7 @@ func generateConfig(projectPath string) error {
 	ConfigProduction["turnstile_site_key"] = ""
 	ConfigProduction["turnstile_secret_key"] = ""
 	ConfigProduction["admin_email"] = ""
+	ConfigProduction["root_url"] = ""
 
 	configs := map[string]map[string]string{
 		"production":  ConfigProduction,

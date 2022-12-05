@@ -104,7 +104,7 @@ User configurable values are included in the table below.
 | port | Port of the application. | Dev: 3000, Prod: 443 (SSL)
 | root_url | FQDN for the application with protocol and port. | Dev: http://localhost:3000, Prod: https://example.com
 | autocert_domains | Comma separated domains for SSL certificates. | Demo: NA, Prod: www.example.com, example.com
-| autocert_email | email id for SSL certificate related notifications. | Demo:NA, Prod: admin@example.com
+| autocert_email | email id for SSL certificate related notifications. | Demo: NA, Prod: admin@example.com
 | name | Name of the website. | Default: Open Payment Host
 | meta_title | Title of the website. | Default : Sell what you want without paying commissions
 | meta_desc | Description of the website. | Default: Sell Subscriptions, Newsletters, Digital Files without paying commissions.
