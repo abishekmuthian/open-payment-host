@@ -5,7 +5,7 @@ Sell Subscriptions, Newsletters, Digital Files without paying commissions.
 ![Open Payment Host home page](/demo/home.png)
 
 ## What
-Open Payment Host is an easy to run self-hosted, minimalist Payments Host through which we can easily sell our digital items without paying double commissions while having total control over our sales and data.
+Open Payment Host is an easy to run self-hosted, minimalist payments host through which we can easily sell our digital items without paying double commissions while having total control over our sales and data.
 
 ## Why
 Selling digital items on web as an indie requires using platforms where we have to pay double commissions(to the platform and the payment gateway) and our content is forever locked within those platforms.
@@ -54,10 +54,9 @@ Note: Open Payment Host can be tested without fulfilling above requirements, But
 ### Docker
 The latest image is available on DockerHub at [`abishekmuthian/open-payment-host:latest`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest).
 
-The latest slimmed image is available on DockerHub at [`abishekmuthian/open-payment-host:latest-slim`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest-slim)
+The latest slimmed image is available on DockerHub at [`abishekmuthian/open-payment-host:latest-slim`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest-slim).
 
 ### Demo Setup
-
 ```bash
 mkdir oph-demo && cd oph-demo
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/samples/oph-demo/install-demo.sh)"
@@ -67,17 +66,15 @@ Visit `http://localhost:3000`.
 
 Demo version prints more detailed level of errors if any, DO NOT use this demo setup in production.
 
-**Login**:
-
+#### Login
 The default admin email id is `test@test.com` and the password is `OpenPaymentHost`. You'll be asked to reset the password after login for security reasons. That password is hashed and stored.
 
 You'll be logged out after changing password automatically to login with the new credentials.
 
-Admin email id and Password can be changed in the config file (explained below) after the first run.
+Admin email id and default admin password can be changed in the config file (explained below) after the first run. Each time the password is reset in the config file, The password needs to be changed again once logged in for security.
 
 ### Production Setup
-
-It's recommended to try the demo application first before using the production application. The production application requires special config variables detailed in the configuration section.
+It's recommended to try the demo application first before using the production application. The production application requires a registered domain and special config variables for SSL as detailed in the configuration section.
 
 ```bash
 mkdir oph-production && cd oph-production
@@ -100,7 +97,7 @@ User configurable values are included in the table below.
 | admin_email | Email id of the administrator. | Default: test@test.com |
 | admin_default_password | Default password of the administrator, Would be forced to changed after login. | Default: OpenPaymentHost |
 | reset_admin | Reset the email and password of the admin during the next run. | true (or) false
-| domain | Website domain for the application. | Dev: localhost, Prod: example
+| domain | Website domain name for the application. | Dev: localhost, Prod: example
 | port | Port of the application. | Dev: 3000, Prod: 443 (SSL)
 | root_url | FQDN for the application with protocol and port. | Dev: http://localhost:3000, Prod: https://example.com
 | autocert_domains | Comma separated domains for SSL certificates. | Demo: NA, Prod: www.example.com, example.com
@@ -137,7 +134,7 @@ $ go build open-payment-host
 There are `docker-compose` , `Dockerfile` files in the root of the project to build a docker image. The docker image can be secured and compressed using slim.ai as detailed in the next section(and shown in the Demo video at the start).
 
 ### Tailwind
-Open Payment Host used Tailwind and Daisy UI for its UI. 
+Open Payment Host uses Tailwind and Daisy UI for its UI. 
 
 Compile Tailwind using the following command,
 
@@ -151,24 +148,26 @@ Open Payment Host uses [slim.ai](https://slim.ai) to secure, harden and reduce t
 You can use the following tools to explore Open Payment Host container [on slim.ai](https://portal.slim.dev/home/profile/dockerhub%3A%2F%2Fdockerhub.public%2Fabishekmuthian%2Fopen-payment-host%3Alatest).
 
 ### Overview
-
 slim.ai provides overview of the image to spot issues like **root user** and the size of the container image.
 
 ![Slim Ai Overview](/demo/slimai_overview.png)
 
 ### Vulnerability Scanner
-
-slim.ai has multiple vulnerability scanners which scan for known vulnerabilities in the code of our container image.
+slim.ai has multiple vulnerability scanners which scan for known vulnerabilities in our container image.
 
 ![Slim Ai Vulnerability Scanner](/demo/slimai_vulnerability_scanner.png)
 
 ### Harden
-
 slim.ai's harden feature reduces the overall size of the image by removing unwanted files and replacing bloated system files with hardened equivalent.
 
 Open Payment Host image was compressed 91% using slim.ai tools.
 
 ![Slim Ai Harden](/demo/slimai_vulnerability_harden.gif)
+
+### Collections
+We can add the container images to the collections in the slim.ai for easier access.
+
+![Slim Ai Collections](/demo/slimai_collections.png)
 
 ### License
 The MIT License (MIT)
