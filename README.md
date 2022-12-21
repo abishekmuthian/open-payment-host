@@ -14,7 +14,7 @@ Selling digital items on web as an indie requires using platforms where we have 
 Open Payment Host is a minimalist yet highly performant Go web application with innovative features which helps indies self-host and sell digital items with little effort.
 
 ## Video Demo
-[![Video Demo](/demo/thumbnail-site.png)](https://youtu.be/cRK97mB1GUI)
+[![Video Demo](/demo/thumbnail-site.png)](https://youtu.be/vQcLr-NgqIU)
 
 Clicking the above image would open the video in YouTube.
 
@@ -54,7 +54,7 @@ Note: Open Payment Host can be tested without fulfilling above requirements, But
 ### Docker
 The latest image is available on DockerHub at [`abishekmuthian/open-payment-host:latest`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest).
 
-The latest slimmed image is available on DockerHub at [`abishekmuthian/open-payment-host:latest-slim`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest-slim).
+The latest slimmed image via [slim.ai](https://slim.ai) is available on DockerHub at [`abishekmuthian/open-payment-host:latest-slim`](https://hub.docker.com/layers/abishekmuthian/open-payment-host/latest-slim).
 
 ### Demo Setup
 ```bash
@@ -144,7 +144,7 @@ $ cd open-payment-host
 $ go build open-payment-host
 ```
 
-There are `docker-compose` , `Dockerfile` files in the root of the project to build a docker image. The docker image can be secured and compressed using slim.ai as detailed in the next section(and shown in the Demo video at the start).
+There are `docker-compose` , `Dockerfile` files in the root of the project to build a docker image.
 
 ### Tailwind
 Open Payment Host uses Tailwind and Daisy UI for its UI. 
@@ -154,33 +154,6 @@ Compile Tailwind using the following command,
 ```
 npx tailwindcss -i tailwind/tailwind.css src/app/assets/styles/app.css --watch
 ```
-
-## Slim AI
-Open Payment Host uses [slim.ai](https://slim.ai) to secure, harden and reduce the size of the container.
-
-You can use the following tools to explore Open Payment Host container [on slim.ai](https://portal.slim.dev/home/profile/dockerhub%3A%2F%2Fdockerhub.public%2Fabishekmuthian%2Fopen-payment-host%3Alatest).
-
-### Overview
-slim.ai provides overview of the image to spot issues like **root user** and the size of the container image.
-
-![Slim Ai Overview](/demo/slimai_overview.png)
-
-### Vulnerability Scanner
-slim.ai has multiple vulnerability scanners which scan for known vulnerabilities in our container image.
-
-![Slim Ai Vulnerability Scanner](/demo/slimai_vulnerability_scanner.png)
-
-### Harden
-slim.ai's harden feature reduces the overall size of the image by removing unwanted files and replacing bloated system files with hardened equivalent.
-
-Open Payment Host image was compressed 91% using slim.ai tools.
-
-![Slim Ai Harden](/demo/slimai_vulnerability_harden.gif)
-
-### Collections
-We can add the container images to the collections in the slim.ai for easier access.
-
-![Slim Ai Collections](/demo/slimai_collections.png)
 
 ### License
 The MIT License (MIT)
@@ -211,10 +184,3 @@ Fragmenta: https://github.com/fragmenta licensed under [The MIT License](https:/
 tailwindcss: https://github.com/tailwindlabs/tailwindcss licensed under [The MIT License](https://github.com/tailwindlabs/tailwindcss/blob/master/LICENSE).
 
 daisyui: https://github.com/saadeghi/daisyui licensed under [The MIT License](https://github.com/saadeghi/daisyui/blob/master/LICENSE).
-
-
-
-
-
-
-

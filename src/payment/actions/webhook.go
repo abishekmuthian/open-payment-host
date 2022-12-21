@@ -88,6 +88,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 					productID, err := strconv.ParseInt(event.Data.Object.MetaData.ProductID, 10, 64)
 
 					if err == nil {
+						// TODO: First value must be set manually, Default is not 0
 						storyactions.AddSubscribers(productID)
 
 						story, err := products.Find(productID)
