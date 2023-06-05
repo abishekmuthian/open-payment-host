@@ -18,6 +18,9 @@ Open Payment Host is a minimalist yet highly performant Go web application with 
 
 Clicking the above image would open the video in YouTube.
 
+## Demo
+[https://demo.openpaymenthost.com](https://demo.openpaymenthost.com)
+
 ## Features
 * Customers can buy without logging in, Increases conversion.
 * Square support, Just add the amount for the product and rest is done automatically.<sup>New</sup>
