@@ -95,9 +95,10 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
 
-	// Set subscribe button if price is set
+	// Set subscribe button if price is set for Stripe
+	if len(story.SquarePrice) != 0 || len(story.Price) != 0 {
 
-	if story.PriceJSON != "" {
+		// Get the country from IP
 		clientCountry := r.Header.Get("CF-IPCountry")
 		log.Info(log.V{"Subscription, Client Country": clientCountry})
 		if !config.Production() {
@@ -105,27 +106,69 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 			clientCountry = config.Get("subscription_client_country")
 		}
 
-		priceId := story.Price[clientCountry]
+		// Check if its Stripe
+		if config.GetBool("stripe") {
 
-		log.Info(log.V{"Price ID: ": priceId})
+			priceId := story.Price[clientCountry]
 
-		stripe.Key = config.Get("stripe_secret")
+			log.Info(log.V{"Price ID: ": priceId})
 
-		p, err := price.Get(priceId, nil)
+			stripe.Key = config.Get("stripe_secret")
 
-		if err == nil {
+			p, err := price.Get(priceId, nil)
 
-			log.Info(log.V{"Currency:": p.Currency})
+			if err == nil {
 
-			view.AddKey("priceId", priceId)
+				log.Info(log.V{"Currency:": p.Currency})
 
-			if p.Type == "recurring" {
-				view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+string(p.Recurring.Interval))
-			} else if p.Type == "one_time" {
-				view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+"One Time")
+				view.AddKey("priceId", priceId)
+
+				if p.Type == "recurring" {
+					view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+string(p.Recurring.Interval))
+				} else if p.Type == "one_time" {
+					view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+"One Time")
+				}
 			}
+		} else if config.GetBool("square") {
+			amount := story.SquarePrice[clientCountry]["amount"]
+			currency := story.SquarePrice[clientCountry]["currency"]
+
+			if amount != nil && currency != nil {
+				if story.Schedule == "One Time" {
+					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
+					view.AddKey("type", "onetime")
+				} else if story.Schedule == "Monthly Subscription" {
+					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+"Monthly")
+					view.AddKey("type", "subscription")
+				}
+			} else {
+				if len(story.SquarePrice) > 0 {
+					for clientCountry, _ = range story.SquarePrice {
+						amount = story.SquarePrice[clientCountry]["amount"]
+						currency = story.SquarePrice[clientCountry]["currency"]
+					}
+					if story.Schedule == "One Time" {
+						view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
+						view.AddKey("type", "onetime")
+					} else if story.Schedule == "Monthly Subscription" {
+						view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+"Monthly")
+						view.AddKey("type", "subscription")
+					}
+				}
+
+				if amount == "" && currency == "" {
+					log.Error(log.V{"Product": "Amount and Currency not set"})
+				}
+			}
+
+			view.AddKey("amount", amount)
+			view.AddKey("currency", currency)
+
 		}
+
 		view.AddKey("showSubscribe", true)
+		view.AddKey("stripe", config.GetBool("stripe"))
+		view.AddKey("square", config.GetBool("square"))
 	} else {
 		view.AddKey("showSubscribe", false)
 	}

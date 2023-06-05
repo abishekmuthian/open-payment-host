@@ -11,6 +11,7 @@
               <th>Id</th>
               <th>Product Name</th>
               <th>Actions</th>
+              <th>Subscribers</th>
             </tr>
           </thead>
           <tbody>

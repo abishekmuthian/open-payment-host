@@ -12,6 +12,7 @@
     </div>
     {{ if .showSubscribe }}
     <div class="mt-5">
+      {{ if .stripe }}
       <label class="label">
         <span class="label-text text-xl">Subscribe</span>
       </label>      
@@ -23,6 +24,9 @@
         <button type="submit" id="checkout_button"
                 class="btn btn-wide">{{ .price }}</button>
       </form>
+      {{ else if .square }}
+      <a type="submit" id="square_checkout" class="btn btn-wide checkout" method="get" href="/subscriptions/billing?amount={{ .amount }}&currency={{ .currency }}&type={{ .type }}&productId={{ .story.ID }}">{{ .price }}</a>
+      {{ end }}
     </div>
     {{ end }}
   </div>

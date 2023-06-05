@@ -33,7 +33,11 @@ func Middleware(h http.HandlerFunc) http.HandlerFunc {
 			r = r.WithContext(ctx)
 		}
 
-		var ContentSecurityPolicy = fmt.Sprintf("frame-ancestors 'self'; connect-src 'self'; frame-src 'self' challenges.cloudflare.com; style-src 'self' https://unpkg.com/trix@2.0.0/dist/trix.css 'nonce-%s'; script-src 'self' challenges.cloudflare.com https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js; img-src 'self' data:", nonce)
+		// Before Square
+		// var ContentSecurityPolicy = fmt.Sprintf("frame-ancestors 'self'; connect-src 'self' https://pci-connect.squareupsandbox.com https://pci-connect.squareup.com; frame-src 'self' challenges.cloudflare.com https://sandbox.web.squarecdn.com; style-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com/trix@2.0.0/dist/trix.css 'nonce-%s'; script-src 'self' challenges.cloudflare.com https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js https://*.squarecdn.com https://js.squareupsandbox.com https://*.squarecdn.com https://js.squareup.com ; img-src 'self' data:", nonce)
+
+		// After Square integration
+		var ContentSecurityPolicy = fmt.Sprintf("frame-ancestors 'self'; connect-src 'self' https://*.s3.amazonaws.com https://pci-connect.squareupsandbox.com https://pci-connect.squareup.com https://api.squareupsandbox.com https://api.squareup.com; frame-src 'self' challenges.cloudflare.com https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.ndsprod.nds-sandbox-issuer.com https://*.ndsprod.nds-issuer.com; style-src 'self' 'unsafe-inline' https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://unpkg.com/trix@2.0.0/dist/trix.css; script-src 'self' challenges.cloudflare.com https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com; img-src 'self' https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com data: data:image/svg+xml", nonce)
 
 		// Add some headers for security
 

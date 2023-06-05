@@ -10,7 +10,7 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
 )
 
-// HandlePaymentFailure handles the success routine of the payment
+// HandlePaymentCancel handles the success routine of the payment
 func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 
 	// Authorise

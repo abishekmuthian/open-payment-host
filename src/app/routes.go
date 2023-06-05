@@ -57,11 +57,18 @@ func SetupRoutes() *mux.Mux {
 	/*	router.Get("/subscriptions/verification", subscriberactions.HandleVerificationShow)
 		router.Post("/subscriptions/verification", subscriberactions.HandleVerification)*/
 
-	// Add subscription routes for Stripe
+	// Add subscription routes for Square, Stripe
 	router.Post("/subscriptions/create-checkout-session", subscriberactions.HandleCreateCheckoutSession)
+	router.Get("/subscriptions/billing", subscriberactions.HandleBillingShow)
+	router.Post("/subscriptions/billing", subscriberactions.HandleBilling)
+	router.Get("/subscriptions/square", subscriberactions.HandleSquareShow)
+	router.Post("/subscriptions/square", subscriberactions.HandleSquare)
+	router.Post("/subscriptions/subscribe", subscriberactions.HandleCreateSubscription)
 	router.Get("/payment/success", paymentactions.HandlePaymentSuccess)
 	router.Get("/payment/cancel", paymentactions.HandlePaymentCancel)
 	router.Post("/payment/webhook", paymentactions.HandleWebhook)
+	router.Post("/payment/square_webhook", paymentactions.HandleSquareWebhook)
+	router.Get("/payment/failure", paymentactions.HandlePaymentFailure)
 	// Billing not yet active
 	// router.Post("/subscriptions/manage-billing", subscriberactions.HandleCustomerPortal)
 

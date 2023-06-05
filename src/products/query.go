@@ -27,7 +27,7 @@ func AllowedParams() []string {
 
 // AllowedParamsAdmin returns the cols editable by admins
 func AllowedParamsAdmin() []string {
-	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "download_url", "user_id", "user_name", "mailchimp_audience_id", "price"}
+	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "price", "square_price", "square_schedule", "square_subscription_plan_Id"}
 }
 
 // NewWithColumns creates a new story instance and fills it with data from the database cols provided.
@@ -46,7 +46,8 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	story.Description = resource.ValidateString(cols["description"])
 	story.FeaturedImage = resource.ValidateString(cols["featured_image"])
 	story.URL = resource.ValidateString(cols["url"])
-	story.DownloadURL = resource.ValidateString(cols["download_url"])
+	story.S3Bucket = resource.ValidateString(cols["s3_bucket"])
+	story.S3Key = resource.ValidateString(cols["s3_key"])
 	story.UserID = resource.ValidateInt(cols["user_id"])
 	story.UserName = resource.ValidateString(cols["user_name"])
 	story.AllTimePageViews = resource.ValidateInt(cols["all_time_page_views"])
@@ -60,7 +61,9 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	story.Subscribers = resource.ValidateInt64Array(cols["subscribers"])
 	story.MailchimpAudienceID = resource.ValidateString(cols["mailchimp_audience_id"])
 	story.Price = resource.ValidateMap(cols["price"])
-	story.PriceJSON = resource.ValidateString(cols["price"])
+	story.SquarePrice = resource.ValidateNestedMap(cols["square_price"])
+	story.Schedule = resource.ValidateString(cols["square_schedule"])
+	story.SquareSubscriptionPlanId = resource.ValidateMap(cols["square_subscription_plan_Id"])
 
 	//Flair
 	// FIXME - Create and join the flair column

@@ -1,6 +1,9 @@
 package storyactions
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,6 +12,8 @@ import (
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
+	"github.com/google/uuid"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
@@ -44,6 +49,13 @@ func HandleCreateShow(w http.ResponseWriter, r *http.Request) error {
 	// Set the name and year
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
+
+	if config.Get("square_access_token") != "" {
+		view.AddKey("square", config.GetBool("square"))
+	} else {
+		view.AddKey("square", false)
+	}
+	view.AddKey("stripe", config.GetBool("stripe"))
 	return view.Render()
 }
 
@@ -174,9 +186,54 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 			outFile.Write(fileData)
 
 		} else {
-
+			// TODO wrong image format inform user
+			return server.InternalError(errors.New("Improper image format only png or jpg image format is allowed."))
 		}
 
+	}
+
+	// Create subscription plan for Square
+	if config.GetBool("square") && storyParams["square_price"] != "" {
+
+		var squarePrice map[string]map[string]interface{}
+
+		err = json.Unmarshal([]byte(storyParams["square_price"]), &squarePrice)
+
+		if err == nil {
+			if len(squarePrice) != 0 {
+				for clientCountry, data := range squarePrice {
+					amount := data["amount"]
+					currency := data["currency"]
+					catalogId, error := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string))
+
+					if err != nil {
+						log.Error(log.V{"Error creating subscription plan ": error})
+						continue
+					}
+					log.Info(log.V{"CountryCode is ": clientCountry, "Catalog ID is ": catalogId})
+
+					if catalogId != "" && clientCountry != "" {
+						catalogMap := make(map[string]string)
+
+						catalogMap[clientCountry] = catalogId
+
+						catalogMapJson, err := json.Marshal(catalogMap)
+
+						if err == nil {
+							storyParams["square_subscription_plan_Id"] = string(catalogMapJson)
+
+							// Update the db with catalog id
+							err = story.Update(storyParams)
+							if err != nil {
+								return server.InternalError(err)
+							}
+						}
+
+					}
+				}
+			}
+
+		}
 	}
 
 	return server.Redirect(w, r, story.IndexURL())
@@ -198,4 +255,111 @@ func CountHashTag(name string) int {
 
 	var fulltext = re.FindAllString(name, -1)
 	return len(fulltext)
+}
+
+// CreateSubscriptionPlan creates a subscription plan for square
+func CreateSubscriptionPlan(productId int64, amount int64, currency string) (string, error) {
+
+	type RecurringPriceMoney struct {
+		Amount   int64  `json:"amount"`
+		Currency string `json:"currency"`
+	}
+	type Phases struct {
+		Cadence             string              `json:"cadence"`
+		RecurringPriceMoney RecurringPriceMoney `json:"recurring_price_money"`
+	}
+	type SubscriptionPlanData struct {
+		Name   string   `json:"name"`
+		Phases []Phases `json:"phases"`
+	}
+	type Object struct {
+		ID                   string               `json:"id"`
+		Type                 string               `json:"type"`
+		SubscriptionPlanData SubscriptionPlanData `json:"subscription_plan_data"`
+	}
+
+	type Payload struct {
+		IdempotencyKey string `json:"idempotency_key"`
+		Object         Object `json:"object"`
+	}
+
+	// Generate a new Version 4 UUID
+	u, _ := uuid.NewRandom()
+
+	product, err := products.Find(productId)
+
+	if err != nil {
+		// Handle error
+	}
+
+	data := Payload{
+		IdempotencyKey: u.String(),
+		Object: Object{
+			ID:   fmt.Sprintf("#product%d", productId),
+			Type: "SUBSCRIPTION_PLAN",
+			SubscriptionPlanData: SubscriptionPlanData{
+				Name: fmt.Sprintf("Subscription for %s", product.Name),
+				Phases: []Phases{
+					Phases{
+						Cadence: "MONTHLY",
+						RecurringPriceMoney: RecurringPriceMoney{
+							Amount:   amount,
+							Currency: currency,
+						},
+					},
+				},
+			},
+		},
+	}
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		// handle err
+	}
+	body := bytes.NewReader(payloadBytes)
+
+	req, err := http.NewRequest("POST", config.Get("square_domain")+"/catalog/object", body)
+	if err != nil {
+		// handle err
+	}
+	req.Header.Set("Square-Version", "2023-04-19")
+	req.Header.Set("Authorization", "Bearer "+config.Get("square_access_token"))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		// handle err
+	}
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(log.V{"square ioutil.ReadAll: %v": err})
+		return "", err
+	}
+
+	if resp.StatusCode != 200 {
+		var error subscriptions.ErrorModel
+
+		err = json.Unmarshal(b, &error)
+
+		if err != nil {
+			log.Error(log.V{"Square Payment error JSON Unmarshall": err})
+		}
+
+		log.Info(log.V{"Square Payment parsed": error})
+
+		return "", errors.New(error.Errors[0].Detail)
+	}
+
+	var catalog subscriptions.CatalogModel
+
+	err = json.Unmarshal(b, &catalog)
+
+	if err != nil {
+		log.Error(log.V{"Square Payment JSON Unmarshall": err})
+	}
+
+	log.Info(log.V{"Square Payment parsed": catalog})
+
+	return catalog.CatalogObject.ID, err
 }

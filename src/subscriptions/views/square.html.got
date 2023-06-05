@@ -1,0 +1,16 @@
+<div class="flex items-center justify-center p-12">
+  <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
+    <div id="payment-form" class="mt-5">
+      <label class="label">
+        <span class="label-text text-xl"
+          >Payment securely powered by Square, Inc.</span
+        >
+      </label>
+      <div id="payment-status-container"></div>
+      <div id="card-container"></div>
+      <button id="card-button" class="btn btn-wide checkout" type="button">
+        Pay {{ .price }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,11 @@
-<article class="narrow subscription">
-    <h1>Payment</h1>
-    <br/>
-    <p>Your payment was successful!</p>
-    <p>You will receive details about your subscription over the email.</p>
-</article>
+<div class="flex items-center justify-center p-12">
+    <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
+     <h1 class="text-4xl font-medium">Payment successful</h1>
+     <br>
+     <div class="prose lg:prose-xl">
+        Your payment was successful! You will receive details about your subscription over the email.
+     </div>
+     <br>
+     <a class="btn" type="submit" href="/">Home</a>
+    </div>
+</div>

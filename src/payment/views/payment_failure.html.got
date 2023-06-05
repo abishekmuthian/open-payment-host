@@ -1,0 +1,11 @@
+<div class="flex items-center justify-center p-12">
+    <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
+     <h1 class="text-4xl font-medium">Error processing payment</h1>
+     <br>
+     <div class="prose lg:prose-xl">
+        {{ .errorDetail }}
+     </div>
+     <br>
+     <a class="btn" type="submit" method="back">Back</a>
+    </div>
+</div>

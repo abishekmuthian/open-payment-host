@@ -87,9 +87,9 @@ func generateConfig(projectPath string) error {
 		"domain":                      "localhost",
 		"root_url":                    "http://localhost:3000",
 		"session_name":                "open_payment_host_session",
-		"admin_email":                 "test@test.com",
+		"admin_email":                 "admin@openpaymenthost.com",
 		"admin_default_password":      "OpenPaymentHost",
-		"reset_admin":                 "false",
+		"reset_admin":                 "no",
 		"turnstile_site_key":          "1x00000000000000000000AA",
 		"turnstile_secret_key":        "1x0000000000000000000000000000000AA",
 		"mailchimp_token":             "",
@@ -99,6 +99,17 @@ func generateConfig(projectPath string) error {
 		"stripe_callback_domain":      "",
 		"stripe_tax_rate_IN":          "",
 		"subscription_client_country": "US",
+		"square_access_token":         "",
+		"square_app_id":               "",
+		"square_location_id":          "",
+		"square_notification_url":     "",
+		"square_signature_key":        "",
+		"stripe":                      "no",
+		"square":                      "yes",
+		"square_domain":               "https://connect.squareupsandbox.com/v2",
+		"square_sandbox_source_id":    "cnon:card-nonce-ok",
+		"s3_access_key":               "",
+		"s3_secret_key":               "",
 	}
 
 	// Copying development values to production and then adding more
@@ -118,6 +129,7 @@ func generateConfig(projectPath string) error {
 	ConfigProduction["turnstile_secret_key"] = ""
 	ConfigProduction["admin_email"] = ""
 	ConfigProduction["root_url"] = ""
+	ConfigProduction["square_domain"] = "https://connect.squareup.com/v2"
 
 	configs := map[string]map[string]string{
 		"production":  ConfigProduction,

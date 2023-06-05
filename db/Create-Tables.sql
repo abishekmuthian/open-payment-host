@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS products (
     name text,
     url text,
     featured_image text,
-    download_url text,
+    s3_bucket text,
+    s3_key    text,
     rank integer,
     summary text,
     description text,
@@ -26,7 +27,10 @@ CREATE TABLE IF NOT EXISTS products (
     thirty_days_top3_countries text,
     shared boolean,
     price text,
-    mailchimp_audience_id text
+    mailchimp_audience_id text,
+    square_price text,
+    square_schedule text,
+    square_subscription_plan_Id text
 );
 
 CREATE TABLE IF NOT EXISTS users (

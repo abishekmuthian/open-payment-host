@@ -20,6 +20,7 @@ import (
 	"github.com/stripe/stripe-go/v72/webhook"
 )
 
+// HandleWebhook receives the webhook POST request from the payment gateways
 func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 
 	//subscription := subscriptions.New()
@@ -32,6 +33,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return nil
 	}
+
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -39,6 +41,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	// Check if the event is from Stripe
 	webhookEvent, err := webhook.ConstructEvent(b, r.Header.Get("Stripe-Signature"), config.Get("stripe_webhook_secret"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -176,6 +179,8 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 			story, err := products.Find(subscription.ProductId)
 
 			if err == nil {
+				// TODO: Implement subscription cancellation update for Stripe
+
 				// If mailchimp list id and mailchimp token is available add to the mailchimp list
 				if story.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
 					// Add to the mailchimp list

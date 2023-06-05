@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
+	s3 "github.com/abishekmuthian/open-payment-host/src/lib/s3"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
@@ -52,7 +53,16 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		product, err := products.Find(productID)
 
 		if err == nil {
-			successURL = stripe.String(product.DownloadURL)
+
+			if product.S3Bucket != "" && product.S3Key != "" {
+				downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
+
+				if err == nil {
+					return server.RedirectExternal(w, r, downloadUrl)
+				}
+				successURL = stripe.String(downloadUrl)
+			}
+
 		}
 	}
 

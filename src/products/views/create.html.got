@@ -57,14 +57,27 @@
       </label>
       <label class="label">
         <span class="label-text-alt"
-          >Optional URL to the file to be delivered after payment</span
+          >S3 bucket of the file to be delivered after payment</span
         >
       </label>
       <input
-        type="url"
-        name="download_url"
-        id="download_url"
-        placeholder="http://s3-us-west-2.amazonaws.com/files/book.pdf"
+        type="text"
+        name="s3_bucket"
+        id="s3_bucket"
+        placeholder="bucket"
+        class="input w-full max-w-lg prose lg:prose-xl"
+      />
+
+      <label class="label">
+        <span class="label-text-alt"
+          >S3 key of the file to be delivered after payment</span
+        >
+      </label>
+      <input
+        type="text"
+        name="s3_key"
+        id="s3_key"
+        placeholder="dummy.pdf"
         class="input w-full max-w-lg prose lg:prose-xl"
       />
 
@@ -84,6 +97,14 @@
         class="input w-full max-w-lg prose lg:prose-xl"
       />
 
+
+      {{ if .stripe }}
+      <label class="label">
+        <span class="label-text text-xl">Stripe Payment Details</span>
+      </label>
+      <label class="label">
+        <span class="label-text text-xl">Mailchimp Audience ID</span>
+      </label>
       <label class="label">
         <span class="label-text text-xl">Multi Country Pricing</span>
       </label>
@@ -97,6 +118,44 @@
         name="price"
         placeholder='{"US":"price_1KlnKhSI4oTPH3MZmvAkvjiG","IN":"price_1KlnKhSI4oTPH3MZX9LVIZxb"}'
       ></textarea>
+
+      {{ else if .square }}
+      <label class="label">
+        <span class="label-text text-xl">Square Payment Details</span>
+      </label>
+
+      <label class="label">
+        <span class="label-text text-xl">Multi Country Pricing</span>
+      </label>
+      <label class="label">
+        <span class="label-text-alt"
+          >Square Country Code(ISO 3166-1 alpha-2), Amount(lowest denomination), Currency Code(ISO 4217) in JSON</span
+        >
+      </label>
+      <textarea
+        class="textarea w-full prose lg:prose-xl"
+        name="square_price"
+        placeholder='{"US": {"amount": 5000,"currency": "USD"}, "IN": {"amount": 3000,"currency": "INR"}}'
+      ></textarea>
+
+      <label class="label">
+        <span class="label-text text-xl">Schedule</span>
+      </label>
+      <label class="label">
+        <span class="label-text-alt"
+          >Pick the schedule for the payment, Either One Time or Monthly Subscription</span
+        >
+      </label>
+
+      <select class="select w-full max-w-xs" name="square_schedule">
+        <option>One Time</option>
+        <option>Monthly Subscription</option>
+      </select>
+
+      {{ end }}
+
+      <br>
+
       <button class="btn" type="submit">Submit</button>
       <input
         name="authenticity_token"

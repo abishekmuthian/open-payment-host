@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/model/file"
 
@@ -28,7 +29,8 @@ type Story struct {
 	Description   string
 	FeaturedImage string
 	URL           string
-	DownloadURL   string
+	S3Bucket      string
+	S3Key         string
 	UserID        int64
 	Points        int64
 	Rank          int64
@@ -50,10 +52,14 @@ type Story struct {
 	Flair       string
 	Subscribers []int64
 	Price       map[string]string
-	PriceJSON   string
 
 	// Mailchimp
 	MailchimpAudienceID string
+
+	//Square
+	SquarePrice              map[string]map[string]interface{}
+	Schedule                 string
+	SquareSubscriptionPlanId map[string]string
 }
 
 // Domain returns the domain of the story URL
@@ -227,4 +233,36 @@ func (s *Story) NegativePoints() int64 {
 		return 0
 	}
 	return -s.Points
+}
+
+func (s *Story) CountSubscribers() int {
+	var subscriberCount int
+	// Count the subscribers for Square
+	if len(s.SquareSubscriptionPlanId) > 0 {
+		for _, planId := range s.SquareSubscriptionPlanId {
+
+			q := subscriptions.Query()
+
+			q.Where(fmt.Sprintf("txn_id = '%s' and payment_status= '%s'", planId, "ACTIVE"))
+
+			subscriptions, err := subscriptions.FindAll(q)
+
+			if err == nil {
+				subscriberCount = subscriberCount + len(subscriptions)
+			}
+		}
+	}
+	// Count the subscribers for Stripe
+	// TODO: Implement subscription cancellation update for Stripe
+	q := subscriptions.Query()
+
+	q.Where(fmt.Sprintf("item_number = '%d'", s.ID))
+
+	subscriptions, err := subscriptions.FindAll(q)
+
+	if err == nil {
+		subscriberCount = subscriberCount + len(subscriptions)
+	}
+
+	return subscriberCount
 }

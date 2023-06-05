@@ -172,8 +172,8 @@ function ActivateManageBilling(){
     });
 }
 
+// Collect the authenticity token from meta tags in header
 function authenticityToken() {
-    // Collect the authenticity token from meta tags in header
     var meta = DOM.First("meta[name='authenticity_token']")
     if (meta === undefined) {
         e.preventDefault();
@@ -182,9 +182,30 @@ function authenticityToken() {
     return meta.getAttribute('content');
 }
 
+// Collect the product ID from meta tags in header
 function productID() {
-    // Collect the authenticity token from meta tags in header
     var meta = DOM.First("meta[name='product_ID']")
+    if (meta === undefined) {
+        e.preventDefault();
+        return ""
+    }
+    return meta.getAttribute('content');
+}
+
+// Collect the app ID from meta tags in header
+function appID() {
+    var meta = DOM.First("meta[name='app_ID']")
+    if (meta === undefined) {
+        e.preventDefault();
+        return ""
+    }
+    return meta.getAttribute('content');
+}
+
+
+// Collect the location ID from meta tags in header
+function locationID() {
+    var meta = DOM.First("meta[name='location_ID']")
     if (meta === undefined) {
         e.preventDefault();
         return ""

@@ -29,6 +29,8 @@
 <meta name="publishing_key" content="{{.publishingKey}}">
 <meta name="price_ID" content="{{.priceID}}">
 <meta name="product_ID" content="{{.story.ID}}">
+<meta name="app_ID" content="{{ .meta_app_id }}">
+<meta name="location_ID" content="{{ .meta_location_id }}">
 
 {{if .meta_rss }}
 <link rel="alternate" type="application/rss+xml" title="{{ .meta_title }}" href="{{ .meta_rss }}">

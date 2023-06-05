@@ -101,7 +101,7 @@ func SetupDefaultUser() {
 		log.Info(log.V{"Setup, App": "Default user already exists"})
 	}
 
-	if config.Get("reset_admin") == "true" {
+	if config.GetBool("reset_admin") {
 		log.Info(log.V{"App": "Resetting the email and password of the admin to default credentials"})
 		useractions.HandleUpdate(1, config.Get("admin_email"), config.Get("admin_default_password"))
 	}

@@ -147,3 +147,15 @@ func ValidateMap(param interface{}) map[string]string {
 	}
 	return v
 }
+
+// ValidateNestedMap returns the nested map value of the JSON string
+func ValidateNestedMap(param interface{}) map[string]map[string]interface{} {
+	var v map[string]map[string]interface{}
+	if param != nil {
+		switch param.(type) {
+		case string:
+			json.Unmarshal([]byte(param.(string)), &v)
+		}
+	}
+	return v
+}

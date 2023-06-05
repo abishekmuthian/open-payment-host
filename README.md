@@ -2,7 +2,7 @@
 # Open Payment Host
 Sell Subscriptions, Newsletters, Digital Files without paying commissions.
 
-![Open Payment Host home page](/demo/home.png)
+![Open Payment Host post page](/demo/Square/4.post.gif)
 
 ## What
 Open Payment Host is an easy to run self-hosted, minimalist payments host through which we can easily sell our digital items without paying double commissions while having total control over our sales and data.
@@ -14,38 +14,47 @@ Selling digital items on web as an indie requires using platforms where we have 
 Open Payment Host is a minimalist yet highly performant Go web application with innovative features which helps indies self-host and sell digital items with little effort.
 
 ## Video Demo
-[![Video Demo](/demo/thumbnail-site.png)](https://youtu.be/vQcLr-NgqIU)
+[![Video Demo](/demo/Square/thumbnail-centered.png)](https://www.youtube.com/watch?v=LVOqNXwO5CM)
 
 Clicking the above image would open the video in YouTube.
 
 ## Features
 * Customers can buy without logging in, Increases conversion.
+* Square support, Just add the amount for the product and rest is done automatically.<sup>New</sup>
 * Stripe support, Just add the price id for the product and rest is done automatically.
 * Multi-country pricing, Price changes automatically according to the user's location resulting in better conversion.
 * Mailchimp support, Customers are automatically added to a mailchimp list; Useful for sending newsletters.
 * WYSIWYG editor to create beautiful product pages.
+* S3 support for delivering digital files via automatic pre-signed URL. <sup>New</sup>
+* Subscriber count for the products (With Square).<sup>New</sup>
 * Automatic SSL and other security features for production.
 
 and many more.
 
 ## Screenshots
 
-### WYSIWYG editor in action
-![WYSIWYG editor in action](/demo/editor.gif)
+### Home
+![Hope page of OPH](/demo/Square/1.home.png)
 
-### Post display
-![Post Display](/demo/post-display.gif)
+### WYSIWYG editor
+![WYSIWYG editor](/demo/Square/2.WYSIWYG.png)
 
 ### Buy without login
-![Buy](/demo/buy.gif)
+![Billing](/demo/Square/5.billing_details_80_zoom.png)
+
+### No credit card data is stored locally
+![Square web sdk](/demo/Square/6.square_web_sdk.png)
+
+### Strong customer authentication (3D-Secure, SCA) support
+![3D-Secure](/demo/Square/7.3D_secure.png)
 
 ### File delivery after payment
-![File delivery after payment](/demo/file-delivery.gif)
+![File delivery after payment](/demo/Square/8.File_download_delivery.png)
 
 ## Usage
 
 ### Requirements
-1. [Stripe](https://stripe.com/) account for payment gateway.
+1. [Square](https://squareup.com) or (https://stripe.com/) account for payment gateway.
 2. [Cloudflare](https://www.cloudflare.com/) account for turnstile captcha.
 3. [Mailchimp](https://mailchimp.com/) account for adding subscribers to the list.
 
@@ -67,7 +76,7 @@ Visit `http://localhost:3000`.
 Demo version prints more detailed level of errors if any, DO NOT use this demo setup in production.
 
 #### Login
-The default admin email id is `test@test.com` and the password is `OpenPaymentHost`. You'll be asked to reset the password after login for security reasons. That password is hashed and stored.
+The default admin email id is `admin@openpaymenthost.com` and the password is `OpenPaymentHost`. You'll be asked to reset the password after login for security reasons. That password is hashed and stored.
 
 You'll be logged out after changing password automatically to login with the new credentials.
 
@@ -94,9 +103,9 @@ User configurable values are included in the table below.
 
 | Key | Description | Value |
 | ----------- | ----------- | --------|
-| admin_email | Email id of the administrator. | Default: test@test.com |
+| admin_email | Email id of the administrator. | Default: admin@openpaymenthost.com |
 | admin_default_password | Default password of the administrator, Would be forced to changed after login. | Default: OpenPaymentHost |
-| reset_admin | Reset the email and password of the admin during the next run. | true (or) false
+| reset_admin | Reset the email and password of the admin during the next run. | yes (or) no
 | domain | Website domain name for the application. | Dev: localhost, Prod: example
 | port | Port of the application. | Dev: 3000, Prod: 443 (SSL)
 | root_url | FQDN for the application with protocol and port. | Dev: http://localhost:3000, Prod: https://example.com
@@ -108,6 +117,17 @@ User configurable values are included in the table below.
 | meta_keywords | Keywords for the website. | Default: payments,subscription,projects,products
 | meta_image | URL for the featured image for the website. | Default: /assets/images/app/oph_featured_image.png
 | meta_url | Meta URL for the page when its not generated automatically. | Dev: http://localhost:3000, Prod: https://example.com
+| square | Enable the square payment gateway, When enabled all other square credentials are mandatory. | Dev/Prod : yes,no
+| square_access_token | Square access token for accessing your square account. | Dev: Sandbox access token, Prod: Production access token
+| square_app_id | Square app id to identify your application. | Dev: sandbox-..., Production: production app id
+| square_location_id | Square location id for the account | Dev: Sandbox location id from test account, Prod: location id from the main account
+| square_notification_url | Square notification url for the webhook. | Dev:Sandbox webhook URL, Prod: Production webhook URL
+| square_signature_key | Square signature for webhook authentication | Dev: Sandbox webhook signature, Prod: Production webhook signature
+| square_sandbox_source_id | Square sandbox source id for credit card | Default cnon:card-nonce-ok
+| square_domain | Square API domain | Dev: https://connect.squareupsandbox.com/v2, Prod: https://connect.squareup.com/v2
+| s3_access_key | S3 compatible access key | Dev: NA,Prod: NA
+| s3_secret_key | S3 compatible secret key | Dev: NA, Prod: NA
+| stripe | Enable the stripe payment gateway, When enabled all other stripe credentials are mandatory. | Dev/Prod : yes, no
 | stripe_key | Stripe developer key. | Dev: pk_test_..., Prod: pk_live_...
 | stripe_secret | Stripe developer secret key. | Dev: sk_test_..., Prod: sk_live_...
 | stripe_webhook_secret | Stripe webhook signing secret | Dev: whsec_xxx, Prod: whsec_xxx
@@ -117,6 +137,16 @@ User configurable values are included in the table below.
 | mailchimp_token | Mailchimp API Key. |  e.g. ...-us12
 | turnstile_secret_key | Cloudflare turnstile secret key for captcha. | Dev: 1x00000000000000000000AA, Prod: 0x...
 | turnstile_site_key | Cloudflare turnstile key for captcha. | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...
+
+### Square Webhook Setup
+Webhook needs to be setup at [Square](https://developer.squareup.com) Developer's section for receiving subscription details post payment.
+
+Set the webhook to `root_url/payment/webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+
+Set the following events to send:
+
+1. `subscription.created `
+2. `subscription.updated `
 
 ### Stripe Webhook Setup
 Webhook needs to be setup at [Stripe](https://stripe.com) Developer's section for receiving subscription details post payment.
@@ -158,7 +188,7 @@ npx tailwindcss -i tailwind/tailwind.css src/app/assets/styles/app.css --watch
 ### License
 The MIT License (MIT)
 
-Copyright (c) 2022 ABISHEK MUTHIAN (www.openpaymenthost.com)
+Copyright (c) 2023 ABISHEK MUTHIAN (www.openpaymenthost.com)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

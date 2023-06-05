@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"time"
 
 	filehelper "github.com/abishekmuthian/open-payment-host/src/lib/model/file"
@@ -56,6 +57,30 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("story", story)
 	view.AddKey("currentUser", currentUser)
 	view.AddKey("meta_foot", config.Get("meta_desc"))
+	view.AddKey("stripe", config.GetBool("stripe"))
+	if config.Get("square_access_token") != "" {
+		view.AddKey("square", config.GetBool("square"))
+	} else {
+		view.AddKey("square", false)
+	}
+
+	if config.GetBool("square") {
+		squarePriceJSON, err := json.Marshal(story.SquarePrice)
+
+		if err == nil {
+			view.AddKey("squarePriceJSON", string(squarePriceJSON))
+		} else {
+			view.AddKey("squarePriceJSON", "")
+		}
+	} else if config.GetBool("stripe") {
+		stripePriceJSON, err := json.Marshal(story.Price)
+
+		if err == nil {
+			view.AddKey("stripePriceJSON", string(stripePriceJSON))
+		} else {
+			view.AddKey("stripePriceJSON", "")
+		}
+	}
 
 	// To add the scripts for update page
 	view.AddKey("loadTrixScript", true)
@@ -167,6 +192,46 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 			defer outFile.Close()
 
 			outFile.Write(fileData)
+		} else {
+			return server.InternalError(errors.New("Improper image format only png or jpg image format is allowed."))
+		}
+
+	}
+
+	if config.GetBool("square") && storyParams["square_price"] != "" {
+
+		var squarePrice map[string]map[string]interface{}
+
+		err = json.Unmarshal([]byte(storyParams["square_price"]), &squarePrice)
+
+		if err == nil && !reflect.DeepEqual(story.SquarePrice, squarePrice) {
+			if len(squarePrice) != 0 {
+				for clientCountry, data := range squarePrice {
+					amount := data["amount"]
+					currency := data["currency"]
+					catalogId, error := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string))
+
+					if err != nil {
+						log.Error(log.V{"Error creating subscription plan ": error})
+						continue
+					}
+					log.Info(log.V{"CountryCode is ": clientCountry, "Catalog ID is ": catalogId})
+
+					if catalogId != "" && clientCountry != "" {
+						catalogMap := make(map[string]string)
+
+						catalogMap[clientCountry] = catalogId
+
+						catalogMapJson, err := json.Marshal(catalogMap)
+
+						if err == nil {
+							storyParams["square_subscription_plan_Id"] = string(catalogMapJson)
+						}
+
+					}
+				}
+			}
+
 		}
 	}
 
