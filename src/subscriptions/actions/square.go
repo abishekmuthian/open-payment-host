@@ -398,7 +398,7 @@ func CreateCard(paymentToken string, verificationToken string, amount int64, cur
 	u, _ := uuid.NewRandom()
 	var data Payload
 
-	if !config.Production() {
+	if config.Get("square_sandbox_source_id") != "" {
 		data = Payload{
 			// fill struct
 			IdempotencyKey: u.String(),

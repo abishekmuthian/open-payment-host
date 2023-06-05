@@ -123,12 +123,12 @@ User configurable values are included in the table below.
 | square_location_id | Square location id for the account | Dev: Sandbox location id from test account, Prod: location id from the main account
 | square_notification_url | Square notification url for the webhook. | Dev:Sandbox webhook URL, Prod: Production webhook URL
 | square_signature_key | Square signature for webhook authentication | Dev: Sandbox webhook signature, Prod: Production webhook signature
-| square_sandbox_source_id | Square sandbox source id for credit card | Default cnon:card-nonce-ok
+| square_sandbox_source_id | Square sandbox source id for credit card | Dev: cnon:card-nonce-ok, Prod:""
 | square_domain | Square API domain | Dev: https://connect.squareupsandbox.com/v2, Prod: https://connect.squareup.com/v2
 | s3_access_key | S3 compatible access key | Dev: NA,Prod: NA
 | s3_secret_key | S3 compatible secret key | Dev: NA, Prod: NA
 | stripe | Enable the stripe payment gateway, When enabled all other stripe credentials are mandatory. | Dev/Prod : yes, no
-| stripe_key | Stripe developer key. | Dev: pk_test_..., Prod: pk_live_...
+| stripe_key | Stripe developer key. | Dev: pk_test_..., Prod: pk_live_...****
 | stripe_secret | Stripe developer secret key. | Dev: sk_test_..., Prod: sk_live_...
 | stripe_webhook_secret | Stripe webhook signing secret | Dev: whsec_xxx, Prod: whsec_xxx
 | stripe_tax_rate_IN | Stripe tax id for India. | Dev: txr_..., Prod: txr_...
@@ -141,7 +141,7 @@ User configurable values are included in the table below.
 ### Square Webhook Setup
 Webhook needs to be setup at [Square](https://developer.squareup.com) Developer's section for receiving subscription details post payment.
 
-Set the webhook to `root_url/payment/webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+Set the webhook to `root_url/payment/square_webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
 
 Set the following events to send:
 

@@ -118,6 +118,7 @@ func generateConfig(projectPath string) error {
 		ConfigProduction[k] = v
 	}
 
+	ConfigProduction["assets_compiled"] = "no"
 	ConfigProduction["log"] = "log/production.log"
 	ConfigProduction["port"] = "443"
 	ConfigProduction["assets_compiled"] = "yes"
@@ -127,7 +128,6 @@ func generateConfig(projectPath string) error {
 	ConfigProduction["secret_key"] = randomKey(32)
 	ConfigProduction["turnstile_site_key"] = ""
 	ConfigProduction["turnstile_secret_key"] = ""
-	ConfigProduction["admin_email"] = ""
 	ConfigProduction["root_url"] = ""
 	ConfigProduction["square_domain"] = "https://connect.squareup.com/v2"
 
