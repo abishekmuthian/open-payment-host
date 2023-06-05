@@ -86,7 +86,7 @@ func HandleBilling(w http.ResponseWriter, r *http.Request) error {
 	// Get the size of elements in params for security
 	paramMap := params.Map()
 	for _, element := range paramMap {
-		if len(element) > 100 {
+		if len(element) > 1000 {
 			return server.Redirect(w, r, "/payment/failure?errorDetail=Check your billing details.")
 		}
 	}
