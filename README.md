@@ -14,7 +14,7 @@ Selling digital items on web as an indie requires using platforms where we have 
 Open Payment Host is a minimalist yet highly performant Go web application with innovative features which helps indies self-host and sell digital items with little effort.
 
 ## Video Demo
-[![Video Demo](/demo/Square/thumbnail-centered.png)](https://www.youtube.com/watch?v=LVOqNXwO5CM)
+[![Video Demo](/demo/Stripe/thumbnail-site.png)](https://www.youtube.com/watch?v=vQcLr-NgqIU)
 
 Clicking the above image would open the video in YouTube.
 
@@ -43,21 +43,33 @@ and many more.
 ![WYSIWYG editor](/demo/Square/2.WYSIWYG.png)
 
 ### Buy without login
+#### Stripe
+![Buy button](/demo/Stripe/buy.gif)
+
+#### Square
 ![Billing](/demo/Square/5.billing_details_80_zoom.png)
 
 ### No credit card data is stored locally
+#### Stripe
+![Buy button](/demo/Stripe/buy.gif)
+
+#### Square
 ![Square web sdk](/demo/Square/6.square_web_sdk.png)
 
 ### Strong customer authentication (3D-Secure, SCA) support
 ![3D-Secure](/demo/Square/7.3D_secure.png)
 
 ### File delivery after payment
-![File delivery after payment](/demo/Square/8.File_download_delivery.png)
+#### Stripe
+![File delivery after payment after stripe payment](/demo/Stripe/file-delivery.gif)
+
+#### Square
+![File delivery after payment after square payment](/demo/Square/8.File_download_delivery.png)
 
 ## Usage
 
 ### Requirements
-1. [Square](https://squareup.com) or (https://stripe.com/) account for payment gateway.
+1. [Stripe](https://stripe.com/) or [Square](https://squareup.com) account for payment gateway.
 2. [Cloudflare](https://www.cloudflare.com/) account for turnstile captcha.
 3. [Mailchimp](https://mailchimp.com/) account for adding subscribers to the list.
 
@@ -141,16 +153,6 @@ User configurable values are included in the table below.
 | turnstile_secret_key | Cloudflare turnstile secret key for captcha. | Dev: 1x00000000000000000000AA, Prod: 0x...
 | turnstile_site_key | Cloudflare turnstile key for captcha. | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...
 
-### Square Webhook Setup
-Webhook needs to be setup at [Square](https://developer.squareup.com) Developer's section for receiving subscription details post payment.
-
-Set the webhook to `root_url/payment/square_webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
-
-Set the following events to send:
-
-1. `subscription.created `
-2. `subscription.updated `
-
 ### Stripe Webhook Setup
 Webhook needs to be setup at [Stripe](https://stripe.com) Developer's section for receiving subscription details post payment.
 
@@ -164,6 +166,15 @@ Set the following events to send:
 4. `invoice.payment_failed`
 5. `customer.subscription.deleted`
 
+### Square Webhook Setup
+Webhook needs to be setup at [Square](https://developer.squareup.com) Developer's section for receiving subscription details post payment.
+
+Set the webhook to `root_url/payment/square_webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+
+Set the following events to send:
+
+1. `subscription.created `
+2. `subscription.updated `
 
 ## Developer
 
