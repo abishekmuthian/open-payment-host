@@ -110,6 +110,7 @@ func generateConfig(projectPath string) error {
 		"square_sandbox_source_id":    "cnon:card-nonce-ok",
 		"s3_access_key":               "",
 		"s3_secret_key":               "",
+		"palm_key":                    "",
 	}
 
 	// Copying development values to production and then adding more

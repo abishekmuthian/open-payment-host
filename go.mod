@@ -1,6 +1,6 @@
 module github.com/abishekmuthian/open-payment-host
 
-go 1.19
+go 1.20
 
 require (
 	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
@@ -24,6 +24,7 @@ require github.com/jmespath/go-jmespath v0.4.0 // indirect
 
 require (
 	github.com/aws/aws-sdk-go v1.44.268
+	github.com/gomarkdown/markdown v0.0.0-20230922112808-5421fefb8386
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/stretchr/testify v1.8.1 // indirect

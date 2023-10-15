@@ -34,6 +34,13 @@ func SetupRoutes() *mux.Mux {
 	router.Get("/index{format:(.xml)?}", storyactions.HandleIndex)
 	router.Get("/products/create", storyactions.HandleCreateShow)
 	router.Post("/products/create", storyactions.HandleCreate)
+
+	// Add suggestion route
+	router.Post("/product/editor/suggestion", storyactions.HandleGetSuggestion)
+
+	// Add file upload route
+	router.Post("/product/editor/upload", storyactions.HandleFileAttachment)
+
 	// No voting for the products yet
 	// router.Get("/products/upvoted{format:(.xml)?}", storyactions.HandleListUpvoted)
 	router.Get("/products/{id:[0-9]+}/update", storyactions.HandleUpdateShow)
