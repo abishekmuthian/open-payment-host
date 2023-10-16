@@ -1,15 +1,15 @@
-version: '3.8'
+version: "3.8"
 
 services:
   oph:
-    image: abishekmuthian/open-payment-host:latest-slim
+    image: abishekmuthian/open-payment-host:latest
     container_name: oph-container
     command: /home/default/build/exec/open-payment-host
     environment:
       - FRAG_ENV=production
     ports:
-      - '443:443'
-      - '80:80'
+      - "443:443"
+      - "80:80"
     volumes:
       - ${PWD}/secrets:/home/default/build/secrets
       - ${PWD}/db:/home/default/build/db

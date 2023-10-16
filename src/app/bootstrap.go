@@ -122,7 +122,6 @@ func generateConfig(projectPath string) error {
 	ConfigProduction["assets_compiled"] = "no"
 	ConfigProduction["log"] = "log/production.log"
 	ConfigProduction["port"] = "443"
-	ConfigProduction["assets_compiled"] = "yes"
 	ConfigProduction["autocert_email"] = ""
 	ConfigProduction["autocert_domains"] = ""
 	ConfigProduction["hmac_key"] = randomKey(32)
