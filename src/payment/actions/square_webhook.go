@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -25,7 +25,7 @@ func HandleSquareWebhook(w http.ResponseWriter, r *http.Request) error {
 	// Check if the event is from Square
 	signature := r.Header.Get("x-square-hmacsha256-signature")
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		log.Error(log.V{"ioutil.ReadAll: %v": err})

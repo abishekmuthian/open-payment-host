@@ -18,7 +18,7 @@ Open Payment Host is a minimalist yet highly performant Go web application with 
 
 ## Video Demo
 
-[![Video Demo](/demo/Stripe/thumbnail-site.png)](https://www.youtube.com/watch?v=vQcLr-NgqIU)
+[![Video Demo](/demo/Square/oph-square-google.png)](https://www.youtube.com/watch?v=vQcLr-NgqIU)
 
 Clicking the above image would open the video in YouTube.
 
@@ -30,10 +30,10 @@ Clicking the above image would open the video in YouTube.
 
 - Customers can buy without logging in, Increases conversion.
 - Square support, Just add the amount for the product and rest is done automatically.<sup>New</sup>
-- Stripe support, Just add the price id for the product and rest is done automatically.
 - Multi-country pricing, Price changes automatically according to the user's location resulting in better conversion.
 - Mailchimp support, Customers are automatically added to a mailchimp list; Useful for sending newsletters.
-- WYSIWYG editor to create beautiful product pages.
+- WYSIWYG editor with AI autocomplete to create beautiful product pages.<sup>New</sup>
+- File attachment support(images) for the product posts. <sup>New</sup>
 - S3 support for delivering digital files via automatic pre-signed URL. <sup>New</sup>
 - Subscriber count for the products (With Square).<sup>New</sup>
 - Automatic SSL and other security features for production.
@@ -44,27 +44,19 @@ and many more.
 
 ### Home
 
-![Hope page of OPH](/demo/Square/1.home.png)
+![Hope page of OPH](/demo/Square/1.a.home.png)
 
-### WYSIWYG editor
+### WYSIWYG editor with autocomplete powered by Google LaMA AI
 
-![WYSIWYG editor](/demo/Square/2.WYSIWYG.png)
+![WYSIWYG editor](/demo/Square/10.editor-oph.gif)
 
 ### Buy without login
-
-#### Stripe
-
-![Buy button](/demo/Stripe/buy.gif)
 
 #### Square
 
 ![Billing](/demo/Square/5.billing_details_80_zoom.png)
 
 ### No credit card data is stored locally
-
-#### Stripe
-
-![Buy button](/demo/Stripe/buy.gif)
 
 #### Square
 
@@ -76,10 +68,6 @@ and many more.
 
 ### File delivery after payment
 
-#### Stripe
-
-![File delivery after payment after stripe payment](/demo/Stripe/file-delivery.gif)
-
 #### Square
 
 ![File delivery after payment after square payment](/demo/Square/8.File_download_delivery.png)
@@ -88,9 +76,10 @@ and many more.
 
 ### Requirements
 
-1. [Stripe](https://stripe.com/) or [Square](https://squareup.com) account for payment gateway.
-2. [Cloudflare](https://www.cloudflare.com/) account for turnstile captcha.
-3. [Mailchimp](https://mailchimp.com/) account for adding subscribers to the list.
+1. [Square](https://squareup.com) account for payment gateway.
+2. [Google PaLM AI API](https://developers.generativeai.google/products/palm) key for autocomplete in editor.
+3. [Cloudflare](https://www.cloudflare.com/) account for turnstile captcha.
+4. [Mailchimp](https://mailchimp.com/) account for adding subscribers to the list.
 
 Note: Open Payment Host can be tested without fulfilling above requirements, But payments and adding subscribers to the list wouldn't work.
 
@@ -164,30 +153,10 @@ User configurable values are included in the table below.
 | square_domain               | Square API domain                                                                           | Dev: https://connect.squareupsandbox.com/v2, Prod: https://connect.squareup.com/v2  |
 | s3_access_key               | S3 compatible access key                                                                    | Dev: NA,Prod: NA                                                                    |
 | s3_secret_key               | S3 compatible secret key                                                                    | Dev: NA, Prod: NA                                                                   |
-| stripe                      | Enable the stripe payment gateway, When enabled all other stripe credentials are mandatory. | Dev/Prod : yes, no                                                                  |
-| stripe_key                  | Stripe developer key.                                                                       | Dev: pk*test*..., Prod: pk*live*...\*\*\*\*                                         |
-| stripe_secret               | Stripe developer secret key.                                                                | Dev: sk*test*..., Prod: sk*live*...                                                 |
-| stripe_webhook_secret       | Stripe webhook signing secret                                                               | Dev: whsec_xxx, Prod: whsec_xxx                                                     |
-| stripe_tax_rate_IN          | Stripe tax id for India.                                                                    | Dev: txr*..., Prod: txr*...                                                         |
-| stripe_callback_domain      | Root URL for callback after Stripe event.                                                   | Dev: [Use tunnel like ngrok], Prod: [Use root_url]                                  |
 | subscription_client_country | Test country for testing multi-country pricing.                                             | Dev: US, IN, FR etc. Prod: NA                                                       |
 | mailchimp_token             | Mailchimp API Key.                                                                          | e.g. ...-us12                                                                       |
 | turnstile_secret_key        | Cloudflare turnstile secret key for captcha.                                                | Dev: 1x00000000000000000000AA, Prod: 0x...                                          |
 | turnstile_site_key          | Cloudflare turnstile key for captcha.                                                       | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...                               |
-
-### Stripe Webhook Setup
-
-Webhook needs to be setup at [Stripe](https://stripe.com) Developer's section for receiving subscription details post payment.
-
-Set the webhook to `root_url/payment/webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
-
-Set the following events to send:
-
-1. `checkout.session.completed`
-2. `payment_method.attached`
-3. `invoice.paid`
-4. `invoice.payment_failed`
-5. `customer.subscription.deleted`
 
 ### Square Webhook Setup
 
