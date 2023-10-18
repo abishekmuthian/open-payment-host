@@ -18,7 +18,7 @@ Open Payment Host is a minimalist yet highly performant Go web application with 
 
 ## Video Demo
 
-[![Video Demo](/demo/Square/oph-square-google.png)](https://www.youtube.com/watch?v=vQcLr-NgqIU)
+[![Video Demo](/demo/Square/oph-square-google.png)](https://www.youtube.com/watch?v=i0LUvUKq4-o)
 
 Clicking the above image would open the video in YouTube.
 
