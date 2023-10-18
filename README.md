@@ -46,7 +46,7 @@ and many more.
 
 ![Hope page of OPH](/demo/Square/1.a.home.png)
 
-### WYSIWYG editor with autocomplete powered by Google LaMA AI
+### WYSIWYG editor with autocomplete powered by Google PaLM AI
 
 ![WYSIWYG editor](/demo/Square/10.editor-oph.gif)
 
@@ -157,6 +157,7 @@ User configurable values are included in the table below.
 | mailchimp_token             | Mailchimp API Key.                                                                          | e.g. ...-us12                                                                       |
 | turnstile_secret_key        | Cloudflare turnstile secret key for captcha.                                                | Dev: 1x00000000000000000000AA, Prod: 0x...                                          |
 | turnstile_site_key          | Cloudflare turnstile key for captcha.                                                       | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...                               |
+| palm_key                    | Google AI PaLM API Key                                                                      | Dev: xxxxxxxxx, Prod: xxxxxxxxx                                                     |
 
 ### Square Webhook Setup
 
