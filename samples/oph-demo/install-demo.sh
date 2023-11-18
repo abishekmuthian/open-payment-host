@@ -15,8 +15,8 @@ check_dependencies() {
 		exit 1
 	fi
 
-	if ! command -v docker-compose > /dev/null; then
-		echo "docker-compose is not installed."
+	if ! command -v docker compose > /dev/null; then
+		echo "docker compose is not installed."
 		exit 1
 	fi
 }
@@ -36,7 +36,7 @@ setup_db(){
 
 setup_containers() {
 	curl -o docker-compose.yml https://raw.githubusercontent.com/abishekmuthian/open-payment-host/main/samples/oph-demo/docker-compose.yml
-	docker-compose up -d
+	docker compose up -d
 }
 
 show_output(){
