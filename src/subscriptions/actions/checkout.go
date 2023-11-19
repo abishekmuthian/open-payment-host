@@ -61,13 +61,11 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 					return server.RedirectExternal(w, r, downloadUrl)
 				}
 				successURL = stripe.String(downloadUrl)
+			} else {
+				successURL = stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
 			}
 
 		}
-	}
-
-	if *successURL == "" || successURL == nil {
-		successURL = stripe.String(config.Get("stripe_callback_domain") + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
 	}
 
 	// Needed when using stripe JS
