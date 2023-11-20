@@ -18,8 +18,7 @@ Open Payment Host is a minimalist yet highly performant Go web application with 
 
 ## Video Demo
 
-[![Video Demo](/demo/Square/oph-square-google.png)](https://www.youtube.com/watch?v=i0LUvUKq4-o)
-
+[![Video Demo](/demo/Stripe/thumbnail-site.png)](https://www.youtube.com/watch?v=vQcLr-NgqIU)
 Clicking the above image would open the video in YouTube.
 
 ## Demo
@@ -29,6 +28,7 @@ Clicking the above image would open the video in YouTube.
 ## Features
 
 - Customers can buy without logging in, Increases conversion.
+- Stripe support, Just add the price id for the product and rest is done automatically.
 - Square support, Just add the amount for the product and rest is done automatically.<sup>New</sup>
 - Multi-country pricing, Price changes automatically according to the user's location resulting in better conversion.
 - Mailchimp support, Customers are automatically added to a mailchimp list; Useful for sending newsletters.
@@ -58,6 +58,10 @@ and many more.
 
 ### No credit card data is stored locally
 
+#### Stripe
+
+![Buy button](/demo/Stripe/buy.gif)
+
 #### Square
 
 ![Square web sdk](/demo/Square/6.square_web_sdk.png)
@@ -68,6 +72,10 @@ and many more.
 
 ### File delivery after payment
 
+#### Stripe
+
+![File delivery after payment after stripe payment](/demo/Stripe/file-delivery.gif)
+
 #### Square
 
 ![File delivery after payment after square payment](/demo/Square/8.File_download_delivery.png)
@@ -76,7 +84,7 @@ and many more.
 
 ### Requirements
 
-1. [Square](https://squareup.com) account for payment gateway.
+1. [Stripe](https://stripe.com/) or [Square](https://squareup.com) account for payment gateway
 2. [Google PaLM AI API](https://developers.generativeai.google/products/palm) key for autocomplete in editor.
 3. [Cloudflare](https://www.cloudflare.com/) account for turnstile captcha.
 4. [Mailchimp](https://mailchimp.com/) account for adding subscribers to the list.
@@ -153,11 +161,31 @@ User configurable values are included in the table below.
 | square_domain               | Square API domain                                                                           | Dev: https://connect.squareupsandbox.com/v2, Prod: https://connect.squareup.com/v2  |
 | s3_access_key               | S3 compatible access key                                                                    | Dev: NA,Prod: NA                                                                    |
 | s3_secret_key               | S3 compatible secret key                                                                    | Dev: NA, Prod: NA                                                                   |
+| stripe                      | Enable the stripe payment gateway, When enabled all other stripe credentials are mandatory. | Dev/Prod : yes, no                                                                  |
+| stripe_key                  | Stripe developer key.                                                                       | Dev: pk*test*..., Prod: pk*live*...\*\*\*\*                                         |
+| stripe_secret               | Stripe developer secret key.                                                                | Dev: sk*test*..., Prod: sk*live*...                                                 |
+| stripe_webhook_secret       | Stripe webhook signing secret                                                               | Dev: whsec_xxx, Prod: whsec_xxx                                                     |
+| stripe_tax_rate_IN          | Stripe tax id for India.                                                                    | Dev: txr*..., Prod: txr*...                                                         |
+| stripe_callback_domain      | Root URL for callback after Stripe event.                                                   | Dev: [Use tunnel like ngrok], Prod: [Use root_url]                                  |
 | subscription_client_country | Test country for testing multi-country pricing.                                             | Dev: US, IN, FR etc. Prod: NA                                                       |
 | mailchimp_token             | Mailchimp API Key.                                                                          | e.g. ...-us12                                                                       |
 | turnstile_secret_key        | Cloudflare turnstile secret key for captcha.                                                | Dev: 1x00000000000000000000AA, Prod: 0x...                                          |
 | turnstile_site_key          | Cloudflare turnstile key for captcha.                                                       | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...                               |
 | palm_key                    | Google AI PaLM API Key                                                                      | Dev: xxxxxxxxx, Prod: xxxxxxxxx                                                     |
+
+### Stripe Webhook Setup
+
+Webhook needs to be setup at [Stripe](https://stripe.com) Developer's section for receiving subscription details post payment.
+
+Set the webhook to `root_url/payment/webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+
+Set the following events to send:
+
+1. `checkout.session.completed`
+2. `payment_method.attached`
+3. `invoice.paid`
+4. `invoice.payment_failed`
+5. `customer.subscription.deleted`
 
 ### Square Webhook Setup
 
@@ -196,27 +224,13 @@ npx tailwindcss -i tailwind/tailwind.css src/app/assets/styles/app.css --watch
 
 ### License
 
-The MIT License (MIT)
+Copyright (C) 2023 Abishek Muthian (Open Payment Host)
 
-Copyright (c) 2023 ABISHEK MUTHIAN (www.openpaymenthost.com)
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see https://www.gnu.org/licenses/.
 
 ### Licenses for open-source libraries used in this project
 
