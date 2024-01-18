@@ -21,3 +21,4 @@ __debug_bin
 .git
 .cache
 demo/*
+fly.toml

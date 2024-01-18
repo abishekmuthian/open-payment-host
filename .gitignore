@@ -19,3 +19,4 @@ package.json
 __debug_bin
 *_test.go
 .cache
+fly.toml

@@ -23,7 +23,7 @@ Clicking the above image would open the video in YouTube.
 
 ## Demo
 
-[https://demo.openpaymenthost.com](https://demo.openpaymenthost.com)
+[https://abishek.openpaymenthost.com](https://abishek.openpaymenthost.com)
 
 ## Features
 
@@ -145,6 +145,7 @@ User configurable values are included in the table below.
 | root_url                    | FQDN for the application with protocol and port.                                            | Dev: http://localhost:3000, Prod: https://example.com                               |
 | autocert_domains            | Comma separated domains for SSL certificates.                                               | Demo: NA, Prod: www.example.com, example.com                                        |
 | autocert_email              | email id for SSL certificate related notifications.                                         | Demo: NA, Prod: admin@example.com                                                   |
+| autocert_ssl                | Enable or Disable automatic ssl                                                             | Demo: NA, Prod: yes/no                                                              |
 | name                        | Name of the website.                                                                        | Default: Open Payment Host                                                          |
 | meta_title                  | Title of the website.                                                                       | Default : Sell what you want without paying commissions                             |
 | meta_desc                   | Description of the website.                                                                 | Default: Sell Subscriptions, Newsletters, Digital Files without paying commissions. |

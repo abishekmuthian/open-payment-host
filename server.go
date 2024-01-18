@@ -38,7 +38,7 @@ func main() {
 	server.Logf("#info Starting server in %s mode on port %d", server.Mode(), server.Port())
 
 	// In production, server
-	if server.Production() {
+	if server.Production() && server.ConfigBool("autocert_ssl") {
 
 		// Redirect all :80 traffic to our canonical url on :443
 		//server.StartRedirectAll(80, server.Config("root_url"))
