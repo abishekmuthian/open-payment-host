@@ -34,6 +34,7 @@ func SetupRoutes() *mux.Mux {
 	router.Get("/index{format:(.xml)?}", storyactions.HandleIndex)
 	router.Get("/products/create", storyactions.HandleCreateShow)
 	router.Post("/products/create", storyactions.HandleCreate)
+	router.Get("/products/create/schedule", storyactions.HandleSchedule)
 
 	// Add suggestion route
 	router.Post("/product/editor/suggestion", storyactions.HandleGetSuggestion)
@@ -64,17 +65,19 @@ func SetupRoutes() *mux.Mux {
 	/*	router.Get("/subscriptions/verification", subscriberactions.HandleVerificationShow)
 		router.Post("/subscriptions/verification", subscriberactions.HandleVerification)*/
 
-	// Add subscription routes for Square, Stripe
+	// Add subscription routes for Square, Stripe, Paypal
 	router.Post("/subscriptions/create-checkout-session", subscriberactions.HandleCreateCheckoutSession)
 	router.Get("/subscriptions/billing", subscriberactions.HandleBillingShow)
 	router.Post("/subscriptions/billing", subscriberactions.HandleBilling)
 	router.Get("/subscriptions/square", subscriberactions.HandleSquareShow)
 	router.Post("/subscriptions/square", subscriberactions.HandleSquare)
+	router.Get("/subscriptions/paypal", subscriberactions.HandlePaypalShow)
 	router.Post("/subscriptions/subscribe", subscriberactions.HandleCreateSubscription)
 	router.Get("/payment/success", paymentactions.HandlePaymentSuccess)
 	router.Get("/payment/cancel", paymentactions.HandlePaymentCancel)
 	router.Post("/payment/webhook", paymentactions.HandleWebhook)
 	router.Post("/payment/square_webhook", paymentactions.HandleSquareWebhook)
+	router.Post("/payment/paypal_webhook", paymentactions.HandlePaypalWebhook)
 	router.Get("/payment/failure", paymentactions.HandlePaymentFailure)
 	// Billing not yet active
 	// router.Post("/subscriptions/manage-billing", subscriberactions.HandleCustomerPortal)

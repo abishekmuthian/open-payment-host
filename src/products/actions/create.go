@@ -52,10 +52,16 @@ func HandleCreateShow(w http.ResponseWriter, r *http.Request) error {
 
 	if config.Get("square_access_token") != "" {
 		view.AddKey("square", config.GetBool("square"))
-	} else {
-		view.AddKey("square", false)
 	}
-	view.AddKey("stripe", config.GetBool("stripe"))
+
+	if config.Get("stripe_key") != "" {
+		view.AddKey("stripe", config.GetBool("stripe"))
+	}
+
+	if config.Get("paypal_client_id") != "" {
+		view.AddKey("paypal", config.GetBool("paypal"))
+	}
+
 	return view.Render()
 }
 

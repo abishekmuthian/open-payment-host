@@ -65,7 +65,7 @@ func NonceToken(writer http.ResponseWriter, request *http.Request) (string, erro
 		"abcdefghijklmnopqrstuvwxyz" +
 		"0123456789" +
 		"-._~")
-	length := 8
+	length := 12
 	var b strings.Builder
 	for i := 0; i < length; i++ {
 		b.WriteRune(chars[rand.Intn(len(chars))])

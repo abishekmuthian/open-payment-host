@@ -119,7 +119,12 @@
         placeholder='{"US":"price_1KlnKhSI4oTPH3MZmvAkvjiG","IN":"price_1KlnKhSI4oTPH3MZX9LVIZxb"}'
       ></textarea>
 
-      {{ else if .square }}
+      {{ end }}
+
+
+      <br>
+
+      {{ if .square }}
       <label class="label">
         <span class="label-text text-xl">Square Payment Details</span>
       </label>
@@ -151,6 +156,60 @@
         <option>One Time</option>
         <option>Monthly Subscription</option>
       </select>
+
+      {{ end }}
+
+      <br>
+
+      {{ if .paypal }}
+
+      <label class="label">
+        <span class="label-text text-xl">Paypal Payment Details</span>
+      </label>
+
+      <label class="label">
+        <span class="label-text text-xl">Schedule</span>
+      </label>
+      <label class="label">
+        <span class="label-text-alt"
+          >Pick the schedule for the payment, Either One Time or Monthly Subscription</span
+        >
+      </label>
+
+      <select class="select w-full max-w-xs" name="paypal_schedule" hx-get="/products/create/schedule" hx-target="#paypal-pricing">
+        <option>One Time</option>
+        <option>Monthly Subscription</option>
+      </select>
+
+      <div id="paypal-pricing">
+            <label class="label">
+        <span class="label-text text-xl">Multi Country Pricing</span>
+      </label>
+      <label class="label">
+        <span class="label-text-alt"
+          >Square Country Code(ISO 3166-1 alpha-2), Amount(lowest denomination), Currency Code(ISO 4217) in JSON</span
+        >
+      </label>
+      <textarea
+        class="textarea w-full prose lg:prose-xl"
+        name="square_price"
+        placeholder='{"US": {"amount": 5000,"currency": "USD"}, "IN": {"amount": 3000,"currency": "INR"}}'
+      ><pre></pre></textarea>
+
+      <fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box">
+  <legend class="fieldset-legend">Page details</legend>
+  
+  <label class="fieldset-label">Title</label>
+  <input type="text" class="input" placeholder="My awesome page" />
+  
+  <label class="fieldset-label">Slug</label>
+  <input type="text" class="input" placeholder="my-awesome-page" />
+  
+  <label class="fieldset-label">Author</label>
+  <input type="text" class="input" placeholder="Name" />
+</fieldset>
+      </div>
+
 
       {{ end }}
 

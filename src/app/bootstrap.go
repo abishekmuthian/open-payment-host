@@ -111,6 +111,9 @@ func generateConfig(projectPath string) error {
 		"s3_access_key":               "",
 		"s3_secret_key":               "",
 		"palm_key":                    "",
+		"paypal":                      "",
+		"paypal_client_id":            "",
+		"paypal_client_secret":        "",
 	}
 
 	// Copying development values to production and then adding more

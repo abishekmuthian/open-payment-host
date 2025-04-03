@@ -11,3 +11,9 @@
 {{ if .loadSquareScript }}
 <script type="text/javascript" src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
 {{ end }}
+
+{{ if .loadPaypalScript }}
+<script type="text/javascript" src="https://www.paypal.com/sdk/js?client-id={{ .clientId }}&components=hosted-buttons&disable-funding=venmo&currency=USD" data-csp-nonce="{{.nonce_token}}"></script>
+{{ end }}
+
+<script src="/assets/scripts/htmx.min.js" type="text/javascript"></script>

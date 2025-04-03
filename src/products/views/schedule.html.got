@@ -1,0 +1,19 @@
+{{ if .paypal_schedule }}
+    {{ if eq .paypal_schedule "One Time" }}       
+      <label class="label">
+        <span class="label-text text-xl">Multi Country Pricing</span>
+      </label>
+      <label class="label">
+        <span class="label-text-alt"
+          >Square Country Code(ISO 3166-1 alpha-2), Amount(lowest denomination), Currency Code(ISO 4217) in JSON</span
+        >
+      </label>
+      <textarea
+        class="textarea w-full prose lg:prose-xl"
+        name="square_price"
+        placeholder='{"US": {"amount": 5000,"currency": "USD"}, "IN": {"amount": 3000,"currency": "INR"}}'
+      ></textarea>
+    {{ else if eq .paypal_schedule "Monthly Subscription" }}       
+
+    {{ end }}
+{{ end }}      
