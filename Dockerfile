@@ -1,4 +1,4 @@
-FROM golang:1.20.8-alpine AS builder
+FROM golang:1.24.2-alpine AS builder
 ARG USER=default
 ENV HOME /home/$USER
 RUN apk --no-cache add upx make git gcc libtool musl-dev ca-certificates dumb-init sudo
