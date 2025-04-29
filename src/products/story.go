@@ -51,7 +51,9 @@ type Story struct {
 	// Subscription
 	Flair       string
 	Subscribers []int64
-	Price       map[string]string
+
+	// Stripe
+	StripePrice map[string]string
 
 	// Mailchimp
 	MailchimpAudienceID string

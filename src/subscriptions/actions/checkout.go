@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -103,6 +104,14 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 	// the actual Session ID is returned in the query parameter when your customer
 	// is redirected to the success page.
 
+	// Get the client country
+	clientCountry := r.Header.Get("CF-IPCountry")
+	log.Info(log.V{"Subscription, Client Country": clientCountry})
+	if !config.Production() {
+		// There will be no CF request header in the development/test
+		clientCountry = config.Get("subscription_client_country")
+	}
+
 	// Subscription or One Time Payment
 	var mode *string
 	var taxRate []*string
@@ -116,24 +125,21 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 
 		if p.Type == "recurring" {
 			mode = stripe.String(string(stripe.CheckoutSessionModeSubscription))
-			subscriptionData = &stripe.CheckoutSessionSubscriptionDataParams{
-				DefaultTaxRates: stripe.StringSlice([]string{
-					config.Get("stripe_tax_rate_IN"),
-				}),
+			if config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)) != "" {
+				subscriptionData = &stripe.CheckoutSessionSubscriptionDataParams{
+					DefaultTaxRates: stripe.StringSlice([]string{
+						config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)),
+					}),
+				}
 			}
 		} else if p.Type == "one_time" {
 			mode = stripe.String(string(stripe.CheckoutSessionModePayment))
-			taxRate = stripe.StringSlice([]string{
-				config.Get("stripe_tax_rate_IN"),
-			})
+			if config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)) != "" {
+				taxRate = stripe.StringSlice([]string{
+					config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)),
+				})
+			}
 		}
-	}
-
-	clientCountry := r.Header.Get("CF-IPCountry")
-	log.Info(log.V{"Subscription, Client Country": clientCountry})
-	if !config.Production() {
-		// There will be no CF request header in the development/test
-		clientCountry = config.Get("subscription_client_country")
 	}
 
 	// Redirect to the new story
@@ -146,7 +152,7 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
-	if clientCountry == "IN" {
+	if config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)) != "" {
 		// If India, add tax ID
 		params := &stripe.CheckoutSessionParams{
 			BillingAddressCollection: stripe.String("required"),

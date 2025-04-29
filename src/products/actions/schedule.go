@@ -25,7 +25,6 @@ func HandleSchedule(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
-	// Disabling log for privacy
 	log.Info(log.V{"Params: ": params})
 
 	// Render the template

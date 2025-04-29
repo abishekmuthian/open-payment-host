@@ -1,7 +1,7 @@
 <div
-  class="h-screen bg-white flex flex-col space-y-10 justify-center items-center"
+  class="h-screen flex flex-col space-y-10 justify-center items-center"
 >
-  <div class="bg-white w-96 shadow-xl rounded p-5">
+  <div class="w-96 shadow-xl rounded p-5">
     <h1 class="text-3xl font-medium">Login</h1>
     <form id="login" class="space-y-5 mt-5" action="/users/login" method="post">
       <label for="email" class="block mt-2 text-xs font-semibold text-gray-600 uppercase">E-mail</label>

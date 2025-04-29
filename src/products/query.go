@@ -27,7 +27,7 @@ func AllowedParams() []string {
 
 // AllowedParamsAdmin returns the cols editable by admins
 func AllowedParamsAdmin() []string {
-	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "price", "square_price", "square_schedule", "square_subscription_plan_Id"}
+	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id"}
 }
 
 // NewWithColumns creates a new story instance and fills it with data from the database cols provided.
@@ -60,9 +60,9 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	// FIXME - Need not load subscribers all the time, create separate function
 	story.Subscribers = resource.ValidateInt64Array(cols["subscribers"])
 	story.MailchimpAudienceID = resource.ValidateString(cols["mailchimp_audience_id"])
-	story.Price = resource.ValidateMap(cols["price"])
+	story.StripePrice = resource.ValidateMap(cols["stripe_price"])
 	story.SquarePrice = resource.ValidateNestedMap(cols["square_price"])
-	story.Schedule = resource.ValidateString(cols["square_schedule"])
+	story.Schedule = resource.ValidateString(cols["schedule"])
 	story.SquareSubscriptionPlanId = resource.ValidateMap(cols["square_subscription_plan_Id"])
 
 	//Flair

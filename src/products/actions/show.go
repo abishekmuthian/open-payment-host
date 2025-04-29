@@ -96,7 +96,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("year", time.Now().Year())
 
 	// Set subscribe button if price is set for Stripe
-	if len(story.SquarePrice) != 0 || len(story.Price) != 0 {
+	if len(story.SquarePrice) != 0 || len(story.StripePrice) != 0 {
 
 		// Get the country from IP
 		clientCountry := r.Header.Get("CF-IPCountry")
@@ -109,7 +109,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 		// Check if its Stripe
 		if config.GetBool("stripe") {
 
-			priceId := story.Price[clientCountry]
+			priceId := story.StripePrice[clientCountry]
 
 			log.Info(log.V{"Price ID: ": priceId})
 

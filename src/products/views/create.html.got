@@ -1,221 +1,229 @@
-<div class="flex items-center justify-center p-12">
+<div class="flex justify-items-center-safe p-12">
   <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
     <form class="space-y-5 mt-5" method="post" enctype="multipart/form-data">
       <h1 class="text-4xl font-medium">Add Product</h1>
-      <label class="label">
-        <span class="label-text text-xl">Product Name</span>
-      </label>
-      <input
-        type="text"
-        name="name"
-        id="title"
-        placeholder="Product name followed by two #hashtags"
-        class="input w-full max-w-lg prose lg:prose-xl"
-        required
-      />
-      <label class="label">
-        <span class="label-text text-xl">Product Summary</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt">Summary will be displayed below card image, Keep it small.</span>
-      </label>
-      <input
-        type="text"
-        name="summary"
-        id="summary"
-        placeholder="Product summary for the card"
-        class="input w-full max-w-2xl prose lg:prose-xl"
-        required
-      />
-      <label class="label">
-        <span class="label-text text-xl">Featured Image</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt">Recommended dimension: 1200x600</span>
-      </label>
-      <input
-        type="file"
-        name="featuredimage"
-        class="file-input file-input-bordered w-full max-w-xs"
-      />
-      <label class="label">
-        <span class="label-text text-xl">Product Description</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt">Blog post about the product</span>
-      </label>
-      <input id="trix-input" name="description" type="hidden" name="content" />
-      <trix-editor
-        class="prose lg:prose-xl"
-        input="trix-input"
-        required
-      ></trix-editor>
-      <!-- <div class="element h-max"></div> -->
 
-      <label class="label">
-        <span class="label-text text-xl">Download File</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >S3 bucket of the file to be delivered after payment</span
-        >
-      </label>
-      <input
-        type="text"
-        name="s3_bucket"
-        id="s3_bucket"
-        placeholder="bucket"
-        class="input w-full max-w-lg prose lg:prose-xl"
-      />
-
-      <label class="label">
-        <span class="label-text-alt"
-          >S3 key of the file to be delivered after payment</span
-        >
-      </label>
-      <input
-        type="text"
-        name="s3_key"
-        id="s3_key"
-        placeholder="dummy.pdf"
-        class="input w-full max-w-lg prose lg:prose-xl"
-      />
-
-      <label class="label">
-        <span class="label-text text-xl">Mailchimp Audience ID</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Optional Mailchimp Audience Id to add subscribers</span
-        >
-      </label>
-      <input
-        type="text"
-        name="mailchimp_audience_id"
-        id="mailchimp_audience_id"
-        placeholder="8ds299893c"
-        class="input w-full max-w-lg prose lg:prose-xl"
-      />
-
-
-      {{ if .stripe }}
-      <label class="label">
-        <span class="label-text text-xl">Stripe Payment Details</span>
-      </label>
-      <label class="label">
-        <span class="label-text text-xl">Mailchimp Audience ID</span>
-      </label>
-      <label class="label">
-        <span class="label-text text-xl">Multi Country Pricing</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Stripe Price API ID - Country Code:Price API ID in JSON</span
-        >
-      </label>
-      <textarea
-        class="textarea w-full prose lg:prose-xl"
-        name="price"
-        placeholder='{"US":"price_1KlnKhSI4oTPH3MZmvAkvjiG","IN":"price_1KlnKhSI4oTPH3MZX9LVIZxb"}'
-      ></textarea>
-
-      {{ end }}
-
-
-      <br>
-
-      {{ if .square }}
-      <label class="label">
-        <span class="label-text text-xl">Square Payment Details</span>
-      </label>
-
-      <label class="label">
-        <span class="label-text text-xl">Multi Country Pricing</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Square Country Code(ISO 3166-1 alpha-2), Amount(lowest denomination), Currency Code(ISO 4217) in JSON</span
-        >
-      </label>
-      <textarea
-        class="textarea w-full prose lg:prose-xl"
-        name="square_price"
-        placeholder='{"US": {"amount": 5000,"currency": "USD"}, "IN": {"amount": 3000,"currency": "INR"}}'
-      ></textarea>
-
-      <label class="label">
-        <span class="label-text text-xl">Schedule</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Pick the schedule for the payment, Either One Time or Monthly Subscription</span
-        >
-      </label>
-
-      <select class="select w-full max-w-xs" name="square_schedule">
-        <option>One Time</option>
-        <option>Monthly Subscription</option>
-      </select>
-
-      {{ end }}
-
-      <br>
-
-      {{ if .paypal }}
-
-      <label class="label">
-        <span class="label-text text-xl">Paypal Payment Details</span>
-      </label>
-
-      <label class="label">
-        <span class="label-text text-xl">Schedule</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Pick the schedule for the payment, Either One Time or Monthly Subscription</span
-        >
-      </label>
-
-      <select class="select w-full max-w-xs" name="paypal_schedule" hx-get="/products/create/schedule" hx-target="#paypal-pricing">
-        <option>One Time</option>
-        <option>Monthly Subscription</option>
-      </select>
-
-      <div id="paypal-pricing">
-            <label class="label">
-        <span class="label-text text-xl">Multi Country Pricing</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Square Country Code(ISO 3166-1 alpha-2), Amount(lowest denomination), Currency Code(ISO 4217) in JSON</span
-        >
-      </label>
-      <textarea
-        class="textarea w-full prose lg:prose-xl"
-        name="square_price"
-        placeholder='{"US": {"amount": 5000,"currency": "USD"}, "IN": {"amount": 3000,"currency": "INR"}}'
-      ><pre></pre></textarea>
-
-      <fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box">
-  <legend class="fieldset-legend">Page details</legend>
-  
-  <label class="fieldset-label">Title</label>
-  <input type="text" class="input" placeholder="My awesome page" />
-  
-  <label class="fieldset-label">Slug</label>
-  <input type="text" class="input" placeholder="my-awesome-page" />
-  
-  <label class="fieldset-label">Author</label>
-  <input type="text" class="input" placeholder="Name" />
-</fieldset>
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Product Name</span>
+        </label>
+        <input
+          type="text"
+          name="name"
+          id="title"
+          placeholder="Product name followed by two #hashtags"
+          class="input w-full max-w-lg prose lg:prose-xl"
+          required
+        />
       </div>
 
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Product Summary</span>
+        </label>
+        <p class="text-sm/6">
+          Summary will be displayed below card image, Keep it small.
+        </p>
+        <input
+          type="text"
+          name="summary"
+          id="summary"
+          placeholder="Product summary for the card"
+          class="input w-full max-w-2xl prose lg:prose-xl"
+          required
+        />
+      </div>
+
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Featured Image</span>
+        </label>
+        <p class="text-sm/6">Recommended dimension: 1200x600</p>
+        <input
+          type="file"
+          name="featuredimage"
+          class="file-input file-input-bordered w-full max-w-xs"
+        />
+      </div>
+
+      <div class="flex flex-col space-y-3" id="product-description">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Product Description</span>
+        </label>
+        <p class="text-sm/6">Blog post about the product</p>
+        <input
+          id="trix-input"
+          name="description"
+          type="hidden"
+          name="content"
+        />
+        <trix-editor
+          class="prose lg:prose-xl"
+          id="trix-editor"
+          input="trix-input"
+          required
+        ></trix-editor>
+      </div>
+
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Download File</span>
+        </label>
+        <p class="text-sm/6">
+          S3 bucket of the file to be delivered after payment
+        </p>
+        <input
+          type="text"
+          name="s3_bucket"
+          id="s3_bucket"
+          placeholder="bucket"
+          class="input w-full max-w-lg prose lg:prose-xl"
+        />
+
+        <p class="text-sm/6">
+          S3 key of the file to be delivered after payment
+        </p>
+        <input
+          type="text"
+          name="s3_key"
+          id="s3_key"
+          placeholder="dummy.pdf"
+          class="input w-full max-w-lg prose lg:prose-xl"
+        />
+      </div>
+
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Mailchimp Audience ID</span>
+        </label>
+        <p class="text-sm/6">
+          Optional Mailchimp Audience Id to add subscribers
+        </p>
+        <input
+          type="text"
+          name="mailchimp_audience_id"
+          id="mailchimp_audience_id"
+          placeholder="8ds299893c"
+          class="input w-full max-w-lg prose lg:prose-xl"
+        />
+      </div>
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Schedule</span>
+        </label>
+        <label class="block text-sm/6 font-medium">
+          <p class="text-sm/6">
+            Pick the schedule for the payment, Either One Time or Monthly
+            Subscription
+          </p>
+        </label>
+        <select
+          class="select w-full max-w-60 rounded-sm"
+          name="schedule"
+          required
+        >
+          <option>Select Schedule</option>
+          <option value="One Time">One Time</option>
+          <option value="Monthly Subscription">Monthly Subscription</option>
+        </select>
+      </div>
+      {{ if .stripe }}
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Stripe Payment Details</span>
+        </label>
+
+        <p class="text-sm/6">
+          Multi Country Pricing: Select Country and Enter the Stripe Price API
+          ID
+        </p>
+
+        <div
+          class="space-y-3"
+          _=" 
+          on every change in .country-select set currentCountry to the target's value 
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+          set the selectedIndex of the target to 0 end 
+            "
+        >
+          {{ template "products/views/stripe_price.html.got" .}}
+        </div>
+      </div>
+      {{ end }}
+
+      {{ if .square }}
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Square Payment Details</span>
+        </label>
+
+        <p class="text-sm/6">
+          Multi Country Pricing: Select Country and enter Amount in lowest
+          denomination e.g. 5000 for $5, Currency in ISO 4217 format e.g USD.
+        </p>
+
+        <div
+          class="space-y-3"
+          _=" 
+        on every change in .country-select set currentCountry to the target's value 
+        set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+        set the selectedIndex of the target to 0 end 
+          "
+        >
+          {{ template "products/views/square_price.html.got" .}}
+        </div>
+      </div>
+      {{ end }}
+
+      {{ if .paypal }}
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Paypal Payment Details</span>
+        </label>
+
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Schedule</span>
+        </label>
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text-alt"
+            >Pick the schedule for the payment, Either One Time or Monthly
+            Subscription</span
+          >
+        </label>
+
+        <select
+          class="select w-full max-w-xs"
+          name="paypal_schedule"
+          hx-get="/products/create/schedule"
+          hx-target="#paypal-pricing"
+        >
+          <option>One Time</option>
+          <option>Monthly Subscription</option>
+        </select>
+      </div>
 
       {{ end }}
 
-      <br>
-
-      <button class="btn" type="submit">Submit</button>
+      <div class="flex justify-center-safe">
+        <button
+          class="btn"
+          type="submit"
+          _="on click 
+          if value of #trix-input is empty 
+            call #trix-editor.focus()
+            halt the event default
+            call Swal.fire({text:'Product description needs to be filled',   theme:'auto'}) 
+          end
+          "
+        >
+          Submit
+        </button>
+      </div>
       <input
         name="authenticity_token"
         type="hidden"

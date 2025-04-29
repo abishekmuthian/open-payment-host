@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -50,17 +51,20 @@ func HandleCreateShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
 
-	if config.Get("square_access_token") != "" {
-		view.AddKey("square", config.GetBool("square"))
+	if config.GetBool("stripe") && config.Get("stripe_key") != "" {
+		view.AddKey("stripe", config.GetBool("stripe"))
 	}
 
-	if config.Get("stripe_key") != "" {
-		view.AddKey("stripe", config.GetBool("stripe"))
+	if config.GetBool("square") && config.Get("square_access_token") != "" {
+		view.AddKey("square", config.GetBool("square"))
 	}
 
 	if config.Get("paypal_client_id") != "" {
 		view.AddKey("paypal", config.GetBool("paypal"))
 	}
+
+	view.AddKey("loadHypermedia", true)
+	view.AddKey("loadSweetAlert", true)
 
 	return view.Render()
 }
@@ -193,13 +197,90 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 		} else {
 			// TODO wrong image format inform user
-			return server.InternalError(errors.New("Improper image format only png or jpg image format is allowed."))
+			return server.InternalError(errors.New("improper image format only png or jpg image format is allowed"))
 		}
+
+	}
+	// Store stripe price
+	if config.GetBool("stripe") && config.Get("stripe_key") != "" {
+		result := make(map[string]string)
+
+		countryRegex := regexp.MustCompile(`^stripe_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					planIDKey := fmt.Sprintf("stripe_plan_id_%s", index)
+					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
+						result[value[0]] = planID[0]
+					}
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["stripe_price"] = string(jsonResult)
+		story.Update(storyParams)
 
 	}
 
 	// Create subscription plan for Square
-	if config.GetBool("square") && storyParams["square_price"] != "" {
+	if config.GetBool("square") && config.Get("square_access_token") != "" && config.Get("square_app_id") != "" {
+
+		result := make(map[string]map[string]interface{})
+
+		countryRegex := regexp.MustCompile(`^square_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					// Initialize a new map for the amount and currency
+
+					amountCurrencyMap := make(map[string]interface{})
+
+					amountKey := fmt.Sprintf("square_amount_%s", index)
+					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
+						var amount float64
+						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
+							amountCurrencyMap["amount"] = amount
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse amount": err})
+						}
+					}
+
+					currencyKey := fmt.Sprintf("square_currency_%s", index)
+					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
+						amountCurrencyMap["currency"] = currency[0]
+					}
+
+					result[value[0]] = amountCurrencyMap
+
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["square_price"] = string(jsonResult)
+		story.Update(storyParams)
 
 		var squarePrice map[string]map[string]interface{}
 

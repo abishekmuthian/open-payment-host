@@ -34,6 +34,7 @@ func SetupRoutes() *mux.Mux {
 	router.Get("/index{format:(.xml)?}", storyactions.HandleIndex)
 	router.Get("/products/create", storyactions.HandleCreateShow)
 	router.Post("/products/create", storyactions.HandleCreate)
+	router.Get("/products/create/price/{fieldIndex:[0-9]+}/{pg:.*}", storyactions.HandlePrice)
 	router.Get("/products/create/schedule", storyactions.HandleSchedule)
 
 	// Add suggestion route

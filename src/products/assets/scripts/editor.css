@@ -1,0 +1,23 @@
+/* Define default styles for light theme */
+trix-editor {
+  border: 1px solid #d3d3d3;
+  border-radius: 10px;
+}
+
+trix-editor:focus {
+  border: 5px double #000;
+  border-radius: 10px;
+}
+
+/* Dark theme styles */
+@media (prefers-color-scheme: dark) {
+  trix-editor {
+    border: 1px solid #4a4a4a;
+    border-radius: 10px;
+  }
+
+  trix-editor:focus {
+    border: 5px double #fff;
+    border-radius: 10px;
+  }
+}

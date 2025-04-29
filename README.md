@@ -29,13 +29,14 @@ Clicking the above image would open the video in YouTube.
 
 - Customers can buy without logging in, Increases conversion.
 - Stripe support, Just add the price id for the product and rest is done automatically.
-- Square support, Just add the amount for the product and rest is done automatically.<sup>New</sup>
+- Square support, Just add the amount for the product and rest is done automatically.
 - Multi-country pricing, Price changes automatically according to the user's location resulting in better conversion.
+- Light and Dark theme <sup>new</sup>
 - Mailchimp support, Customers are automatically added to a mailchimp list; Useful for sending newsletters.
-- WYSIWYG editor with AI autocomplete to create beautiful product pages.<sup>New</sup>
-- File attachment support(images) for the product posts. <sup>New</sup>
-- S3 support for delivering digital files via automatic pre-signed URL. <sup>New</sup>
-- Subscriber count for the products (With Square).<sup>New</sup>
+- WYSIWYG editor to create beautiful product pages.
+- File attachment support(images) for the product posts.
+- S3 support for delivering digital files via automatic pre-signed URL.
+- Subscriber count for the products (With Square).
 - Automatic SSL and other security features for production.
 
 and many more.
@@ -46,9 +47,9 @@ and many more.
 
 ![Hope page of OPH](/demo/Square/1.a.home.png)
 
-### WYSIWYG editor with autocomplete powered by Google PaLM AI
+### WYSIWYG editor
 
-![WYSIWYG editor](/demo/Square/10.editor-oph.gif)
+![WYSIWYG editor](/demo/Stripe/WYSIWYG-editor.png)
 
 ### Buy without login
 
@@ -85,9 +86,10 @@ and many more.
 ### Requirements
 
 1. [Stripe](https://stripe.com/) or [Square](https://squareup.com) account for payment gateway
-2. [Google PaLM AI API](https://developers.generativeai.google/products/palm) key for autocomplete in editor.
-3. [Cloudflare](https://www.cloudflare.com/) account for turnstile captcha.
-4. [Mailchimp](https://mailchimp.com/) account for adding subscribers to the list.
+
+2. [Cloudflare](https://www.cloudflare.com/) account for turnstile captcha.
+
+3. [Mailchimp](https://mailchimp.com/) account for adding subscribers to the list.
 
 Note: Open Payment Host can be tested without fulfilling above requirements, But payments and adding subscribers to the list wouldn't work.
 
@@ -135,44 +137,43 @@ Note: Environment variable for production is set automatically when using the do
 
 User configurable values are included in the table below.
 
-| Key                         | Description                                                                                 | Value                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| admin_email                 | Email id of the administrator.                                                              | Default: admin@openpaymenthost.com                                                  |
-| admin_default_password      | Default password of the administrator, Would be forced to changed after login.              | Default: OpenPaymentHost                                                            |
-| reset_admin                 | Reset the email and password of the admin during the next run.                              | yes (or) no                                                                         |
-| domain                      | Website domain name for the application.                                                    | Dev: localhost, Prod: example                                                       |
-| port                        | Port of the application.                                                                    | Dev: 3000, Prod: 443 (SSL)                                                          |
-| root_url                    | FQDN for the application with protocol and port.                                            | Dev: http://localhost:3000, Prod: https://example.com                               |
-| autocert_domains            | Comma separated domains for SSL certificates.                                               | Demo: NA, Prod: www.example.com, example.com                                        |
-| autocert_email              | email id for SSL certificate related notifications.                                         | Demo: NA, Prod: admin@example.com                                                   |
-| autocert_ssl                | Enable or Disable automatic ssl                                                             | Demo: NA, Prod: yes/no                                                              |
-| name                        | Name of the website.                                                                        | Default: Open Payment Host                                                          |
-| meta_title                  | Title of the website.                                                                       | Default : Sell what you want without paying commissions                             |
-| meta_desc                   | Description of the website.                                                                 | Default: Sell Subscriptions, Newsletters, Digital Files without paying commissions. |
-| meta_keywords               | Keywords for the website.                                                                   | Default: payments,subscription,projects,products                                    |
-| meta_image                  | URL for the featured image for the website.                                                 | Default: /assets/images/app/oph_featured_image.png                                  |
-| meta_url                    | Meta URL for the page when its not generated automatically.                                 | Dev: http://localhost:3000, Prod: https://example.com                               |
-| square                      | Enable the square payment gateway, When enabled all other square credentials are mandatory. | Dev/Prod : yes,no                                                                   |
-| square_access_token         | Square access token for accessing your square account.                                      | Dev: Sandbox access token, Prod: Production access token                            |
-| square_app_id               | Square app id to identify your application.                                                 | Dev: sandbox-..., Production: production app id                                     |
-| square_location_id          | Square location id for the account                                                          | Dev: Sandbox location id from test account, Prod: location id from the main account |
-| square_notification_url     | Square notification url for the webhook.                                                    | Dev:Sandbox webhook URL, Prod: Production webhook URL                               |
-| square_signature_key        | Square signature for webhook authentication                                                 | Dev: Sandbox webhook signature, Prod: Production webhook signature                  |
-| square_sandbox_source_id    | Square sandbox source id for credit card                                                    | Dev: cnon:card-nonce-ok, Prod:""                                                    |
-| square_domain               | Square API domain                                                                           | Dev: https://connect.squareupsandbox.com/v2, Prod: https://connect.squareup.com/v2  |
-| s3_access_key               | S3 compatible access key                                                                    | Dev: NA,Prod: NA                                                                    |
-| s3_secret_key               | S3 compatible secret key                                                                    | Dev: NA, Prod: NA                                                                   |
-| stripe                      | Enable the stripe payment gateway, When enabled all other stripe credentials are mandatory. | Dev/Prod : yes, no                                                                  |
-| stripe_key                  | Stripe developer key.                                                                       | Dev: pk*test*..., Prod: pk*live*...\*\*\*\*                                         |
-| stripe_secret               | Stripe developer secret key.                                                                | Dev: sk*test*..., Prod: sk*live*...                                                 |
-| stripe_webhook_secret       | Stripe webhook signing secret                                                               | Dev: whsec_xxx, Prod: whsec_xxx                                                     |
-| stripe_tax_rate_IN          | Stripe tax id for India.                                                                    | Dev: txr*..., Prod: txr*...                                                         |
-| stripe_callback_domain      | Root URL for callback after Stripe event.                                                   | Dev: [Use tunnel like ngrok], Prod: [Use root_url]                                  |
-| subscription_client_country | Test country for testing multi-country pricing.                                             | Dev: US, IN, FR etc. Prod: NA                                                       |
-| mailchimp_token             | Mailchimp API Key.                                                                          | e.g. ...-us12                                                                       |
-| turnstile_secret_key        | Cloudflare turnstile secret key for captcha.                                                | Dev: 1x00000000000000000000AA, Prod: 0x...                                          |
-| turnstile_site_key          | Cloudflare turnstile key for captcha.                                                       | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...                               |
-| palm_key                    | Google AI PaLM API Key                                                                      | Dev: xxxxxxxxx, Prod: xxxxxxxxx                                                     |
+| Key                                   | Description                                                                                  | Value                                                                               |
+| ------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| admin_email                           | Email id of the administrator.                                                               | Default: admin@openpaymenthost.com                                                  |
+| admin_default_password                | Default password of the administrator, Would be forced to changed after login.               | Default: OpenPaymentHost                                                            |
+| reset_admin                           | Reset the email and password of the admin during the next run.                               | yes (or) no                                                                         |
+| domain                                | Website domain name for the application.                                                     | Dev: localhost, Prod: example                                                       |
+| port                                  | Port of the application.                                                                     | Dev: 3000, Prod: 443 (SSL)                                                          |
+| root_url                              | FQDN for the application with protocol and port.                                             | Dev: http://localhost:3000, Prod: https://example.com                               |
+| autocert_domains                      | Comma separated domains for SSL certificates.                                                | Demo: NA, Prod: www.example.com, example.com                                        |
+| autocert_email                        | email id for SSL certificate related notifications.                                          | Demo: NA, Prod: admin@example.com                                                   |
+| autocert_ssl                          | Enable or Disable automatic ssl                                                              | Demo: NA, Prod: yes/no                                                              |
+| name                                  | Name of the website.                                                                         | Default: Open Payment Host                                                          |
+| meta_title                            | Title of the website.                                                                        | Default : Sell what you want without paying commissions                             |
+| meta_desc                             | Description of the website.                                                                  | Default: Sell Subscriptions, Newsletters, Digital Files without paying commissions. |
+| meta_keywords                         | Keywords for the website.                                                                    | Default: payments,subscription,projects,products                                    |
+| meta_image                            | URL for the featured image for the website.                                                  | Default: /assets/images/app/oph_featured_image.png                                  |
+| meta_url                              | Meta URL for the page when its not generated automatically.                                  | Dev: http://localhost:3000, Prod: https://example.com                               |
+| square                                | Enable the square payment gateway, When enabled all other square credentials are mandatory.  | Dev/Prod : yes,no                                                                   |
+| square_access_token                   | Square access token for accessing your square account.                                       | Dev: Sandbox access token, Prod: Production access token                            |
+| square_app_id                         | Square app id to identify your application.                                                  | Dev: sandbox-..., Production: production app id                                     |
+| square_location_id                    | Square location id for the account                                                           | Dev: Sandbox location id from test account, Prod: location id from the main account |
+| square_notification_url               | Square notification url for the webhook.                                                     | Dev:Sandbox webhook URL, Prod: Production webhook URL                               |
+| square_signature_key                  | Square signature for webhook authentication                                                  | Dev: Sandbox webhook signature, Prod: Production webhook signature                  |
+| square_sandbox_source_id              | Square sandbox source id for credit card                                                     | Dev: cnon:card-nonce-ok, Prod:""                                                    |
+| square_domain                         | Square API domain                                                                            | Dev: https://connect.squareupsandbox.com/v2, Prod: https://connect.squareup.com/v2  |
+| s3_access_key                         | S3 compatible access key                                                                     | Dev: NA,Prod: NA                                                                    |
+| s3_secret_key                         | S3 compatible secret key                                                                     | Dev: NA, Prod: NA                                                                   |
+| stripe                                | Enable the stripe payment gateway, When enabled all other stripe credentials are mandatory.  | Dev/Prod : yes, no                                                                  |
+| stripe_key                            | Stripe developer key.                                                                        | Dev: pk*test*..., Prod: pk*live*...\*\*\*\*                                         |
+| stripe_secret                         | Stripe developer secret key.                                                                 | Dev: sk*test*..., Prod: sk*live*...                                                 |
+| stripe_webhook_secret                 | Stripe webhook signing secret                                                                | Dev: whsec_xxx, Prod: whsec_xxx                                                     |
+| stripe_tax_rate\_[ISO 3166-1 alpha-2] | Stripe tax id for a country represented by [ ISO 3166-1 alpha-2] code eg. stripe_tax_rate_US | Dev: txr*..., Prod: txr*...                                                         |
+| stripe_callback_domain                | Root URL for callback after Stripe event.                                                    | Dev: [Use tunnel like ngrok], Prod: [Use root_url]                                  |
+| subscription_client_country           | Test country for testing multi-country pricing.                                              | Dev: US, IN, FR etc. Prod: NA                                                       |
+| mailchimp_token                       | Mailchimp API Key.                                                                           | e.g. ...-us12                                                                       |
+| turnstile_secret_key                  | Cloudflare turnstile secret key for captcha.                                                 | Dev: 1x00000000000000000000AA, Prod: 0x...                                          |
+| turnstile_site_key                    | Cloudflare turnstile key for captcha.                                                        | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...                               |
 
 ### Stripe Webhook Setup
 

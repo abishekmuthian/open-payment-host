@@ -1,6 +1,7 @@
 package storyactions
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,8 +9,12 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
+	"sort"
+	"strconv"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	filehelper "github.com/abishekmuthian/open-payment-host/src/lib/model/file"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
@@ -22,6 +27,18 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/products"
 )
+
+type Country struct {
+	Code string
+	Name string
+}
+
+// ByName implements sort.Interface for []Country based on the Name field.
+type ByName []Country
+
+func (a ByName) Len() int           { return len(a) }
+func (a ByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByName) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
 // HandleUpdateShow renders the form to update a story.
 func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
@@ -48,7 +65,7 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 	// Render the template
 	view := view.NewRenderer(w, r)
 
-	price, err := json.Marshal(story.Price)
+	price, err := json.Marshal(story.StripePrice)
 
 	if err == nil && price != nil {
 		view.AddKey("price", string(price))
@@ -57,55 +74,112 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("story", story)
 	view.AddKey("currentUser", currentUser)
 	view.AddKey("meta_foot", config.Get("meta_desc"))
-	view.AddKey("stripe", config.GetBool("stripe"))
-	if config.Get("square_access_token") != "" {
-		view.AddKey("square", config.GetBool("square"))
-	} else {
-		view.AddKey("square", false)
+
+	if config.GetBool("stripe") && config.Get("stripe_key") != "" {
+		stripePriceJSON, err := json.Marshal(story.StripePrice)
+
+		if err == nil {
+			var stripePrices map[string]string
+
+			err := json.Unmarshal([]byte(stripePriceJSON), &stripePrices)
+			if err != nil {
+				log.Error(log.V{"Error unmarshalling JSON": err})
+				return err
+			}
+
+			view.AddKey("stripePrices", stripePrices)
+
+		} else {
+			view.AddKey("stripePrices", "")
+		}
+
+		view.AddKey("stripe", config.GetBool("stripe"))
 	}
 
-	if config.GetBool("square") {
+	if config.GetBool("square") && config.Get("square_access_token") != "" {
 		squarePriceJSON, err := json.Marshal(story.SquarePrice)
 
 		if err == nil {
-			view.AddKey("squarePriceJSON", string(squarePriceJSON))
-		} else {
-			view.AddKey("squarePriceJSON", "")
-		}
-	} else if config.GetBool("stripe") {
-		stripePriceJSON, err := json.Marshal(story.Price)
+			var squarePrices map[string]map[string]interface{}
 
-		if err == nil {
-			view.AddKey("stripePriceJSON", string(stripePriceJSON))
+			err := json.Unmarshal([]byte(squarePriceJSON), &squarePrices)
+			if err != nil {
+				log.Error(log.V{"Error unmarshalling JSON:": err})
+				return err
+			}
+
+			view.AddKey("squarePrices", squarePrices)
 		} else {
-			view.AddKey("stripePriceJSON", "")
+			view.AddKey("squarePrices", "")
 		}
+
+		view.AddKey("square", config.GetBool("square"))
 	}
 
 	// To add the scripts for update page
 	view.AddKey("loadTrixScript", true)
 
-	if fileInfo, err := os.Stat("public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", story.ID, filehelper.SanitizeName(story.Name), "featured_image") + ".png"); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat("public" + story.FeaturedImage); errors.Is(err, os.ErrNotExist) {
 		// Featured image.jpg does not exist
 		log.Error(log.V{"Product Update, Featured image does not exist": err})
-
-		if fileInfo, err = os.Stat("public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", story.ID, filehelper.SanitizeName(story.Name), "featured_image") + ".jpg"); errors.Is(err, os.ErrNotExist) {
-			// Featured image.png does not exist
-			log.Error(log.V{"Product Update, Featured image does not exist": err})
-		} else {
-			// Featured image.png exists
-			view.AddKey("featuredImagePath", config.Get("root_url")+"/assets/images/products/"+fileInfo.Name())
-		}
 	} else {
 		// Featured image.jpg exists
-		view.AddKey("featuredImagePath", config.Get("root_url")+"/assets/images/products/"+fileInfo.Name())
+		view.AddKey("featuredImagePath", story.FeaturedImage)
 	}
 
 	// Set the name and year
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
 
+	// Load scripts
+	view.AddKey("loadHypermedia", true)
+	view.AddKey("loadSweetAlert", true)
+	view.AddKey("fieldIndex", 0)
+
+	countryMap := CreateCountryMap()
+
+	// Convert the map to a slice of Country structs
+	var countries []Country
+
+	for code, name := range countryMap {
+		countries = append(countries, Country{Code: code, Name: name})
+	}
+
+	// Sort the slice by country name
+	sort.Sort(ByName(countries))
+
+	// Set sorted country-name translation
+	view.AddKey("sortedCountries", countries)
+
 	return view.Render()
+}
+
+// CreateCountryMap creates a map of countries given the country codes
+func CreateCountryMap() map[string]string {
+	// Read the HTML
+	htmlFile, err := os.ReadFile("src/products/views/countries.html.got")
+	if err != nil {
+		log.Error(log.V{"Error reading HTML file: %v": err})
+	}
+
+	// Parse the HTML with gquery
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(htmlFile))
+	if err != nil {
+		log.Error(log.V{"Error parsing HTML: %v": err})
+	}
+
+	// Create a map to store country codes and names
+	countryMap := make(map[string]string)
+
+	// Traverse the options elements to extract country codes and names
+	doc.Find("option").Each(func(i int, s *goquery.Selection) {
+		code, _ := s.Attr("value")
+
+		name := s.Text()
+		countryMap[code] = name
+	})
+
+	return countryMap
 }
 
 // HandleUpdate handles the POST of the form to update a story
@@ -198,7 +272,84 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 
 	}
 
-	if config.GetBool("square") && storyParams["square_price"] != "" {
+	// Store stripe price
+	if config.GetBool("stripe") && config.Get("stripe_key") != "" {
+		result := make(map[string]string)
+
+		countryRegex := regexp.MustCompile(`^stripe_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					planIDKey := fmt.Sprintf("stripe_plan_id_%s", index)
+					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
+						result[value[0]] = planID[0]
+					}
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["stripe_price"] = string(jsonResult)
+		story.Update(storyParams)
+
+	}
+
+	if config.GetBool("square") && config.Get("square_access_token") != "" && config.Get("square_app_id") != "" {
+		result := make(map[string]map[string]interface{})
+
+		countryRegex := regexp.MustCompile(`^square_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					// Initialize a new map for the amount and currency
+
+					amountCurrencyMap := make(map[string]interface{})
+
+					amountKey := fmt.Sprintf("square_amount_%s", index)
+					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
+						var amount float64
+						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
+							amountCurrencyMap["amount"] = amount
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse amount": err})
+						}
+					}
+
+					currencyKey := fmt.Sprintf("square_currency_%s", index)
+					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
+						amountCurrencyMap["currency"] = currency[0]
+					}
+
+					result[value[0]] = amountCurrencyMap
+
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["square_price"] = string(jsonResult)
+		story.Update(storyParams)
 
 		var squarePrice map[string]map[string]interface{}
 

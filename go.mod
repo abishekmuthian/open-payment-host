@@ -1,6 +1,6 @@
 module github.com/abishekmuthian/open-payment-host
 
-go 1.23
+go 1.23.0
 
 toolchain go1.23.7
 
@@ -19,17 +19,20 @@ require (
 	github.com/plutov/paypal/v4 v4.11.0
 	github.com/sendgrid/sendgrid-go v3.12.0+incompatible
 	github.com/stripe/stripe-go/v72 v72.122.0
-	golang.org/x/crypto v0.14.0
+	golang.org/x/crypto v0.37.0
 )
 
-require github.com/jmespath/go-jmespath v0.4.0 // indirect
+require (
+	github.com/andybalholm/cascadia v1.3.3 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
+)
 
 require (
+	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/aws/aws-sdk-go v1.44.268
 	github.com/gomarkdown/markdown v0.0.0-20230922112808-5421fefb8386
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 )

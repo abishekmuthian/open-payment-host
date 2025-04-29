@@ -16,4 +16,12 @@
 <script type="text/javascript" src="https://www.paypal.com/sdk/js?client-id={{ .clientId }}&components=hosted-buttons&disable-funding=venmo&currency=USD" data-csp-nonce="{{.nonce_token}}"></script>
 {{ end }}
 
+{{ if .loadHypermedia }}
 <script src="/assets/scripts/htmx.min.js" type="text/javascript"></script>
+<script src="/assets/scripts/_hyperscript.min.js" type="text/javascript"></script>
+{{ end }}
+
+{{ if .loadSweetAlert }}
+<script src="/assets/scripts/sweetalert2@11.js" type="text/javascript"></script>
+{{ end }}
+

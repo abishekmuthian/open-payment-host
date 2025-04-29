@@ -1,212 +1,425 @@
-<div class="flex items-center justify-center p-12">
+<div class="flex justify-items-center-safe p-12">
   <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
     <form class="space-y-5 mt-5" method="post" enctype="multipart/form-data">
-      <h1 class="text-4xl font-medium">Add Product</h1>
-      <label class="label">
-        <span class="label-text text-xl">Product Name</span>
-      </label>
-      <input
-        type="text"
-        name="name"
-        id="title"
-        placeholder="Product name followed by two #hashtags"
-        class="input w-full max-w-lg prose lg:prose-xl"
-        value="{{ .story.Name }}"
-        required
-      />
-      <label class="label">
-        <span class="label-text text-xl">Product Summary</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Summary will be displayed below card image, Keep it small.</span
-        >
-      </label>
-      <input
-        type="text"
-        name="summary"
-        id="summary"
-        placeholder="Product summary for the card"
-        class="input w-full max-w-2xl prose lg:prose-xl"
-        value="{{ .story.Summary }}"
-        required
-      />
-      <label class="label">
-        <span class="label-text text-xl">Featured Image</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt">Recommended dimension: 1200x600</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Current featured image set:
-          <a
-            href="{{ .featuredImagePath }}"
-            target="_blank"
-            >{{ .featuredImagePath }}</a
-          ></span
-        >
-      </label>
-      <input
-        type="file"
-        name="featuredimage"
-        class="file-input file-input-bordered w-full max-w-xs"
-      />
-      <label class="label">
-        <span class="label-text text-xl">Product Description</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt">Blog post about the product</span>
-      </label>
-      <input
-        id="trix-input"
-        name="description"
-        type="hidden"
-        value="{{ .story.Description }}"
-        name="content"
-      />
-      <trix-editor
-        class="prose lg:prose-xl"
-        input="trix-input"
-        required
-      ></trix-editor>
+      <h1 class="text-4xl font-medium">Edit Product</h1>
 
-      <label class="label">
-        <span class="label-text text-xl">Download File</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >S3 bucket of the file to be delivered after payment</span
-        >
-      </label>
-      <input
-        type="text"
-        name="s3_bucket"
-        id="s3_bucket"
-        placeholder="bucket"
-        class="input w-full max-w-lg prose lg:prose-xl"
-        value="{{.story.S3Bucket}}"
-      />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Product Name</span>
+        </label>
+        <input
+          type="text"
+          name="name"
+          id="title"
+          placeholder="Product name followed by two #hashtags"
+          class="input w-full max-w-lg prose lg:prose-xl"
+          value="{{ .story.Name }}"
+          required
+        />
+      </div>
 
-      <label class="label">
-        <span class="label-text-alt"
-          >S3 key of the file to be delivered after payment</span
-        >
-      </label>
-      <input
-        type="text"
-        name="s3_key"
-        id="s3_key"
-        placeholder="dummy.pdf"
-        class="input w-full max-w-lg prose lg:prose-xl"
-        value="{{.story.S3Key}}"
-      />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Product Summary</span>
+        </label>
+        <p class="text-sm/6">
+          Summary will be displayed below card image, Keep it small.
+        </p>
+        <input
+          type="text"
+          name="summary"
+          id="summary"
+          placeholder="Product summary for the card"
+          class="input w-full max-w-2xl prose lg:prose-xl"
+          value="{{ .story.Summary }}"
+          required
+        />
+      </div>
 
-      <label class="label">
-        <span class="label-text text-xl">Mailchimp Audience ID</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Optional Mailchimp Audience Id to add subscribers</span
-        >
-      </label>
-      <input
-        type="text"
-        name="mailchimp_audience_id"
-        id="title"
-        placeholder="8ds299893c"
-        class="input w-full max-w-lg prose lg:prose-xl"
-        value="{{ .story.MailchimpAudienceID }}"
-      />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Featured Image</span>
+        </label>
+        <label class="block text-sm/6 font-medium">
+          {{ if eq .featuredImagePath ""}}
+          Featured image is not set
+          {{ else }}
+          <p class="text-sm/6">
+            Current featured image set:
+            <a
+              href="{{ .featuredImagePath }}"
+              target="_blank"
+              >{{ .featuredImagePath }}</a
+            >
+          </p>
+          {{ end }}
+        </label>
+        <p class="text-sm/6">Recommended dimension: 1200x600</p>
+        <input
+          type="file"
+          name="featuredimage"
+          class="file-input file-input-bordered w-full max-w-xs"
+        />
+      </div>
+
+      <div class="flex flex-col space-y-3" id="product-description">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Product Description</span>
+        </label>
+        <p class="text-sm/6">Blog post about the product</p>
+        <input
+          id="trix-input"
+          name="description"
+          type="hidden"
+          value="{{ .story.Description }}"
+          name="content"
+        />
+        <trix-editor
+          class="prose lg:prose-xl"
+          id="trix-editor"
+          input="trix-input"
+          required
+        ></trix-editor>
+      </div>
+
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Download File</span>
+        </label>
+        <p class="text-sm/6">
+          S3 bucket of the file to be delivered after payment
+        </p>
+        <input
+          type="text"
+          name="s3_bucket"
+          id="s3_bucket"
+          placeholder="bucket"
+          class="input w-full max-w-lg prose lg:prose-xl"
+          value="{{.story.S3Bucket}}"
+        />
+
+        <p class="text-sm/6">
+          S3 key of the file to be delivered after payment
+        </p>
+        <input
+          type="text"
+          name="s3_key"
+          id="s3_key"
+          placeholder="dummy.pdf"
+          class="input w-full max-w-lg prose lg:prose-xl"
+          value="{{.story.S3Key}}"
+        />
+      </div>
+
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Mailchimp Audience ID</span>
+        </label>
+        <p class="text-sm/6">
+          Optional Mailchimp Audience Id to add subscribers
+        </p>
+        <input
+          type="text"
+          name="mailchimp_audience_id"
+          id="mailchimp_audience_id"
+          placeholder="8ds299893c"
+          class="input w-full max-w-lg prose lg:prose-xl"
+          value="{{ .story.MailchimpAudienceID }}"
+        />
+      </div>
+
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Schedule</span>
+        </label>
+        <label class="block text-sm/6 font-medium">
+          <p class="text-sm/6">
+            Pick the schedule for the payment, Either One Time or Monthly
+            Subscription
+          </p>
+        </label>
+
+        <select class="select w-full max-w-60 rounded-sm" name="schedule">
+          {{ if eq .story.Schedule "One Time" }}
+          <option selected>One Time</option>
+          {{ else }}
+          <option>One Time</option>
+          {{
+            end
+          }}
+
+          {{ if eq .story.Schedule "Monthly Subscription" }}
+          <option selected>Monthly Subscription</option>
+          {{ else }}
+          <option>Monthly Subscription</option>
+          {{
+            end
+          }}
+        </select>
+      </div>
 
       {{ if .stripe }}
-      <label class="label">
-        <span class="label-text text-xl">Stripe Payment Details</span>
-      </label>
-      <label class="label">
-        <span class="label-text text-xl">Mailchimp Audience ID</span>
-      </label>
-      <label class="label">
-        <span class="label-text text-xl">Multi Country Pricing</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Stripe Price API ID - Country Code:Price API ID in JSON</span
+      {{ $pg := "stripe"}}
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Stripe Payment Details</span>
+        </label>
+
+        <p class="text-sm/6">
+          Multi Country Pricing: Select Country and Enter the Stripe Price API
+          ID
+        </p>
+
+        <div
+          class="space-y-3"
+          _=" 
+        on every change in .country-select set currentCountry to the target's value 
+        set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+        set the selectedIndex of the target to 0 end 
+          "
         >
-      </label>
-      <textarea
-        class="textarea w-full prose lg:prose-xl"
-        name="price"
-        placeholder='{"US":"price_1KlnKhSI4oTPH3MZmvAkvjiG","IN":"price_1KlnKhSI4oTPH3MZX9LVIZxb"}'
-      >{{ .stripePriceJSON }}</textarea>
-
-      {{ else if .square }}
-      <label class="label">
-        <span class="label-text text-xl">Square Payment Details</span>
-      </label>
-
-      <label class="label">
-        <span class="label-text text-xl">Multi Country Pricing</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Square Country Code(ISO 3166-1 alpha-2), Amount(lowest denomination),
-          Currency Code(ISO 4217) in JSON</span
-        >
-      </label>
-      <textarea
-        class="textarea w-full prose lg:prose-xl"
-        name="square_price"
-        placeholder='{"US": {"amount": 5000,"currency": "USD"}, "IN": {"amount": 3000,"currency": "INR"}}'
-      >{{ .squarePriceJSON }}</textarea>
-
-      <label class="label">
-        <span class="label-text text-xl">Schedule</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Pick the schedule for the payment, Either One Time or Monthly
-          Subscription</span
-        >
-      </label>
-
-      <select class="select w-full max-w-xs" name="square_schedule">
-        {{ if eq .story.Schedule "One Time" }}
-        <option selected>One Time</option>
-        {{ else }}
-        <option>One Time</option>
-        {{ end }}
-        
-        {{ if eq .story.Schedule "Monthly Subscription" }}
-        <option selected>Monthly Subscription</option>
-        {{ else }}
-        <option>Monthly Subscription</option>
-        {{ end }}  
-
-      </select>
-
+          {{ $fieldIndex := .fieldIndex}}
+          {{ range $countryCode, $priceId  := .stripePrices }}
+          <div
+            id="price_fields_{{ $fieldIndex }}"
+            class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+          >
+            <select
+              class="select w-full max-w-60 rounded-sm country-select"
+              autocomplete="country"
+              id="{{ $pg }}_country_{{ $fieldIndex }}"
+              name="{{ $pg }}_country_{{ $fieldIndex }}"
+              required
+            >
+              {{
+                range $.sortedCountries
+              }}
+              <option
+                value="{{ .Code }}"
+                {{
+                if
+                eq
+                $countryCode
+                .Code
+                }}
+                selected
+                {{
+                end
+                }}
+              >
+                {{ .Name }}
+              </option>
+              {{
+                end
+              }}
+            </select>
+            <input
+              type="text"
+              name="stripe_plan_id_{{ $fieldIndex }}"
+              id="stripe_plan_id_{{ $fieldIndex }}"
+              placeholder="price_1KlnKhSI4oTPH3MZmvAkvjiG"
+              class="input rounded-sm w-full max-w-96 prose lg:prose-xl"
+              required
+              value="{{ $priceId }}"
+              _="on click or input
+              if value of #{{ $pg }}_country_{{
+                $fieldIndex
+              }} is equal to 'Select Country'
+                focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+                then call Swal.fire({text:'Select a country first',   theme:'auto'})
+              end
+              "
+            />
+            {{ if gt $fieldIndex 0}}
+            <div class="flex">
+              <button
+                _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+              if result.isConfirmed then remove #price_fields_{{
+                  $fieldIndex
+                }} end "
+                class="btn rounded-sm"
+              >
+                &minus;
+              </button>
+            </div>
+            {{ end }}
+          </div>
+          {{ if lt $fieldIndex (subtract (len $.stripePrices) 1)}}
+          {{ $fieldIndex = add $fieldIndex 1}}
+          {{ end }}
+          {{ end }}
+          <div id="price-field-buttons-{{ $pg }}" class="flex">
+            <button
+              id="price_add_country_{{ $fieldIndex }}"
+              class="btn"
+              hx-get="/products/create/price/{{ $fieldIndex }}/"
+              hx-target="#price-field-buttons-{{ $pg }}"
+              hx-swap="outerHTML"
+            >
+              Add Country
+            </button>
+          </div>
+        </div>
+      </div>
       {{ end }}
 
-      <label class="label">
-        <span class="label-text text-xl">Home Page Priority</span>
-      </label>
-      <label class="label">
-        <span class="label-text-alt"
-          >Optional weight to the product for home page placement</span
+      {{ if .square }}
+      {{ $pg := "square"}}
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Square Payment Details</span>
+        </label>
+
+        <p class="text-sm/6">
+          Multi Country Pricing: Select Country and enter Amount in lowest
+          denomination e.g. 5000 for $5, Currency in ISO 4217 format e.g USD.
+        </p>
+
+        <div
+          class="space-y-3"
+          _=" 
+        on every change in .country-select set currentCountry to the target's value 
+        set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+        set the selectedIndex of the target to 0 end 
+          "
         >
-      </label>
-      <input
-        type="number"
-        name="points"
-        id="points"
-        class="input prose lg:prose-xl"
-        value="{{ .story.Points }}"
-      />
+          {{ $fieldIndex := .fieldIndex}}
+          {{ range $countryCode, $values := .squarePrices }}
 
-      <br>
+          <div
+            id="price_fields_{{ $fieldIndex }}"
+            class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+          >
+            <select
+              class="select w-full max-w-60 rounded-sm country-select"
+              autocomplete="country"
+              id="{{ $pg }}_country_{{ $fieldIndex }}"
+              name="{{ $pg }}_country_{{ $fieldIndex }}"
+              required
+            >
+              {{
+                range $.sortedCountries
+              }}
+              <option
+                value="{{ .Code }}"
+                {{
+                if
+                eq
+                $countryCode
+                .Code
+                }}
+                selected
+                {{
+                end
+                }}
+              >
+                {{ .Name }}
+              </option>
+              {{
+                end
+              }}
+            </select>
 
-      <div>
-        <button class="btn mt-5" type="submit">Submit</button>
+            <input
+              type="number"
+              name="{{ $pg }}_amount_{{ $fieldIndex }}"
+              id="{{ $pg }}_amount_{{ $fieldIndex }}"
+              class="input w-full rounded-sm max-w-42 prose lg:prose-xl"
+              value="{{ $values.amount }}"
+              required
+              _="on click or input
+              if value of #{{ $pg }}_country_{{
+                $fieldIndex
+              }} is equal to 'Select Country'
+                focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+                then call Swal.fire({text:'Select a country first',   theme:'auto'})
+              end
+              "
+            />
+
+            <input
+              type="text"
+              name="{{ $pg }}_currency_{{ $fieldIndex }}"
+              id="{{ $pg }}_currency_{{ $fieldIndex }}"
+              value="{{ $values.currency }}"
+              class="input w-full rounded-sm max-w-24 prose lg:prose-xl"
+              required
+              _="on click or input
+          if value of #{{ $pg }}_country_{{
+                $fieldIndex
+              }} is equal to 'Select Country'
+            focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+            then call Swal.fire({text:'Select a country first',   theme:'auto'})
+          else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
+            focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+            then call Swal.fire({text:'Set a amount first',   theme:'auto'})
+          end
+          "
+            />
+
+            {{ if gt $fieldIndex 0}}
+            <div class="flex">
+              <button
+                _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+          if result.isConfirmed then remove #price_fields_{{
+                  $fieldIndex
+                }} end "
+                class="btn rounded-sm"
+              >
+                &minus;
+              </button>
+            </div>
+            {{ end }}
+          </div>
+          {{ if lt $fieldIndex (subtract (len $.squarePrices) 1)}}
+          {{ $fieldIndex = add $fieldIndex 1}}
+          {{ end }}
+          {{ end }}
+          <div id="price-field-buttons-{{ $pg }}" class="flex">
+            <button
+              id="price_add_country_{{ $fieldIndex }}"
+              class="btn"
+              hx-get="/products/create/price/{{ $fieldIndex }}/{{ $pg }}"
+              hx-target="#price-field-buttons-{{ $pg }}"
+              hx-swap="outerHTML"
+            >
+              Add Country
+            </button>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+
+      <hr />
+
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Home Page Priority</span>
+        </label>
+        <p class="text-sm/6">
+          Optional weight to the product for home page placement
+        </p>
+        <input
+          type="number"
+          name="points"
+          id="points"
+          class="input validator w-full max-w-24 prose lg:prose-xl"
+          value="{{ .story.Points }}"
+          min="1"
+          max="9"
+        />
+        <p class="validator-hint">Must be between be 1 to 9</p>
+      </div>
+
+      <br />
+
+      <div class="flex justify-center-safe">
+        <button class="btn" type="submit">Update</button>
       </div>
 
       <input

@@ -26,10 +26,10 @@ CREATE TABLE IF NOT EXISTS products (
     thirty_days_page_views integer,
     thirty_days_top3_countries text,
     shared boolean,
-    price text,
+    stripe_price text,
     mailchimp_audience_id text,
     square_price text,
-    square_schedule text,
+    schedule text,
     square_subscription_plan_Id text
 );
 
