@@ -14,7 +14,7 @@ require (
 	github.com/influxdata/influxdb v1.10.0
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/lib/pq v1.10.7
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450
 	github.com/plutov/paypal/v4 v4.11.0
 	github.com/sendgrid/sendgrid-go v3.12.0+incompatible
@@ -31,7 +31,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/aws/aws-sdk-go v1.44.268
 	github.com/gomarkdown/markdown v0.0.0-20230922112808-5421fefb8386
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
