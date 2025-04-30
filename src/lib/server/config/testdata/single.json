@@ -1,18 +1,18 @@
 {
-	"development": {
-		"assets_compiled": "no",
-		"db": "db",
-		"db_adapter": "postgres",
-		"db_pass": "secret",
-		"db_user": "server",
-		"hmac_key": "secret",
-		"log": "log/development.log",
-		"mail_from": "example@example.com",
-		"mail_secret": "secret",
-		"path": "github.com/fragmenta/fragmenta-app",
-		"port": "3000",
-		"root_url": "https://localhost:3000",
-		"secret_key": "secret",
-		"session_name": "fragmenta_app"
-	}
+  "development": {
+    "assets_compiled": "no",
+    "db": "db",
+    "db_adapter": "postgres",
+    "db_pass": "secret",
+    "db_user": "server",
+    "hmac_key": "secret",
+    "log": "data/log/development.log",
+    "mail_from": "example@example.com",
+    "mail_secret": "secret",
+    "path": "github.com/fragmenta/fragmenta-app",
+    "port": "3000",
+    "root_url": "https://localhost:3000",
+    "secret_key": "secret",
+    "session_name": "fragmenta_app"
+  }
 }

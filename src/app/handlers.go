@@ -33,7 +33,7 @@ func fileHandler(w http.ResponseWriter, r *http.Request) error {
 func serveFile(w http.ResponseWriter, r *http.Request) error {
 
 	// Try a local path in the public directory
-	localPath := "./public" + path.Clean(r.URL.Path)
+	localPath := "./data/public" + path.Clean(r.URL.Path)
 	s, err := os.Stat(localPath)
 	if err != nil {
 		// If file not found return 404

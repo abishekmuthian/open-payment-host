@@ -12,7 +12,7 @@ import (
 
 const (
 	// DefaultPath is where our config is normally found for fragmenta apps.
-	DefaultPath = "secrets/fragmenta.json"
+	DefaultPath = "data/secrets/fragmenta.json"
 )
 
 // Config modes are set when creating a new config

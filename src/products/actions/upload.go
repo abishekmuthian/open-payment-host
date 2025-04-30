@@ -75,7 +75,7 @@ func HandleFileAttachment(w http.ResponseWriter, r *http.Request) error {
 				fileExtension = ".mp4"
 			}
 
-			outFile, err := os.Create("public/assets/images/products/" + newFileName + fileExtension)
+			outFile, err := os.Create("data/public/assets/images/products/" + newFileName + fileExtension)
 			if err != nil {
 				log.Error(log.V{"msg": "File creation, Creating empty file", "error": err})
 			} else {

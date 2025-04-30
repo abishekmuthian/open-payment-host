@@ -349,7 +349,7 @@ func (s *Server) StartTLSAuto(email, domains string) error {
 		Prompt:     autocert.AcceptTOS,
 		Email:      email,                                      // Email for projects with certs
 		HostPolicy: autocert.HostWhitelist(autocertDomains...), // Domains to request certs for
-		Cache:      autocert.DirCache("certs"),                 // Cache certs in secrets folder
+		Cache:      autocert.DirCache("data/certs"),            // Cache certs in secrets folder
 	}
 	// Handle all :80 traffic using autocert to allow http-01 challenge responses
 	go func() {
@@ -379,7 +379,7 @@ func (s *Server) StartTLSAutocert(email string, domains string) error {
 		Prompt:     autocert.AcceptTOS,
 		Email:      email,                                      // Email for projects with certs
 		HostPolicy: autocert.HostWhitelist(autocertDomains...), // Domains to request certs for
-		Cache:      autocert.DirCache("certs"),                 // Cache certs in secrets folder
+		Cache:      autocert.DirCache("data/certs"),            // Cache certs in secrets folder
 	}
 	server := s.ConfiguredTLSServer(certManager)
 	return server.ListenAndServeTLS("", "")

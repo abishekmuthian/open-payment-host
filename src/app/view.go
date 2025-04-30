@@ -28,7 +28,7 @@ func SetupAssets() {
 		err := appAssets.Load()
 		if err != nil {
 			log.Info(log.V{"msg": "Compiling Asssets"})
-			err := appAssets.Compile("src", "public")
+			err := appAssets.Compile("src", "data/public")
 			if err != nil {
 				log.Fatal(log.V{"a": "unable to compile assets", "error": err})
 				os.Exit(1)
@@ -36,7 +36,7 @@ func SetupAssets() {
 		}
 	} else {
 		log.Info(log.V{"msg": "Compiling Asssets in dev mode"})
-		err := appAssets.Compile("src", "public")
+		err := appAssets.Compile("src", "data/public")
 		if err != nil {
 			log.Fatal(log.V{"a": "unable to compile assets", "error": err})
 		}

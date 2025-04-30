@@ -70,7 +70,7 @@ func SetupServer(mu *sync.RWMutex) (*server.Server, error) {
 
 	// Load the appropriate config
 	c := config.New()
-	err = c.Load("secrets/fragmenta.json")
+	err = c.Load("data/secrets/fragmenta.json")
 	if err != nil {
 		log.Fatal(err)
 	}

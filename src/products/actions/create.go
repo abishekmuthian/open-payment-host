@@ -181,7 +181,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 				fileExtension = ".jpg"
 			}
 
-			outFile, err := os.Create("public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", ID, filehelper.SanitizeName(name), "featured_image") + fileExtension)
+			outFile, err := os.Create("data/public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", ID, filehelper.SanitizeName(name), "featured_image") + fileExtension)
 			if err != nil {
 				log.Error(log.V{"msg": "Image creation, Creating empty file", "error": err})
 			} else {

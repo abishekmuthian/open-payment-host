@@ -107,7 +107,7 @@ func (s *Server) ConfigBool(key string) bool {
 
 // configPath returns our expected config file path
 func (s *Server) configPath() string {
-	return "secrets/fragmenta.json"
+	return "data/secrets/fragmenta.json"
 }
 
 // Read our config file and set up the server accordingly

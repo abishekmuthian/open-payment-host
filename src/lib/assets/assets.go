@@ -26,7 +26,7 @@ type Collection struct {
 func New(compiled bool) *Collection {
 	c := &Collection{
 		serveCompiled: compiled,
-		path:          "secrets/assets.json",
+		path:          "data/secrets/assets.json",
 	}
 	return c
 }

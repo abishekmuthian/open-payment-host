@@ -47,7 +47,7 @@ func OpenDatabase(opts map[string]string, mu *sync.RWMutex) error {
 	if err == nil {
 		// Create table if it doesn't exist
 
-		b, err := os.ReadFile("db/Create-Tables.sql")
+		b, err := os.ReadFile("data/db/Create-Tables.sql")
 
 		if err == nil {
 

@@ -62,7 +62,7 @@ func RequiresBootStrap() bool {
 }
 
 func configPath() string {
-	return "secrets/fragmenta.json"
+	return "data/secrets/fragmenta.json"
 }
 
 func generateConfig(projectPath string) error {
@@ -72,11 +72,11 @@ func generateConfig(projectPath string) error {
 	ConfigProduction = map[string]string{}
 	ConfigDevelopment = map[string]string{
 		"assets_compiled":             "no",
-		"db":                          "./db/oph.db?_journal_mode=WAL",
+		"db":                          "./data/db/oph.db?_journal_mode=WAL",
 		"db_adapter":                  "sqlite3",
 		"hmac_key":                    randomKey(32),
 		"secret_key":                  randomKey(32),
-		"log":                         "log/development.log",
+		"log":                         "data/log/development.log",
 		"name":                        "Open Payment Host",
 		"meta_url":                    "",
 		"meta_title":                  "Sell what you want without paying commissions",
@@ -121,7 +121,7 @@ func generateConfig(projectPath string) error {
 	}
 
 	ConfigProduction["assets_compiled"] = "no"
-	ConfigProduction["log"] = "log/production.log"
+	ConfigProduction["log"] = "data/log/production.log"
 	ConfigProduction["port"] = "443"
 	ConfigProduction["autocert_email"] = ""
 	ConfigProduction["autocert_domains"] = ""

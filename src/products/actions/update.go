@@ -119,7 +119,7 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 	// To add the scripts for update page
 	view.AddKey("loadTrixScript", true)
 
-	if _, err := os.Stat("public" + story.FeaturedImage); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat("data/public" + story.FeaturedImage); errors.Is(err, os.ErrNotExist) {
 		// Featured image.jpg does not exist
 		log.Error(log.V{"Product Update, Featured image does not exist": err})
 	} else {
@@ -257,7 +257,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 				fileExtension = ".jpg"
 			}
 
-			outFile, err := os.Create("public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", id, filehelper.SanitizeName(name), "featured_image") + fileExtension)
+			outFile, err := os.Create("data/public/assets/images/products/" + fmt.Sprintf("%d-%s-%s", id, filehelper.SanitizeName(name), "featured_image") + fileExtension)
 			if err != nil {
 				log.Error(log.V{"msg": "Image creation, Creating empty file", "error": err})
 			} else {
