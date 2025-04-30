@@ -9,19 +9,19 @@ setup_folders(){
 	if [ ! -d "/data/secrets" ]; then
 		mkdir secrets
 	fi
-	sudo mount -o bind /data/secrets /app/secrets
+	sudo mount -o bind /data/secrets /home/default/build/secrets
 	if [ ! -d "/data/db" ]; then
 		mkdir db
 	fi
-	sudo mount -o bind /data/db /app/db
+	sudo mount -o bind /data/db /home/default/build/db
 	if [ ! -d "/data/log" ]; then
 		mkdir log
 	fi
-	sudo mount -o bind /data/log /app/log
+	sudo mount -o bind /data/log /home/default/build/log
     if [ ! -d "/data/certs" ]; then
 		mkdir certs
 	fi
-	sudo mount -o bind /data/certs /app/certs
+	sudo mount -o bind /data/certs /home/default/build/certs
     if [ ! -d "/data/public" ]; then
 		mkdir public
 		cd public
@@ -36,7 +36,7 @@ setup_folders(){
 			mkdir images
 		fi
 		cd images
-		if [ ! -d "/data/public/assets/images/app" ]; then
+		if [ ! -d "/data/public/assets/images/home/default/build" ]; then
 			mkdir app
 		fi
 		if [ ! -d "/data/public/assets/images/products" ]; then
@@ -52,7 +52,7 @@ setup_folders(){
 		up
 		up
 	fi
-	sudo mount -o bind /data/public /app/public
+	sudo mount -o bind /data/public /home/default/build/public
 	echo -e "\nSetting up permissions.\n"
 	sudo chown -R default:default /data				
     echo -e "\nFolders setup successfully.\n"
@@ -66,12 +66,12 @@ setup_db(){
 }
 
 navigate_to_app(){
-	cd /app/
+	cd /home/default/build/
     echo -e "\nNavigated to the app folder.\n"
 }
 
 run_app(){
-    /app/exec/open-payment-host
+    /home/default/build/exec/open-payment-host
     echo -e "\nOpen Payment Host Started.\n"
 }
 

@@ -20,3 +20,4 @@ __debug_bin*
 *_test.go
 .cache
 fly.toml
+oph.sqbpro
