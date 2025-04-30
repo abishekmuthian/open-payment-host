@@ -35,10 +35,12 @@ setup_db(){
 
 navigate_to_app(){
 	cd /home/default/build/
+	cd /home/default/build/
     echo -e "\nNavigated to the app folder.\n"
 }
 
 run_app(){
+    /home/default/build/exec/open-payment-host
     /home/default/build/exec/open-payment-host
     echo -e "\nOpen Payment Host Started.\n"
 }
