@@ -6,7 +6,7 @@ services:
     image: abishekmuthian/open-payment-host
     container_name: oph-container
     ports:
-      - '3000:3000'
+      - '443:443'
     volumes:
       - ${PWD}:/home/default/build
       - /home/default/build/exec
