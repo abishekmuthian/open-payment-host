@@ -17,7 +17,7 @@ data/db/oph.db*
 package-lock.json
 package.json
 __debug_bin*
-*_test.go
+**/*_test.go
 .cache
 fly.toml
 oph.sqbpro
