@@ -4,9 +4,7 @@
 package config
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 )
 
@@ -29,43 +27,30 @@ var Current *Config
 // production, development and test. Which set of values is used
 // is set by Mode.
 type Config struct {
-	Mode    int
-	configs []map[string]string
+	Mode int
 }
 
 // New returns a new config, which defaults to development
 func New() *Config {
 	return &Config{
-		Mode:    ModeDevelopment,
-		configs: make([]map[string]string, 3),
+		Mode: ModeDevelopment,
 	}
 }
 
 // Load our json config file from the path
-func (c *Config) Load(path string) error {
+func (c *Config) Load() {
 
-	// Read the config json file
-	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("error opening config %s %v", path, err)
+	mode := os.Getenv("FRAG_ENV")
+
+	switch mode {
+	case "production":
+		c.Mode = ModeProduction
+	case "test":
+		c.Mode = ModeTest
+	default:
+		c.Mode = ModeDevelopment
 	}
 
-	var data map[string]map[string]string
-	err = json.Unmarshal(file, &data)
-	if err != nil {
-		return fmt.Errorf("error reading config %s %v", path, err)
-	}
-
-	// If there's test config check for 3, Now its 2
-	if len(data) < 2 {
-		return fmt.Errorf("error reading config - not enough configs, got :%d expected 3", len(data))
-	}
-
-	c.configs[ModeDevelopment] = data["development"]
-	c.configs[ModeProduction] = data["production"]
-	c.configs[ModeTest] = data["test"]
-
-	return nil
 }
 
 // Production returns true if current config is production.
@@ -74,16 +59,14 @@ func (c *Config) Production() bool {
 }
 
 // Configuration returns all the configuration key/values for a given mode.
-func (c *Config) Configuration(m int) map[string]string {
-	return c.configs[c.Mode]
+func (c *Config) Configuration() []string {
+	// For simplicity, we'll return all environment variables
+	return os.Environ()
 }
 
 // Get returns a specific value or "" if no value
 func (c *Config) Get(key string) string {
-	if c == nil {
-		return ""
-	}
-	return c.configs[c.Mode][key]
+	return os.Getenv(key)
 }
 
 // GetInt returns the current configuration value as int64, or 0 if no value
@@ -120,8 +103,8 @@ func Production() bool {
 }
 
 // Configuration returns all the configuration key/values for a given mode.
-func Configuration(m int) map[string]string {
-	return Current.Configuration(m)
+func Configuration(m int) []string {
+	return Current.Configuration()
 }
 
 // Get returns a specific value or "" if no value

@@ -20,7 +20,7 @@ setup_folders(){
 	fi
     if [ ! -d "/home/default/build/data/public" ]; then
 	    mkdir public
-		cp -a /home/default/build/setup/public/ public/
+		cp -a /home/default/build/setup/public/* public/
 	fi
 	echo -e "\nSetting up permissions.\n"
 	sudo chown -R default:default /home/default/build/data				

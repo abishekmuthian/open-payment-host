@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 
@@ -70,10 +69,10 @@ func SetupServer(mu *sync.RWMutex) (*server.Server, error) {
 
 	// Load the appropriate config
 	c := config.New()
-	err = c.Load("data/secrets/fragmenta.json")
-	if err != nil {
+	c.Load()
+	/* if err != nil {
 		log.Fatal(err)
-	}
+	} */
 	config.Current = c
 
 	// Check environment variable to see if we are in production mode
