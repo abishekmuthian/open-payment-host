@@ -14,6 +14,6 @@ COPY . .
 RUN sudo chown -R $USER:$USER $HOME
 RUN go mod tidy && CGO_ENABLED=1 go build -o ./exec/open-payment-host
 RUN sudo setcap CAP_NET_BIND_SERVICE=+eip ./exec/open-payment-host
-EXPOSE 3000
+EXPOSE 443
 RUN sudo chmod +x .railway/setup-volume.sh
 CMD ["./.railway/setup-volume.sh"]
