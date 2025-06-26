@@ -5,6 +5,7 @@ import (
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
@@ -30,7 +31,9 @@ func HandleSchedule(w http.ResponseWriter, r *http.Request) error {
 	// Render the template
 	view := view.NewRenderer(w, r)
 
-	view.AddKey("paypalSchedule", params.Get("paypal_schedule"))
+	view.AddKey("schedule", params.Get("schedule"))
+	view.AddKey("paypal", config.GetBool("paypal"))
+	view.AddKey("razorpay", config.GetBool("razorpay"))
 
 	view.Template("products/views/schedule.html.got")
 	view.Layout("")

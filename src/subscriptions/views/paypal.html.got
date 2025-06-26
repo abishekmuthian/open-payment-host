@@ -1,2 +1,7 @@
-<div id="paypal-button-container"></div>
-<div id="paypal-hosted-button-container"></div>
+<div
+  class="h-screen flex flex-col space-y-10 justify-items-center items-center"
+>
+<h1 class="prose lg:prose-xl">Please complete the payment for {{ .story.NameDisplay }} using Paypal!</h1>
+<div id="paypal-button-container" class="w-96 shadow-xl rounded p-5 bg-white"></div>
+{{/* <div id="paypal-hosted-button-container"></div> */}}
+</div>

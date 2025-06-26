@@ -68,7 +68,7 @@
   <button
     id="price_add_country_{{ $fieldIndex }}"
     class="btn"
-    hx-get="/products/create/price/{{ $fieldIndex }}/{{ $pg }}"
+    hx-get="/products/create/price/{{ $fieldIndex }}/{{ $pg }}/any"
     hx-target="#{{ $pg }}-price-field-buttons-{{ $pg }}"
     hx-swap="outerHTML"
   >

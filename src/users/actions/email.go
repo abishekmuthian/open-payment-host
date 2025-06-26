@@ -1,15 +1,16 @@
 package useractions
 
 import (
+	"strconv"
+	"strings"
+	"time"
+
 	m "github.com/abishekmuthian/open-payment-host/src/lib/mandrill"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/products"
-	storyactions "github.com/abishekmuthian/open-payment-host/src/products/actions"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"github.com/abishekmuthian/open-payment-host/src/users"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func EmailMonthlyInsights() {
@@ -24,7 +25,7 @@ func EmailMonthlyInsights() {
 
 				currentMonth := time.Now().UTC().AddDate(0, 0, -30)
 
-				subscriptions, err := storyactions.ListSubscriptions(subscriber.ID)
+				subscriptions, err := subscriptions.ListSubscriptions(subscriber.ID)
 				if err == nil {
 					log.Info(log.V{"Notification email, Subscriptions": subscriptions})
 

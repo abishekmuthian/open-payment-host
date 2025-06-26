@@ -135,24 +135,37 @@
         </label>
         <label class="block text-sm/6 font-medium">
           <p class="text-sm/6">
-            Pick the schedule for the payment, Either One Time or Monthly
+            Pick the schedule for the payment, either One Time or Monthly
             Subscription
           </p>
         </label>
 
-        <select class="select w-full max-w-60 rounded-sm" name="schedule">
-          {{ if eq .story.Schedule "One Time" }}
-          <option selected>One Time</option>
+        <select
+          class="select w-full max-w-60 rounded-sm schedule-select"
+          hx-get="/products/create/schedule"
+          {{ if .paypal}}
+          hx-target="#paypal_price_field"
+          {{ else if .razorpay }}
+          hx-target="#razorpay_price_field"
+          {{ end }}
+          name="schedule"
+        >
+          {{ if eq .story.Schedule "onetime" }}
+          <option value="onetime" _="on load add @selected to me">
+            One Time
+          </option>
           {{ else }}
-          <option>One Time</option>
+          <option value="onetime">One Time</option>
           {{
             end
           }}
 
-          {{ if eq .story.Schedule "Monthly Subscription" }}
-          <option selected>Monthly Subscription</option>
+          {{ if eq .story.Schedule "monthly" }}
+          <option value="monthly" _="on load add @selected to me">
+            Monthly Subscription
+          </option>
           {{ else }}
-          <option>Monthly Subscription</option>
+          <option value="monthly">Monthly Subscription</option>
           {{
             end
           }}
@@ -255,7 +268,9 @@
             <button
               id="price_add_country_{{ $fieldIndex }}"
               class="btn"
-              hx-get="/products/create/price/{{ $fieldIndex }}/"
+              hx-get="/products/create/price/{{
+                $fieldIndex
+              }}/{{.story.Schedule}}"
               hx-target="#price-field-buttons-{{ $pg }}"
               hx-swap="outerHTML"
             >
@@ -358,6 +373,9 @@
           else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
             focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
             then call Swal.fire({text:'Set a amount first',   theme:'auto'})
+          else if value of #{{ $pg }}_tax_{{ $fieldIndex }} is empty
+            focus() the #{{ $pg }}_tax_{{ $fieldIndex }}
+            then call Swal.fire({text:'Set a tax first',   theme:'auto'})  
           end
           "
             />
@@ -384,12 +402,405 @@
             <button
               id="price_add_country_{{ $fieldIndex }}"
               class="btn"
-              hx-get="/products/create/price/{{ $fieldIndex }}/{{ $pg }}"
+              hx-get="/products/create/price/{{ $fieldIndex }}/{{
+                $pg
+              }}/{{.story.Schedule}}"
               hx-target="#price-field-buttons-{{ $pg }}"
               hx-swap="outerHTML"
             >
               Add Country
             </button>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+
+
+      {{ if .paypal }}
+      {{ $pg := "paypal"}}
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Paypal Payment Details</span>
+        </label>
+
+        <div id="paypal-pricing">
+          {{ if eq .story.Schedule "onetime" }}
+
+          <p class="text-sm/6 paypal-price-label">
+            Multi Country Pricing: Select Country, enter Amount e.g. 5 for $5
+            (exclusive of Tax), enter Tax e.g. 2 for $2 or 0 for no tax and
+            enter Currency e.g. USD
+          </p>
+
+          {{ else if eq .story.Schedule "monthly" }}
+
+          <p>
+            Multi Country Pricing: Select Country,enter Amount e.g. 5 for $5,
+            enter e.g. 5 for $5 (exclusive of Tax) and enter the Paypal Plan ID
+          </p>
+          {{ end }}
+
+          <div
+            id="paypal_price_field"
+            class="space-y-3"
+            _=" 
+          on every change in .country-select set currentCountry to the target's value 
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+          set the selectedIndex of the target to 0 end 
+            "
+          >
+            {{ $fieldIndex := .fieldIndex}}
+            {{ range $countryCode, $values := .paypalPrices }}
+
+            <div
+              id="price_fields_{{ $fieldIndex }}"
+              class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+            >
+              <select
+                class="select w-full max-w-60 rounded-sm country-select"
+                autocomplete="country"
+                id="{{ $pg }}_country_{{ $fieldIndex }}"
+                name="{{ $pg }}_country_{{ $fieldIndex }}"
+                required
+              >
+                {{
+                range $.sortedCountries
+                }}
+                <option
+                  value="{{ .Code }}"
+                  {{
+                  if
+                  eq
+                  $countryCode
+                  .Code
+                  }}
+                  selected
+                  {{
+                  end
+                  }}
+                >
+                  {{ .Name }}
+                </option>
+                {{
+                  end
+                }}
+              </select>
+
+              <input
+                type="number"
+                name="{{ $pg }}_amount_{{ $fieldIndex }}"
+                id="{{ $pg }}_amount_{{ $fieldIndex }}"
+                class="input w-full rounded-sm {{ if eq $.story.Schedule "onetime"}} max-w-42 {{ else if eq $.story.Schedule "monthly"}} max-w-26 {{end}} prose lg:prose-xl"
+                value="{{ $values.amount }}"
+                required
+                _="on click or input
+              if value of #{{ $pg }}_country_{{
+                  $fieldIndex
+                }} is equal to 'Select Country'
+                focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+                then call Swal.fire({text:'Select a country first',   theme:'auto'})
+              end
+              "
+              />
+              {{ if eq $.story.Schedule "onetime" }}
+
+              <input
+                type="number"
+                name="{{ $pg }}_tax_{{ $fieldIndex }}"
+                id="{{ $pg }}_tax_{{ $fieldIndex }}"
+                value="{{ $values.tax }}"
+                class="input w-full rounded-sm max-w-24 prose lg:prose-xl"
+                required
+                _="on click or input
+              if value of #{{ $pg }}_country_{{
+                  $fieldIndex
+                }} is equal to 'Select Country'
+                focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+                then call Swal.fire({text:'Select a country first',   theme:'auto'})
+              else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
+                focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+                then call Swal.fire({text:'Set a amount first',   theme:'auto'})
+              end
+                "
+              />
+
+              {{ end }}
+
+              <input type="text" 
+              name="{{ $pg }}_currency_{{ $fieldIndex }}"
+              id="{{ $pg }}_currency_{{ $fieldIndex }}" 
+              value="{{
+                $values.currency
+              }}" 
+              class="input w-full rounded-sm {{ if eq $.story.Schedule "onetime"}} max-w-24 {{ else if eq $.story.Schedule "monthly"}} max-w-18 {{end}} prose lg:prose-xl"
+              required 
+              _="on click or input if value of #{{ $pg }}_country_{{
+                $fieldIndex
+              }}
+              is equal to 'Select Country' focus() the #{{ $pg }}_country_{{
+                $fieldIndex
+              }}
+              then call Swal.fire({text:'Select a country first', theme:'auto'})
+              else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
+              focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+              then call Swal.fire({text:'Set a amount first', theme:'auto'})
+              {{ if eq $.story.Schedule "onetime" }}
+              else if value of #{{ $pg }}_tax_{{ $fieldIndex }} is empty focus()
+              the #{{ $pg }}_tax_{{ $fieldIndex }}
+              then call Swal.fire({text:'Set a tax first', theme:'auto'})
+              {{ end }}
+              end " />
+
+              {{ if eq $.story.Schedule "monthly"}}
+              <input
+                type="text"
+                name="{{ $pg }}_plan_id_{{ $fieldIndex }}"
+                id="{{ $pg }}_plan_id_{{ $fieldIndex }}"
+                value="{{
+                $values.plan_id
+                }}"                
+                class="input rounded-sm w-full max-w-48 prose lg:prose-xl paypal-plan-id"
+                required
+                _="on click or input
+                if value of #{{ $pg }}_country_{{
+                  $fieldIndex
+                }} is equal to 'Select Country'
+                  focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+                  then call Swal.fire({text:'Select a country first',   theme:'auto'})
+                else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
+                  focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+                  then call Swal.fire({text:'Set a amount first',   theme:'auto'})      
+                else if value of #{{ $pg }}_currency_{{ $fieldIndex }} is empty
+                  focus() the #{{ $pg }}_currency_{{ $fieldIndex }}
+                  then call Swal.fire({text:'Set a currency first',   theme:'auto'})    
+                end
+                "
+              />
+
+              {{ end }}
+
+              {{ if gt $fieldIndex 0}}
+              <div class="flex">
+                <button
+                  _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+          if result.isConfirmed then remove #price_fields_{{
+                    $fieldIndex
+                  }} end "
+                  class="btn rounded-sm"
+                >
+                  &minus;
+                </button>
+              </div>
+              {{ end }}
+            </div>
+            {{ if lt $fieldIndex (subtract (len $.paypalPrices) 1)}}
+            {{ $fieldIndex = add $fieldIndex 1}}
+            {{ end }}
+
+            {{ end }}
+
+
+
+            <div id="price-field-buttons-{{ $pg }}" class="flex">
+              <button
+                id="price_add_country_{{ $fieldIndex }}"
+                class="btn"
+                hx-get="/products/create/price/{{ $fieldIndex }}/{{
+                  $pg
+                }}/{{.story.Schedule}}"
+                hx-target="#price-field-buttons-{{ $pg }}"
+                hx-swap="outerHTML"
+              >
+                Add Country
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+
+      {{ if .razorpay }}
+      {{ $pg := "razorpay"}}
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Razorpay Payment Details</span>
+        </label>
+
+        <div id="razorpay-pricing">
+          {{ if eq .story.Schedule "onetime" }}
+
+          <p class="text-sm/6 razorpay-price-label">
+            Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR 500 (inclusive of Tax), 
+                and enter Currency e.g. INR
+          </p>
+
+          {{ else if eq .story.Schedule "monthly" }}
+
+          <p>
+            Multi Country Pricing: Select Country, enter Plan ID
+          </p>
+          {{ end }}
+
+          <div
+            id="razorpay_price_field"
+            class="space-y-3"
+            _=" 
+          on every change in .country-select set currentCountry to the target's value 
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+          set the selectedIndex of the target to 0 end 
+            "
+          >
+            {{ $fieldIndex := .fieldIndex}}
+            {{ range $countryCode, $values := .razorpayPrices }}
+
+            <div
+              id="price_fields_{{ $fieldIndex }}"
+              class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+            >
+              <select
+                class="select w-full max-w-60 rounded-sm country-select"
+                autocomplete="country"
+                id="{{ $pg }}_country_{{ $fieldIndex }}"
+                name="{{ $pg }}_country_{{ $fieldIndex }}"
+                required
+              >
+                {{
+                range $.sortedCountries
+                }}
+                <option
+                  value="{{ .Code }}"
+                  {{
+                  if
+                  eq
+                  $countryCode
+                  .Code
+                  }}
+                  selected
+                  {{
+                  end
+                  }}
+                >
+                  {{ .Name }}
+                </option>
+                {{
+                  end
+                }}
+              </select>
+
+              {{ if eq $.story.Schedule "onetime"}}
+
+
+              <input
+                type="number"
+                name="{{ $pg }}_amount_{{ $fieldIndex }}"
+                id="{{ $pg }}_amount_{{ $fieldIndex }}"
+                class="input w-full rounded-sm {{ if eq $.story.Schedule "onetime"}} max-w-42 {{ else if eq $.story.Schedule "monthly"}} max-w-26 {{end}} prose lg:prose-xl"
+                value="{{ $values.amount }}"
+                required
+                _="on click or input
+              if value of #{{ $pg }}_country_{{
+                  $fieldIndex
+                }} is equal to 'Select Country'
+                focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+                then call Swal.fire({text:'Select a country first',   theme:'auto'})
+              end
+              "
+              />
+
+              <input type="text" 
+              name="{{ $pg }}_currency_{{ $fieldIndex }}"
+              id="{{ $pg }}_currency_{{ $fieldIndex }}" 
+              value="{{
+                $values.currency
+              }}" 
+              class="input w-full rounded-sm {{ if eq $.story.Schedule "onetime"}} max-w-24 {{ else if eq $.story.Schedule "monthly"}} max-w-18 {{end}} prose lg:prose-xl"
+              required 
+              _="on click or input if value of #{{ $pg }}_country_{{
+                $fieldIndex
+              }}
+              is equal to 'Select Country' focus() the #{{ $pg }}_country_{{
+                $fieldIndex
+              }}
+              then call Swal.fire({text:'Select a country first', theme:'auto'})
+              else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
+              focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+              then call Swal.fire({text:'Set a amount first', theme:'auto'})
+              {{ if eq $.story.Schedule "onetime" }}
+              else if value of #{{ $pg }}_tax_{{ $fieldIndex }} is empty focus()
+              the #{{ $pg }}_tax_{{ $fieldIndex }}
+              then call Swal.fire({text:'Set a tax first', theme:'auto'})
+              {{ end }}
+              end " />
+
+              {{ end }}
+
+              {{ if eq $.story.Schedule "monthly"}}
+              <input
+                type="text"
+                name="{{ $pg }}_plan_id_{{ $fieldIndex }}"
+                id="{{ $pg }}_plan_id_{{ $fieldIndex }}"
+                value="{{
+                $values.plan_id
+                }}"                
+                class="input rounded-sm w-full max-w-48 prose lg:prose-xl razorpay-plan-id"
+                required
+                _="on click or input
+                if value of #{{ $pg }}_country_{{
+                  $fieldIndex
+                }} is equal to 'Select Country'
+                  focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+                  then call Swal.fire({text:'Select a country first',   theme:'auto'})
+                else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
+                  focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+                  then call Swal.fire({text:'Set a amount first',   theme:'auto'})      
+                else if value of #{{ $pg }}_currency_{{ $fieldIndex }} is empty
+                  focus() the #{{ $pg }}_currency_{{ $fieldIndex }}
+                  then call Swal.fire({text:'Set a currency first',   theme:'auto'})    
+                end
+                "
+              />
+
+              {{ end }}
+
+              {{ if gt $fieldIndex 0}}
+              <div class="flex">
+                <button
+                  _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+          if result.isConfirmed then remove #price_fields_{{
+                    $fieldIndex
+                  }} end "
+                  class="btn rounded-sm"
+                >
+                  &minus;
+                </button>
+              </div>
+              {{ end }}
+            </div>
+            {{ if lt $fieldIndex (subtract (len $.razorpayPrices) 1)}}
+            {{ $fieldIndex = add $fieldIndex 1}}
+            {{ end }}
+
+            {{ end }}
+
+
+
+            <div id="price-field-buttons-{{ $pg }}" class="flex">
+              <button
+                id="price_add_country_{{ $fieldIndex }}"
+                class="btn"
+                hx-get="/products/create/price/{{ $fieldIndex }}/{{
+                  $pg
+                }}/{{.story.Schedule}}"
+                hx-target="#price-field-buttons-{{ $pg }}"
+                hx-swap="outerHTML"
+              >
+                Add Country
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -414,6 +825,48 @@
           max="9"
         />
         <p class="validator-hint">Must be between be 1 to 9</p>
+      </div>
+
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">API</span>
+        </label>
+        <div id="webhook-details">
+          <p class="text-sm/6 razorpay-price-label">
+            Enter the Webhook URL and Webhook secret of the server from where
+            you're calling OPH API
+          </p>
+          <div
+            class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+          >
+            <input
+              type="url"
+              name="webhook_url"
+              placeholder="https://"
+              value="{{ .story.WebhookURL }}"
+              pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
+              class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
+              title="Must be valid URL"
+            />
+            <p class="validator-hint">Must be valid URL</p>
+            <input
+              type="password"
+              name="webhook_secret"
+              placeholder="Webhook secret"
+              value="{{ .story.WebhookSecret }}"
+              pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+              minlength="8"
+              class="input validator w-full rounded-sm max-w-48 prose lg:prose-xl"
+              title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
+            />
+            <p class="validator-hint">
+              Must be more than 8 characters, including
+              <br />At least one number <br />At least one lowercase letter
+              <br />At least one uppercase letter
+            </p>
+          </div>
+        </div>
       </div>
 
       <br />

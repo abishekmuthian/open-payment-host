@@ -1,0 +1,1 @@
+ALTER TABLE products ADD total_subscribers integer;

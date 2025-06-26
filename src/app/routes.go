@@ -6,12 +6,12 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux/middleware/secure"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 
 	// Resource Actions
 	appactions "github.com/abishekmuthian/open-payment-host/src/app/actions"
-	paymentactions "github.com/abishekmuthian/open-payment-host/src/payment/actions"
 	storyactions "github.com/abishekmuthian/open-payment-host/src/products/actions"
-	subscriberactions "github.com/abishekmuthian/open-payment-host/src/subscriptions/actions"
+	subscriptionactions "github.com/abishekmuthian/open-payment-host/src/subscriptions/actions"
 	useractions "github.com/abishekmuthian/open-payment-host/src/users/actions"
 )
 
@@ -34,7 +34,7 @@ func SetupRoutes() *mux.Mux {
 	router.Get("/index{format:(.xml)?}", storyactions.HandleIndex)
 	router.Get("/products/create", storyactions.HandleCreateShow)
 	router.Post("/products/create", storyactions.HandleCreate)
-	router.Get("/products/create/price/{fieldIndex:[0-9]+}/{pg:.*}", storyactions.HandlePrice)
+	router.Get("/products/create/price/{fieldIndex:[0-9]+}/{pg:[a-zA-Z]+}/{schedule:[a-zA-Z ]+}", storyactions.HandlePrice)
 	router.Get("/products/create/schedule", storyactions.HandleSchedule)
 
 	// Add suggestion route
@@ -48,40 +48,35 @@ func SetupRoutes() *mux.Mux {
 	router.Get("/products/{id:[0-9]+}/update", storyactions.HandleUpdateShow)
 	router.Post("/products/{id:[0-9]+}/update", storyactions.HandleUpdate)
 	router.Post("/products/{id:[0-9]+}/destroy", storyactions.HandleDestroy)
-	router.Get("/products/{id:[0-9]+}/subscription", storyactions.HandleSubscriptionShow)
-	router.Post("/products/{id:[0-9]+}/subscription/subscribe", storyactions.HandleSubscription)
-	router.Post("/products/{id:[0-9]+}/subscription/unsubscribe", storyactions.HandleUnSubscription)
+	router.Get("/products/{id:[0-9]+}/subscription", subscriptions.HandleSubscriptionShow)
+	router.Post("/products/{id:[0-9]+}/subscription/subscribe", subscriptions.HandleSubscription)
+	router.Post("/products/{id:[0-9]+}/subscription/unsubscribe", subscriptions.HandleUnSubscription)
 	// For show insights link the product page
 	//router.Post("/products/{id:[0-9]+}/insights", storyactions.HandleInsights)
 	router.Get("/products/{id:[0-9]+}", storyactions.HandleShow)
 	router.Get("/products{format:(.xml)?}", storyactions.HandleIndex)
 	router.Get("/sitemap.xml", storyactions.HandleSiteMap)
 
-	// Add subscription routes for razorpay
-	/*	router.Get("/subscriptions/payment/{plan:.*}", payment.HandlePaymentShow)
-		router.Post("/subscriptions/payment/{id:[0-9]+}/success", payment.HandlePayment)
-		router.Post("/subscriptions/payment/razorpay/verification", subscriberactions.HandleRazorpayPaymentVerification)*/
-
-	// Add subscription routes for PayPal
-	/*	router.Get("/subscriptions/verification", subscriberactions.HandleVerificationShow)
-		router.Post("/subscriptions/verification", subscriberactions.HandleVerification)*/
-
 	// Add subscription routes for Square, Stripe, Paypal
-	router.Post("/subscriptions/create-checkout-session", subscriberactions.HandleCreateCheckoutSession)
-	router.Get("/subscriptions/billing", subscriberactions.HandleBillingShow)
-	router.Post("/subscriptions/billing", subscriberactions.HandleBilling)
-	router.Get("/subscriptions/square", subscriberactions.HandleSquareShow)
-	router.Post("/subscriptions/square", subscriberactions.HandleSquare)
-	router.Get("/subscriptions/paypal", subscriberactions.HandlePaypalShow)
-	router.Post("/subscriptions/subscribe", subscriberactions.HandleCreateSubscription)
-	router.Get("/payment/success", paymentactions.HandlePaymentSuccess)
-	router.Get("/payment/cancel", paymentactions.HandlePaymentCancel)
-	router.Post("/payment/webhook", paymentactions.HandleWebhook)
-	router.Post("/payment/square_webhook", paymentactions.HandleSquareWebhook)
-	router.Post("/payment/paypal_webhook", paymentactions.HandlePaypalWebhook)
-	router.Get("/payment/failure", paymentactions.HandlePaymentFailure)
+	router.Post("/subscriptions/create-checkout-session", subscriptions.HandleCreateCheckoutSession)
+	router.Get("/subscriptions/billing", subscriptions.HandleBillingShow)
+	router.Post("/subscriptions/billing", subscriptions.HandleBilling)
+	router.Get("/subscriptions/square", subscriptions.HandleSquareShow)
+	router.Post("/subscriptions/square", subscriptions.HandleSquare)
+	router.Get("/subscriptions/paypal", subscriptions.HandlePaypalShow)
+	router.Post("/subscriptions/paypal/orders", subscriptions.HandlePaypalCreateOrder)
+	router.Post("/subscriptions/paypal/orders/{id:[a-zA-Z0-9]+}/capture", subscriptions.HandlePaypalCaptureOrder)
+	router.Get("/subscriptions/razorpay", subscriptions.HandleRazorpayShow)
+	router.Post("/subscriptions/subscribe", subscriptions.HandleCreateSubscription)
+	router.Get("/subscriptions/success", subscriptions.HandlePaymentSuccess)
+	router.Get("/subscriptions/cancel", subscriptionactions.HandlePaymentCancel)
+	router.Post("/subscriptions/stripe-webhook", subscriptions.HandleWebhook)
+	router.Post("/subscriptions/square-webhook", subscriptions.HandleSquareWebhook)
+	router.Post("/subscriptions/paypal-webhook", subscriptions.HandlePaypalWebhook)
+	router.Post("/subscriptions/razorpay-webhook", subscriptions.HandleRazorpayWebhook)
+	router.Get("/subscriptions/failure", subscriptions.HandlePaymentFailure)
 	// Billing not yet active
-	// router.Post("/subscriptions/manage-billing", subscriberactions.HandleCustomerPortal)
+	// router.Post("/subscriptions/manage-billing", subscriptions.HandleCustomerPortal)
 
 	// Add user routes
 	router.Get("/users/{id:[0-9]+}/password/change", useractions.HandlePasswordChangeShow)

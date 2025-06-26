@@ -9,8 +9,8 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/users"
 )
 
-// HandleCreate creates the user
-func HandleCreate(email string, password string) error {
+// HandleCreateAdminUser creates the user
+func HandleCreateAdminUser(email string, password string) error {
 
 	user := users.New()
 

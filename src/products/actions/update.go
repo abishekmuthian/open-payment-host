@@ -96,7 +96,7 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 		view.AddKey("stripe", config.GetBool("stripe"))
 	}
 
-	if config.GetBool("square") && config.Get("square_access_token") != "" {
+	if config.GetBool("square") && config.Get("square_access_token") != "" && config.Get("square_app_id") != "" {
 		squarePriceJSON, err := json.Marshal(story.SquarePrice)
 
 		if err == nil {
@@ -116,9 +116,42 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 		view.AddKey("square", config.GetBool("square"))
 	}
 
-	// To add the scripts for update page
-	view.AddKey("loadTrixScript", true)
+	if config.GetBool("paypal") && config.Get("paypal_client_id") != "" && config.Get("paypal_client_secret") != "" {
+		paypalPriceJSON, err := json.Marshal(story.PaypalPrice)
 
+		if err == nil {
+			var paypalPrices map[string]map[string]interface{}
+
+			err := json.Unmarshal([]byte(paypalPriceJSON), &paypalPrices)
+			if err != nil {
+				log.Error(log.V{"Error unmarshalling JSON:": err})
+				return err
+			}
+
+			view.AddKey("paypalPrices", paypalPrices)
+		} else {
+			view.AddKey("paypalPrices", "")
+		}
+		view.AddKey("paypal", config.GetBool("paypal"))
+	}
+	if config.GetBool("razorpay") && config.Get("razorpay_key_id") != "" && config.Get("razorpay_key_secret") != "" {
+		razorpayPriceJSON, err := json.Marshal(story.RazorpayPrice)
+
+		if err == nil {
+			var razorpayPrices map[string]map[string]interface{}
+
+			err := json.Unmarshal([]byte(razorpayPriceJSON), &razorpayPrices)
+			if err != nil {
+				log.Error(log.V{"Error unmarshalling JSON:": err})
+				return err
+			}
+
+			view.AddKey("razorpayPrices", razorpayPrices)
+		} else {
+			view.AddKey("razorpayPrices", "")
+		}
+		view.AddKey("razorpay", config.GetBool("razorpay"))
+	}
 	if _, err := os.Stat("data/public" + story.FeaturedImage); errors.Is(err, os.ErrNotExist) {
 		// Featured image.jpg does not exist
 		log.Error(log.V{"Product Update, Featured image does not exist": err})
@@ -131,7 +164,8 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
 
-	// Load scripts
+	// To add the scripts for update page
+	view.AddKey("loadTrixScript", true)
 	view.AddKey("loadHypermedia", true)
 	view.AddKey("loadSweetAlert", true)
 	view.AddKey("fieldIndex", 0)
@@ -384,6 +418,123 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 			}
 
 		}
+	}
+
+	if config.GetBool("paypal") && config.Get("paypal_client_id") != "" && config.Get("paypal_client_secret") != "" {
+		result := make(map[string]map[string]interface{})
+
+		countryRegex := regexp.MustCompile(`^paypal_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					// Initialize a new map for the amount and currency
+
+					amountCurrencyMap := make(map[string]interface{})
+
+					amountKey := fmt.Sprintf("paypal_amount_%s", index)
+					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
+						var amount float64
+						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
+							amountCurrencyMap["amount"] = amount
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse amount": err})
+						}
+					}
+
+					taxKey := fmt.Sprintf("paypal_tax_%s", index)
+					if taxStr, exists := r.Form[taxKey]; exists && len(taxStr) > 0 {
+						var tax float64
+						if tax, err = strconv.ParseFloat(taxStr[0], 64); err == nil {
+							amountCurrencyMap["tax"] = tax
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse tax": err})
+						}
+					}
+
+					currencyKey := fmt.Sprintf("paypal_currency_%s", index)
+					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
+						amountCurrencyMap["currency"] = currency[0]
+					}
+
+					planIDKey := fmt.Sprintf("paypal_plan_id_%s", index)
+					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
+						amountCurrencyMap["plan_id"] = planID[0]
+					}
+
+					result[value[0]] = amountCurrencyMap
+
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["paypal_price"] = string(jsonResult)
+		story.Update(storyParams)
+	}
+
+	if config.GetBool("razorpay") && config.Get("razorpay_key_id") != "" && config.Get("razorpay_key_secret") != "" {
+		result := make(map[string]map[string]interface{})
+
+		countryRegex := regexp.MustCompile(`^razorpay_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					// Initialize a new map for the amount and currency
+
+					amountCurrencyMap := make(map[string]interface{})
+
+					amountKey := fmt.Sprintf("razorpay_amount_%s", index)
+					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
+						var amount float64
+						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
+							amountCurrencyMap["amount"] = amount
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse amount": err})
+						}
+					}
+
+					currencyKey := fmt.Sprintf("razorpay_currency_%s", index)
+					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
+						amountCurrencyMap["currency"] = currency[0]
+					}
+
+					planIDKey := fmt.Sprintf("razorpay_plan_id_%s", index)
+					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
+						amountCurrencyMap["plan_id"] = planID[0]
+					}
+
+					result[value[0]] = amountCurrencyMap
+
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["razorpay_price"] = string(jsonResult)
+		story.Update(storyParams)
 	}
 
 	err = story.Update(storyParams)

@@ -181,11 +181,12 @@ function ActivateManageBilling() {
   });
 }
 
+// TODO: Rewrite the functions below into a single function which returns data from meta tags
+
 // Collect the authenticity token from meta tags in header
 function authenticityToken() {
   var meta = DOM.First("meta[name='authenticity_token']");
   if (meta === undefined) {
-    e.preventDefault();
     return "";
   }
   return meta.getAttribute("content");
@@ -195,7 +196,42 @@ function authenticityToken() {
 function productID() {
   var meta = DOM.First("meta[name='product_ID']");
   if (meta === undefined) {
-    e.preventDefault();
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Collect the product title from meta tags in header
+function productTitle() {
+  var meta = DOM.First("meta[name='product_title']");
+  if (meta === undefined) {
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Collect the product quantity from meta tags in header
+function productQuantity() {
+  var meta = DOM.First("meta[name='product_quantity']");
+  if (meta === undefined) {
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Collect the product amount from meta tags in header
+function productAmount() {
+  var meta = DOM.First("meta[name='product_amount']");
+  if (meta === undefined) {
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Collect the product currency from the meta tags in header
+function productCurrency() {
+  var meta = DOM.First("meta[name='product_currency']");
+  if (meta === undefined) {
     return "";
   }
   return meta.getAttribute("content");
@@ -205,7 +241,6 @@ function productID() {
 function appID() {
   var meta = DOM.First("meta[name='app_ID']");
   if (meta === undefined) {
-    e.preventDefault();
     return "";
   }
   return meta.getAttribute("content");
@@ -215,7 +250,6 @@ function appID() {
 function locationID() {
   var meta = DOM.First("meta[name='location_ID']");
   if (meta === undefined) {
-    e.preventDefault();
     return "";
   }
   return meta.getAttribute("content");
@@ -225,7 +259,42 @@ function locationID() {
 function planID() {
   var meta = DOM.First("meta[name='plan_ID']");
   if (meta === undefined) {
-    e.preventDefault();
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Collect the subscription ID from the meta tags in header
+function subscriptionID() {
+  var meta = DOM.First("meta[name='product_subscription_ID']");
+  if (meta === undefined) {
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Collect the Razorpay Key ID from the meta tags in header
+function razorpayKeyID() {
+  var meta = DOM.First("meta[name='razorpay_key_id']");
+  if (meta === undefined) {
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Check if is Paypal script is for Subscription or Checkout
+function paymentScriptType() {
+  var meta = DOM.First("meta[name='payment_script_type']");
+  if (meta === undefined) {
+    return "";
+  }
+  return meta.getAttribute("content");
+}
+
+// Collect the product order ID from the meta tags in header
+function orderID() {
+  var meta = DOM.First("meta[name='product_order_ID']");
+  if (meta === undefined) {
     return "";
   }
   return meta.getAttribute("content");
@@ -244,6 +313,11 @@ function ClearSessionStorage() {
 
 // Insert authentication token into every HTMX request
 function ActivateHTMX() {
+  if (!window.htmx) {
+    console.log("Not loading HTMX script on this page");
+    return;
+  }
+
   // Get authenticity token from head of page
   var token = authenticityToken();
 

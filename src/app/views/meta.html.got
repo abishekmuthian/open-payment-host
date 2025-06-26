@@ -28,10 +28,18 @@
 {{/*<meta name="subscription_ID" content="{{.subscriptionID}}">*/}}
 <meta name="publishing_key" content="{{.publishingKey}}">
 <meta name="price_ID" content="{{.priceID}}">
-<meta name="product_ID" content="{{.story.ID}}">
+<meta name="product_ID" content="{{if .story}}{{ .story.ID }}{{ else }}{{ .meta_product_id }}{{end }}">
 <meta name="app_ID" content="{{ .meta_app_id }}">
 <meta name="location_ID" content="{{ .meta_location_id }}">
 <meta name="plan_ID" content="{{ .meta_plan_id }}">
+<meta name="payment_script_type" content="{{ .meta_payment_script_type }}">
+<meta name="product_title" content="{{ .meta_product_title }}">                                 
+<meta name="product_quantity" content="{{ .meta_product_quantity }}">
+<meta name="product_amount" content="{{ .meta_product_amount }}">
+<meta name="product_currency" content="{{ .meta_product_currency }}">
+<meta name="product_order_ID" content="{{ .meta_product_order_id }}">
+<meta name="razorpay_key_id" content="{{ .meta_razorpay_key_id }}">
+<meta name="product_subscription_ID" content="{{ .meta_product_subscription_ID }}">
 
 
 {{if .meta_rss }}

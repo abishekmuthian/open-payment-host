@@ -10,10 +10,21 @@ import (
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/query/adapters"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 // database is the package global db  - this reference is not exported outside the package.
 var database adapters.Database
+
+// TableInfo is a structure to store the data from the .sql file
+type TableInfo struct {
+	Name      string
+	Columns   []string
+	DataTypes []string
+	Keywords  []string
+}
 
 // OpenDatabase opens the database with the given options
 func OpenDatabase(opts map[string]string, mu *sync.RWMutex) error {
@@ -72,6 +83,24 @@ func OpenDatabase(opts map[string]string, mu *sync.RWMutex) error {
 			}
 
 			log.Info(log.V{"msg": "Finished creating tables"})
+
+			// Migrate Database
+			driver, err := sqlite3.WithInstance(database.SQLDB(), &sqlite3.Config{})
+			if err != nil {
+				log.Error(log.V{"Database migration, Error creating db instance": err})
+			}
+
+			m, err := migrate.NewWithDatabaseInstance("file://db/migrate", "sqlite3", driver)
+			if err != nil {
+				log.Error(log.V{"Database migration, Error creating migration instance ": err})
+
+			}
+
+			if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+				log.Error(log.V{"Database migration, Error migrating ": err})
+			} else {
+				log.Info(log.V{"msg": "Database migration successful"})
+			}
 
 		} else {
 			log.Error(log.V{"Unable to read the database file": err})

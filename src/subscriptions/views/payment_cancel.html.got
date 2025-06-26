@@ -1,0 +1,6 @@
+<div
+  class="h-screen flex flex-col space-y-10 justify-items-center items-center"
+>
+<h1 class="prose lg:prose-xl">Your subscription was cancelled. If this was unintentional, You can re-initiate the
+    subscription payment process by clicking on the price button on the product.</h1>
+</div>

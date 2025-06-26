@@ -43,8 +43,7 @@ func HandleCreateShow(w http.ResponseWriter, r *http.Request) error {
 	// Render the template
 	view := view.NewRenderer(w, r)
 	view.AddKey("story", story)
-	// To add the scripts for add product page
-	view.AddKey("loadTrixScript", true)
+
 	view.AddKey("currentUser", currentUser)
 	view.AddKey("meta_foot", config.Get("meta_desc"))
 	// Set the name and year
@@ -55,14 +54,20 @@ func HandleCreateShow(w http.ResponseWriter, r *http.Request) error {
 		view.AddKey("stripe", config.GetBool("stripe"))
 	}
 
-	if config.GetBool("square") && config.Get("square_access_token") != "" {
+	if config.GetBool("square") && config.Get("square_access_token") != "" && config.Get("square_app_id") != "" {
 		view.AddKey("square", config.GetBool("square"))
 	}
 
-	if config.Get("paypal_client_id") != "" {
+	if config.GetBool("paypal") && config.Get("paypal_client_id") != "" && config.Get("paypal_client_secret") != "" {
 		view.AddKey("paypal", config.GetBool("paypal"))
 	}
 
+	if config.GetBool("razorpay") && config.Get("razorpay_key_id") != "" && config.Get("razorpay_key_secret") != "" {
+		view.AddKey("razorpay", config.GetBool("razorpay"))
+	}
+
+	// To add the scripts for add product page
+	view.AddKey("loadTrixScript", true)
 	view.AddKey("loadHypermedia", true)
 	view.AddKey("loadSweetAlert", true)
 
@@ -202,7 +207,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 	}
 	// Store stripe price
-	if config.GetBool("stripe") && config.Get("stripe_key") != "" {
+	if config.GetBool("stripe") && config.Get("stripe_key") != "" && config.Get("stripe_secret") != "" {
 		result := make(map[string]string)
 
 		countryRegex := regexp.MustCompile(`^stripe_country_(\d+)$`)
@@ -230,7 +235,125 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 		storyParams["stripe_price"] = string(jsonResult)
 		story.Update(storyParams)
+	}
 
+	// Store razorpay price
+	if config.GetBool("razorpay") && config.Get("razorpay_key_id") != "" && config.Get("razorpay_key_secret") != "" {
+		result := make(map[string]map[string]interface{})
+
+		countryRegex := regexp.MustCompile(`^razorpay_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					// Initialize a new map for the amount and currency
+
+					amountCurrencyMap := make(map[string]interface{})
+
+					amountKey := fmt.Sprintf("razorpay_amount_%s", index)
+					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
+						var amount float64
+						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
+							amountCurrencyMap["amount"] = amount
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse amount": err})
+						}
+					}
+
+					currencyKey := fmt.Sprintf("razorpay_currency_%s", index)
+					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
+						amountCurrencyMap["currency"] = currency[0]
+					}
+
+					planIDKey := fmt.Sprintf("razorpay_plan_id_%s", index)
+					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
+						amountCurrencyMap["plan_id"] = planID[0]
+					}
+
+					result[value[0]] = amountCurrencyMap
+
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["razorpay_price"] = string(jsonResult)
+		story.Update(storyParams)
+	}
+
+	// Store paypal price
+	if config.GetBool("paypal") && config.Get("paypal_client_id") != "" && config.Get("paypal_client_secret") != "" {
+		result := make(map[string]map[string]interface{})
+
+		countryRegex := regexp.MustCompile(`^paypal_country_(\d+)$`)
+
+		// Iterate over all query parameters
+		r.ParseForm()
+		for key, value := range params.Values {
+			if len(value) > 0 {
+				switch {
+				case countryRegex.MatchString(key):
+					index := countryRegex.FindStringSubmatch(key)[1]
+					// Initialize a new map for the amount and currency
+
+					amountCurrencyMap := make(map[string]interface{})
+
+					amountKey := fmt.Sprintf("paypal_amount_%s", index)
+					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
+						var amount float64
+						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
+							amountCurrencyMap["amount"] = amount
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse amount": err})
+						}
+					}
+
+					taxKey := fmt.Sprintf("paypal_tax_%s", index)
+					if taxStr, exists := r.Form[taxKey]; exists && len(taxStr) > 0 {
+						var tax float64
+						if tax, err = strconv.ParseFloat(taxStr[0], 64); err == nil {
+							amountCurrencyMap["tax"] = tax
+						} else {
+							// Handle the error, e.g., log it or return an HTTP error
+							log.Error(log.V{"Failed to parse tax": err})
+						}
+					}
+
+					currencyKey := fmt.Sprintf("paypal_currency_%s", index)
+					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
+						amountCurrencyMap["currency"] = currency[0]
+					}
+
+					planIDKey := fmt.Sprintf("paypal_plan_id_%s", index)
+					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
+						amountCurrencyMap["plan_id"] = planID[0]
+					}
+
+					result[value[0]] = amountCurrencyMap
+
+				}
+			}
+		}
+
+		jsonResult, err := json.Marshal(result)
+		if err != nil {
+			log.Error(log.V{"Error marshalling JSON": err})
+			return err
+		}
+
+		storyParams["paypal_price"] = string(jsonResult)
+		story.Update(storyParams)
 	}
 
 	// Create subscription plan for Square
@@ -286,6 +409,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 		err = json.Unmarshal([]byte(storyParams["square_price"]), &squarePrice)
 
+		// Creating subscription plan for Square
 		if err == nil {
 			if len(squarePrice) != 0 {
 				for clientCountry, data := range squarePrice {
