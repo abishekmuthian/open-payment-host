@@ -93,7 +93,7 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 				}()
 			}
 
-			if redirectURI != "null" && customId != "null" { // Because the request is from JavaScript
+			if redirectURI != "" && customId != "" {
 				return server.RedirectExternal(w, r, redirectURI+"?custom_id="+customId+"&subscription_id="+razorpaySubscriptionId)
 			}
 		} else {
