@@ -1,6 +1,8 @@
 <div class="flex items-center justify-center p-12">
   <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
-    <figure><img src="{{ .story.FeaturedImage }}" alt="Featured image of the post" /></figure>
+    <figure>
+      <img src="{{ .story.FeaturedImage }}" alt="Featured image of the post" />
+    </figure>
     <h1 class="text-4xl font-medium">{{ .story.NameDisplay }}</h1>
     <div class="prose lg:prose-xl">
       {{ markup .story.Description }}
@@ -15,17 +17,46 @@
       {{ if .stripe }}
       <label class="label">
         <span class="label-text text-xl">Subscribe</span>
-      </label>      
-      <form action="/subscriptions/create-checkout-session"
-          method="POST">
-        <input type="hidden" name="priceId" value="{{ .priceId }}"/>
-        <input type="hidden" name="productId" value="{{.story.ID}}"/>
-        <input name="authenticity_token" type="hidden" value="{{.authenticity_token}}">
-        <button type="submit" id="checkout_button"
-                class="btn btn-wide">{{ .price }}</button>
+      </label>
+      <form action="/subscriptions/create-checkout-session" method="POST">
+        <input type="hidden" name="priceId" value="{{ .priceId }}" />
+        <input type="hidden" name="productId" value="{{.story.ID}}" />
+        <input
+          name="authenticity_token"
+          type="hidden"
+          value="{{.authenticity_token}}"
+        />
+        <button type="submit" id="checkout_button" class="btn btn-wide">
+          {{ .price }}
+        </button>
       </form>
       {{ else if .square }}
-      <a type="submit" id="square_checkout" class="btn btn-wide checkout" method="get" href="/subscriptions/billing?amount={{ .amount }}&currency={{ .currency }}&type={{ .type }}&productId={{ .story.ID }}">{{ .price }}</a>
+      <a
+        type="submit"
+        id="square_checkout"
+        class="btn btn-wide checkout"
+        method="get"
+        href="/subscriptions/billing?amount={{ .amount }}&currency={{ .currency }}&type={{ .type }}&productId={{ .story.ID }}"
+        >{{ .price }}</a
+      >
+      {{ else if .paypal}}
+      <a
+        type="submit"
+        id="paypal_checkout"
+        class="btn btn-wide checkout"
+        method="get"
+        href="{{ .paypal_payment_link }}"
+        >{{ .price }}</a
+      >
+      {{ else if .razorpay}}
+      <a
+        type="submit"
+        id="razorpay_checkout"
+        class="btn btn-wide checkout"
+        method="get"
+        href="{{ .razorpay_payment_link }}"
+        >{{ .price }}</a
+      >
       {{ end }}
     </div>
     {{ end }}

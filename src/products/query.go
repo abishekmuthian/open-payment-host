@@ -27,7 +27,7 @@ func AllowedParams() []string {
 
 // AllowedParamsAdmin returns the cols editable by admins
 func AllowedParamsAdmin() []string {
-	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id"}
+	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "webhook_url", "webhook_secret"}
 }
 
 // NewWithColumns creates a new story instance and fills it with data from the database cols provided.
@@ -57,13 +57,18 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	story.ThirtyDaysPageViews = resource.ValidateInt(cols["thirty_days_page_views"])
 	story.ThirtyDaysTop3Countries = resource.ValidateString(cols["thirty_days_top3_countries"])
 	story.InsightsUpdatedTime = resource.ValidateTime(cols["insights_updated"])
-	// FIXME - Need not load subscribers all the time, create separate function
+	// FIXME: - Need not load subscribers all the time, create separate function
 	story.Subscribers = resource.ValidateInt64Array(cols["subscribers"])
+	story.TotalSubscribers = resource.ValidateInt(cols["total_subscribers"])
 	story.MailchimpAudienceID = resource.ValidateString(cols["mailchimp_audience_id"])
 	story.StripePrice = resource.ValidateMap(cols["stripe_price"])
 	story.SquarePrice = resource.ValidateNestedMap(cols["square_price"])
 	story.Schedule = resource.ValidateString(cols["schedule"])
 	story.SquareSubscriptionPlanId = resource.ValidateMap(cols["square_subscription_plan_Id"])
+	story.PaypalPrice = resource.ValidateNestedMap(cols["paypal_price"])
+	story.RazorpayPrice = resource.ValidateNestedMap(cols["razorpay_price"])
+	story.WebhookURL = resource.ValidateString(cols["webhook_url"])
+	story.WebhookSecret = resource.ValidateString(cols["webhook_secret"])
 
 	//Flair
 	// FIXME - Create and join the flair column
@@ -109,6 +114,17 @@ func Find(id int64) (*Story, error) {
 		return nil, err
 	}
 	return NewWithColumns(result), nil
+}
+
+// FindPaypalPlanId fetches a single story record from the database by paypal plan id
+func FindPaypalPlanId(planId string) (*Story, error) {
+	q := Query().Limit(1)
+	q.Where(`paypal_price LIKE ?`, "%"+planId+"%")
+	result, err := FindAll(q)
+	if result == nil || err != nil {
+		return nil, err
+	}
+	return result[0], nil
 }
 
 // FindAll fetches all story records matching this query from the database.

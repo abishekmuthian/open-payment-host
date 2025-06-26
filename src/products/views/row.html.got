@@ -17,6 +17,6 @@
     <a href="/products/{{.story.ID}}/destroy" method="post" class="btn btn-sm">delete</a>
   </th>
   <th>
-    {{ .story.CountSubscribers }}
+    {{ .story.TotalSubscribers }} 
   </th>
 </tr>

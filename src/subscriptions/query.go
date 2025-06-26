@@ -1,6 +1,7 @@
 package subscriptions
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
@@ -42,6 +43,8 @@ func NewWithColumns(cols map[string]interface{}) *Subscription {
 	subscription.UserId = resource.ValidateInt(cols["user_id"])
 	subscription.Plan = resource.ValidateString(cols["transaction_subject"])
 	subscription.ProductId = resource.ValidateInt(cols["item_number"])
+	subscription.PaymentStaus = resource.ValidateString(cols["payment_status"])
+	subscription.PaymentGateway = resource.ValidateString(cols["pg"])
 
 	return subscription
 }
@@ -76,11 +79,11 @@ func Find(id string) (*Subscription, error) {
 }
 
 // FindPayment fetches a single subscription record from the database by PaymentIntent id.
-func FindPayment(id string) (*Subscription, error) {
-	if id == "" {
+func FindPayment(transaction_id string) (*Subscription, error) {
+	if transaction_id == "" {
 		return nil, nil
 	}
-	result, err := Query().Where("txn_id=?", id).FirstResult()
+	result, err := Query().Where("txn_id=?", transaction_id).FirstResult()
 	if err != nil {
 		return nil, err
 	}
@@ -88,11 +91,11 @@ func FindPayment(id string) (*Subscription, error) {
 }
 
 // FindSubscription fetches a single subscription record from the database by Subscriber id.
-func FindSubscription(id string) (*Subscription, error) {
-	if id == "" {
+func FindSubscription(subscription_id string) (*Subscription, error) {
+	if subscription_id == "" {
 		return nil, nil
 	}
-	result, err := Query().Where("subscr_id=?", id).FirstResult()
+	result, err := Query().Where("subscr_id=?", subscription_id).FirstResult()
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +130,40 @@ func FindAll(q *query.Query) ([]*Subscription, error) {
 	}
 
 	return subscriptions, nil
+}
+
+// CountSubscribers returns the number of subscribers for a product given a product id.
+func CountSubscribers(productId int64) int {
+	var subscriberCount int
+	// Count the subscribers for Square
+	/* 	if len(s.SquareSubscriptionPlanId) > 0 {
+		for _, planId := range s.SquareSubscriptionPlanId {
+
+			q := Query()
+
+			q.Where(fmt.Sprintf("txn_id = '%s' and payment_status= '%s'", planId, "ACTIVE"))
+
+			subscriptions, err := FindAll(q)
+
+			if err == nil {
+				subscriberCount = subscriberCount + len(subscriptions)
+			}
+		}
+	} */
+	// Count the subscribers for all PG
+	q := Query()
+
+	//FIXME: Check if this gets all the active subscriptions, In some PG the satus might be in lower case
+
+	q.Where(fmt.Sprintf("item_number = '%d' and payment_status= '%s'", productId, "ACTIVE"))
+
+	subscriptions, err := FindAll(q)
+
+	if err == nil {
+		subscriberCount = subscriberCount + len(subscriptions)
+	}
+
+	return subscriberCount
 }
 
 // Query returns a new query for subscriptions with a default order.

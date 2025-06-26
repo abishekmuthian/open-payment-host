@@ -119,7 +119,7 @@ func TestCreateUsers(t *testing.T) {
 	}
 
 	// Run the handler to update the user
-	err = HandleCreate(w, r)
+	err = HandleCreateAdminUser(w, r)
 	if err != nil {
 		t.Fatalf("useractions: error handling HandleCreate %s", err)
 	}

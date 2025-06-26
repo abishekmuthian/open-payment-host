@@ -26,4 +26,6 @@ type Subscription struct {
 	UserId         int64
 	Plan           string
 	ProductId      int64
+	PaymentStaus   string
+	PaymentGateway string
 }
