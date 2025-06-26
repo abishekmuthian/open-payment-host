@@ -112,6 +112,13 @@ func generateConfig(projectPath string) error {
 		"paypal":                      "",
 		"paypal_client_id":            "",
 		"paypal_client_secret":        "",
+		"paypal_domain":               "https://www.sandbox.paypal.com",
+		"paypal_api_domain":           "https://api-m.sandbox.paypal.com",
+		"paypal_webhook_id":           "",
+		"razorpay":                    "",
+		"razorpay_key_id":             "",
+		"razorpay_key_secret":         "",
+		"razorpay_webhook_secret":     "",
 	}
 
 	// Copying development values to production and then adding more
@@ -132,6 +139,8 @@ func generateConfig(projectPath string) error {
 	ConfigProduction["turnstile_secret_key"] = ""
 	ConfigProduction["root_url"] = ""
 	ConfigProduction["square_domain"] = "https://connect.squareup.com/v2"
+	ConfigProduction["paypal_domain"] = "https://www.paypal.com"
+	ConfigProduction["paypal_api_domain"] = "https://api-m.paypal.com"
 
 	configs := map[string]map[string]string{
 		"production":  ConfigProduction,

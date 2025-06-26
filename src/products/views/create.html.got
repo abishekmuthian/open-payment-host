@@ -114,18 +114,58 @@
         </label>
         <label class="block text-sm/6 font-medium">
           <p class="text-sm/6">
-            Pick the schedule for the payment, Either One Time or Monthly
+            Pick the schedule for the payment, either One Time or Monthly
             Subscription
           </p>
         </label>
         <select
-          class="select w-full max-w-60 rounded-sm"
+          class="select w-full max-w-60 rounded-sm schedule-select"
           name="schedule"
           required
+          _="on change
+              if I.value match 'onetime'
+                {{ if .paypal}}
+                put 'Multi Country Pricing: Select Country, enter Amount e.g. 5 for $5 (exclusive of Tax), 
+                enter Tax e.g. 2 for $2 or 0 for no tax and 
+                enter Currency e.g. USD' into .paypal-price-label
+                {{ end }}
+                {{ if .razorpay }}
+                put 'Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR 500 (inclusive of Tax), 
+                and enter Currency e.g. INR' into .razorpay-price-label
+                {{ end }}
+              else if I.value match 'monthly'
+                  {{ if .paypal}}
+                  put 'Multi Country Pricing: Select Country,enter Amount e.g. 5 for $5, enter e.g. 5 for $5 (exclusive of Tax)  and enter the Paypal Plan ID' into .paypal-price-label
+                  {{ end }}
+                  {{ if .razorpay }}
+                  put 'Multi Country Pricing: Select Country, enter Plan ID' into .razorpay-price-label
+                  {{ end }}
+                end  
+              end
+          "
+          hx-get="/products/create/schedule"
+          {{
+          if
+          .paypal}}
+          hx-target="#paypal_price_field"
+          {{
+          else
+          if
+          .razorpay
+          }}
+          hx-target="#razorpay_price_field"
+          {{
+          end
+          }}
         >
-          <option>Select Schedule</option>
-          <option value="One Time">One Time</option>
-          <option value="Monthly Subscription">Monthly Subscription</option>
+          <option
+            value="onetime"
+            _="on load 
+              set the value of .schedule-select to 'onetime'"
+          >
+            One Time
+          </option>
+          <option value="monthly">Monthly Subscription</option>
         </select>
       </div>
       {{ if .stripe }}
@@ -181,33 +221,104 @@
       {{ end }}
 
       {{ if .paypal }}
+      <hr />
       <div class="flex flex-col space-y-3">
         <label class="block text-sm/6 font-medium">
           <span class="label-text text-xl">Paypal Payment Details</span>
         </label>
 
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Schedule</span>
-        </label>
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text-alt"
-            >Pick the schedule for the payment, Either One Time or Monthly
-            Subscription</span
+        <div id="paypal-pricing">
+          <p class="text-sm/6 paypal-price-label">
+            Multi Country Pricing: Select Country, enter Amount e.g. 5 for $5
+            (exclusive of Tax), enter Tax e.g. 2 for $2 or 0 for no tax and
+            enter Currency e.g. USD
+          </p>
+          <div
+            id="paypal_price_field"
+            class="space-y-3"
+            _=" 
+          on every change in .country-select set currentCountry to the target's value 
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+          set the selectedIndex of the target to 0 end 
+            "
           >
-        </label>
-
-        <select
-          class="select w-full max-w-xs"
-          name="paypal_schedule"
-          hx-get="/products/create/schedule"
-          hx-target="#paypal-pricing"
-        >
-          <option>One Time</option>
-          <option>Monthly Subscription</option>
-        </select>
+            {{ template "products/views/paypal_price_onetime.html.got" .}}
+          </div>
+        </div>
       </div>
 
       {{ end }}
+
+      {{ if .razorpay }}
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Razorpay Payment Details</span>
+        </label>
+
+        <div id="razorpay-pricing">
+          <p class="text-sm/6 razorpay-price-label">
+            Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR
+            500 (inclusive of Tax), and enter Currency e.g. INR
+          </p>
+          <div
+            id="razorpay_price_field"
+            class="space-y-3"
+            _=" 
+          on every change in .country-select set currentCountry to the target's value 
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
+          set the selectedIndex of the target to 0 end 
+            "
+          >
+            {{ template "products/views/razorpay_price_onetime.html.got" .}}
+          </div>
+        </div>
+      </div>
+
+      {{ end }}
+
+      <hr />
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">API</span>
+        </label>
+        <div id="webhook-details">
+          <p class="text-sm/6 razorpay-price-label">
+            Enter the Webhook URL and Webhook secret of the server from where
+            you're calling OPH API
+          </p>
+          <div
+            class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+          >
+            <input
+              type="url"
+              name="webhook_url"
+              placeholder="https://"
+              value="https://"
+              pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
+              class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
+              title="Must be valid URL"
+            />
+            <p class="validator-hint">Must be valid URL</p>
+            <input
+              type="password"
+              name="webhook_secret"
+              placeholder="Webhook secret"
+              pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+              minlength="8"
+              class="input validator w-full rounded-sm max-w-48 prose lg:prose-xl"
+              title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
+            />
+            <p class="validator-hint">
+              Must be more than 8 characters, including
+              <br />At least one number <br />At least one lowercase letter
+              <br />At least one uppercase letter
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div class="flex justify-center-safe">
         <button

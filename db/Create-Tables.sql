@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS products (
     mailchimp_audience_id text,
     square_price text,
     schedule text,
-    square_subscription_plan_Id text
+    square_subscription_plan_Id text,
+    paypal_price text
 );
 
 CREATE TABLE IF NOT EXISTS users (

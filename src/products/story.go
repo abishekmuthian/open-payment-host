@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/model/file"
 
@@ -49,8 +48,9 @@ type Story struct {
 	InsightsUpdatedTime     time.Time
 
 	// Subscription
-	Flair       string
-	Subscribers []int64
+	Flair            string
+	Subscribers      []int64
+	TotalSubscribers int64
 
 	// Stripe
 	StripePrice map[string]string
@@ -62,6 +62,16 @@ type Story struct {
 	SquarePrice              map[string]map[string]interface{}
 	Schedule                 string
 	SquareSubscriptionPlanId map[string]string
+
+	//Paypal
+	PaypalPrice map[string]map[string]interface{}
+
+	//Razorpay
+	RazorpayPrice map[string]map[string]interface{}
+
+	//API
+	WebhookURL    string
+	WebhookSecret string
 }
 
 // Domain returns the domain of the story URL
@@ -235,36 +245,4 @@ func (s *Story) NegativePoints() int64 {
 		return 0
 	}
 	return -s.Points
-}
-
-func (s *Story) CountSubscribers() int {
-	var subscriberCount int
-	// Count the subscribers for Square
-	if len(s.SquareSubscriptionPlanId) > 0 {
-		for _, planId := range s.SquareSubscriptionPlanId {
-
-			q := subscriptions.Query()
-
-			q.Where(fmt.Sprintf("txn_id = '%s' and payment_status= '%s'", planId, "ACTIVE"))
-
-			subscriptions, err := subscriptions.FindAll(q)
-
-			if err == nil {
-				subscriberCount = subscriberCount + len(subscriptions)
-			}
-		}
-	}
-	// Count the subscribers for Stripe
-	// TODO: Implement subscription cancellation update for Stripe
-	q := subscriptions.Query()
-
-	q.Where(fmt.Sprintf("item_number = '%d'", s.ID))
-
-	subscriptions, err := subscriptions.FindAll(q)
-
-	if err == nil {
-		subscriberCount = subscriberCount + len(subscriptions)
-	}
-
-	return subscriberCount
 }

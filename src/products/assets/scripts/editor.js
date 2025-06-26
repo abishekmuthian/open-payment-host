@@ -1,4 +1,8 @@
 DOM.Ready(function () {
+  if (!window.trix) {
+    console.log("Not loading Trix script on this page");
+    return;
+  }
   // Disable File Attachments
   /*   addEventListener("trix-initialize", function (e) {
     const file_tools = document.querySelector(".trix-button-group--file-tools");
@@ -9,7 +13,6 @@ DOM.Ready(function () {
   }); */
 
   // Handle File Attachments
-
   document.addEventListener("trix-attachment-add", function (event) {
     if (event.attachment.file) {
       uploadFile(event.attachment);

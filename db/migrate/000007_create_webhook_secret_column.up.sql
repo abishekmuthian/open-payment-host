@@ -1,0 +1,1 @@
+ALTER TABLE products ADD webhook_secret text;

@@ -15,6 +15,7 @@
   required
 >
   <option>Select Country</option>
+  <option value="DF">Any Country (Default)</option>
   <option value="AF">Afghanistan</option>
   <option value="AX">Åland Islands</option>
   <option value="AL">Albania</option>

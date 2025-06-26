@@ -29,6 +29,7 @@ func HandlePrice(w http.ResponseWriter, r *http.Request) error {
 
 	fieldIndex := params.GetInt("fieldIndex")
 	pg := params.Get("pg")
+	schedule := params.Get("schedule")
 
 	// Render the template
 	view := view.NewRenderer(w, r)
@@ -43,6 +44,22 @@ func HandlePrice(w http.ResponseWriter, r *http.Request) error {
 
 	if pg == "square" {
 		view.Template("products/views/square_price.html.got")
+	}
+
+	if pg == "paypal" {
+		if schedule == "onetime" {
+			view.Template("products/views/paypal_price_onetime.html.got")
+		} else if schedule == "monthly" {
+			view.Template("products/views/paypal_price_monthly.html.got")
+		}
+	}
+
+	if pg == "razorpay" {
+		if schedule == "onetime" {
+			view.Template("products/views/razorpay_price_onetime.html.got")
+		} else if schedule == "monthly" {
+			view.Template("products/views/razorpay_price_monthly.html.got")
+		}
 	}
 
 	view.Layout("")

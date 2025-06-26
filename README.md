@@ -183,7 +183,7 @@ User configurable values are included in the table below.
 
 Webhook needs to be setup at [Stripe](https://stripe.com) Developer's section for receiving subscription details post payment.
 
-Set the webhook to `root_url/payment/webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+Set the webhook to `root_url/subscriptions/stripe-webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
 
 Set the following events to send:
 
@@ -197,7 +197,7 @@ Set the following events to send:
 
 Webhook needs to be setup at [Square](https://developer.squareup.com) Developer's section for receiving subscription details post payment.
 
-Set the webhook to `root_url/payment/square_webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+Set the webhook to `root_url/subscriptions/square-webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
 
 Set the following events to send:
 
