@@ -1,5 +1,5 @@
 <div
-  class="h-screen flex flex-col space-y-10 justify-items-center items-center"
+  class="flex flex-col space-y-10 justify-items-center items-center"
 >
 <h1 class="prose lg:prose-xl">Please complete the payment for {{ .story.NameDisplay }} using Razorpay!</h1>
 <h2 class="prose lg:prose-lg">Billing Details</h2>
@@ -13,6 +13,7 @@
 <p class="validator-hint">
   Enter your name as Firstname Lastname
 </p>
+
 <label class="block text-sm/6 font-medium">
     <span class="label-text text-xl">Email</span>
 </label>
@@ -20,6 +21,26 @@
 <p class="validator-hint">
   Enter a valid email address
 </p>
+
+<label class="block text-sm/6 font-medium">
+    <span class="label-text text-xl">Phone</span>
+</label>
+<input class="razorpay-input-phone input input-neutral validator" type="phone" pattern="^\+[1-9]\d{1,14}$" id="phone" value="+91" title="Must be a valid phone number with country code" />
+<p class="validator-hint">
+  Enter a valid phone number with country code e.g. +919000090000 for India.
+</p>
+
+
+<label class="block text-sm/6 font-medium">
+    <span class="label-text text-xl">Address</span>
+</label>
+<input class="razorpay-input-address input input-neutral" type="text"  id="address"  title="Your address with door/apartment no with street" />
+
+<label class="block text-sm/6 font-medium">
+    <span class="label-text text-xl">City</span>
+</label>
+<input class="razorpay-input-city input input-neutral" type="text"  id="city"  title="Your address city" />
+
  {{/* States of India  */}}
  <label class="block text-sm/6 font-medium">
     <span class="label-text text-xl">Select State</span>
@@ -64,6 +85,15 @@
 	<option value="LD">Lakshadweep</option>
 	<option value="PY">Puducherry</option>
 </select>
+
+<label class="block text-sm/6 font-medium">
+    <span class="label-text text-xl">Pincode</span>
+</label>
+<input class="razorpay-input-pincode input input-neutral validator" type="text" pattern="^(?:\d{6}|\d{5})$"  id="pincode"  title="Your address pincode" />
+<p class="validator-hint">
+  Enter a valid pin code.
+</p>
+
 
 <div class="flex justify-center-safe">
 <button id="rzp-button1" class="btn btn-lg btn-neutral" 
