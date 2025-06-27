@@ -379,8 +379,24 @@ func recordRazorpayCheckoutOrder(razorpayEventOrderPaid RazorpayEventOrderPaid, 
 			transactionParams["user_id"] = customID.(string)
 		}
 
+		if phone, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["phone"]; exists {
+			transactionParams["payer_phone"] = phone.(string)
+		}
+
+		if address, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address"]; exists {
+			transactionParams["address_street"] = address.(string)
+		}
+
+		if addressCity, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address_city"]; exists {
+			transactionParams["address_city"] = addressCity.(string)
+		}
+
 		if addressState, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address_state"]; exists {
 			transactionParams["address_state"] = addressState.(string)
+		}
+
+		if addressPincode, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address_pincode"]; exists {
+			transactionParams["address_zip"] = addressPincode.(string)
 		}
 
 		if email, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["email"]; exists {
@@ -446,8 +462,24 @@ func recordRazorpaySubscription(razorpayEventSubscriptionCompleted RazorpayEvent
 			transactionParams["user_id"] = customID.(string)
 		}
 
+		if phone, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["phone"]; exists {
+			transactionParams["payer_phone"] = phone.(string)
+		}
+
+		if address, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address"]; exists {
+			transactionParams["address_street"] = address.(string)
+		}
+
+		if addressCity, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address_city"]; exists {
+			transactionParams["address_city"] = addressCity.(string)
+		}
+
 		if addressState, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address_state"]; exists {
 			transactionParams["address_state"] = addressState.(string)
+		}
+
+		if addressPincode, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address_pincode"]; exists {
+			transactionParams["address_zip"] = addressPincode.(string)
 		}
 
 		if email, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["email"]; exists {

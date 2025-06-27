@@ -10,62 +10,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   const customId = decodeURIComponent(urlParams.get("custom_id"));
   const redirectURI = decodeURIComponent(urlParams.get("redirect_uri"));
 
-  var options = {
-    key: razorpayKeyID(), // Enter the Key ID generated from the Dashboard
-    subscription_id: subscriptionID(),
-    name: productTitle(),
-    // description: "Test Transaction",
-    // image: "https://example.com/your_logo",
-    handler: function (response) {
-      console.log(response.razorpay_payment_id);
-      console.log(response.razorpay_subscription_id);
-      console.log(response.razorpay_signature);
-      window.location =
-        window.location.origin +
-        "/subscriptions/success?razorpay_payment_id=" +
-        `${response.razorpay_payment_id}` +
-        "&razorpay_subscription_id=" +
-        `${response.razorpay_subscription_id}` +
-        "&razorpay_signature=" +
-        `${response.razorpay_signature}` +
-        "&product_id=" +
-        `${productId}` +
-        "&redirect_uri=" +
-        `${redirectURI}` +
-        "&custom_id=" +
-        `${customId}`;
-    },
-    prefill: {
-      name: "",
-      email: "",
-    },
-    notes: {
-      custom_id: customId !== "null" ? customId : "",
-      product_id: productId,
-      name: "",
-      email: "",
-      address_state: "",
-    },
-    theme: {
-      color: "#3399cc",
-    },
-  };
-  var rzp1 = new Razorpay(options);
-  rzp1.on("payment.failed", function (response) {
-    console.log(response.error.code);
-    console.log(response.error.description);
-    console.log(response.error.source);
-    console.log(response.error.step);
-    console.log(response.error.reason);
-    console.log(response.error.metadata.order_id);
-    console.log(response.error.metadata.payment_id);
-    Swal.fire({
-      title: "Error processing Razorpay payment!",
-      text: response.error.description,
-      icon: "error",
-      confirmButtonText: "Dismiss",
-    });
-  });
   document.getElementById("rzp-button1").onclick = function (e) {
     // if .razorpay-input-name input has no value
     if (
@@ -89,6 +33,42 @@ document.addEventListener("DOMContentLoaded", async function () {
         theme: "auto",
       });
     }
+    // if .razorpay-input-phone input has no value
+    else if (
+      !document.querySelector(".razorpay-input-phone").value ||
+      !document.querySelector(".razorpay-input-phone").checkValidity()
+    ) {
+      Swal.fire({
+        text: "Please enter a valid phone number",
+        icon: "error",
+        theme: "auto",
+      });
+    }
+
+    // if .razorpay-input-address input has no value
+    else if (
+      !document.querySelector(".razorpay-input-address").value ||
+      !document.querySelector(".razorpay-input-address").checkValidity()
+    ) {
+      Swal.fire({
+        text: "Please enter a valid address",
+        icon: "error",
+        theme: "auto",
+      });
+    }
+
+    // if .razorpay-input-city input has no value
+    else if (
+      !document.querySelector(".razorpay-input-city").value ||
+      !document.querySelector(".razorpay-input-city").checkValidity()
+    ) {
+      Swal.fire({
+        text: "Please enter a valid city",
+        icon: "error",
+        theme: "auto",
+      });
+    }
+
     // if .razorpay-input-state select has no value
     else if (
       document.querySelector(".razorpay-input-state").value == "Select State"
@@ -98,20 +78,82 @@ document.addEventListener("DOMContentLoaded", async function () {
         icon: "error",
         theme: "auto",
       });
+    }
+
+    // if .razorpay-input-pincode input has no value
+    else if (
+      !document.querySelector(".razorpay-input-pincode").value ||
+      !document.querySelector(".razorpay-input-pincode").checkValidity()
+    ) {
+      Swal.fire({
+        text: "Please enter a valid pincode",
+        icon: "error",
+        theme: "auto",
+      });
     } else {
-      options.prefill.name = document.querySelector(
-        ".razorpay-input-name"
-      ).value;
-      options.notes.name = document.querySelector(".razorpay-input-name").value;
-      options.prefill.email = document.querySelector(
-        ".razorpay-input-email"
-      ).value;
-      options.notes.email = document.querySelector(
-        ".razorpay-input-email"
-      ).value;
-      options.notes.address_state = document.querySelector(
-        ".razorpay-input-state"
-      ).value;
+      var options = {
+        key: razorpayKeyID(), // Enter the Key ID generated from the Dashboard
+        subscription_id: subscriptionID(),
+        name: productTitle(),
+        // description: "Test Transaction",
+        // image: "https://example.com/your_logo",
+        handler: function (response) {
+          console.log(response.razorpay_payment_id);
+          console.log(response.razorpay_subscription_id);
+          console.log(response.razorpay_signature);
+          window.location =
+            window.location.origin +
+            "/subscriptions/success?razorpay_payment_id=" +
+            `${response.razorpay_payment_id}` +
+            "&razorpay_subscription_id=" +
+            `${response.razorpay_subscription_id}` +
+            "&razorpay_signature=" +
+            `${response.razorpay_signature}` +
+            "&product_id=" +
+            `${productId}` +
+            "&redirect_uri=" +
+            `${redirectURI}` +
+            "&custom_id=" +
+            `${customId}`;
+        },
+        prefill: {
+          name: document.querySelector(".razorpay-input-name").value,
+          email: document.querySelector(".razorpay-input-email").value,
+          contact: document.querySelector(".razorpay-input-phone").value,
+        },
+        notes: {
+          custom_id: customId !== "null" ? customId : "",
+          product_id: productId,
+          name: document.querySelector(".razorpay-input-name").value,
+          email: document.querySelector(".razorpay-input-email").value,
+          phone: document.querySelector(".razorpay-input-phone").value,
+          address: document.querySelector(".razorpay-input-address").value,
+          address_city: document.querySelector(".razorpay-input-city").value,
+          address_state: document.querySelector(".razorpay-input-state").value,
+          address_pincode: document.querySelector(".razorpay-input-pincode")
+            .value,
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+      var rzp1 = new Razorpay(options);
+      rzp1.on("payment.failed", function (response) {
+        console.log(response.error.code);
+        console.log(response.error.description);
+        console.log(response.error.source);
+        console.log(response.error.step);
+        console.log(response.error.reason);
+        console.log(response.error.metadata.order_id);
+        console.log(response.error.metadata.payment_id);
+        Swal.fire({
+          title: "Error processing Razorpay payment!",
+          text: response.error.description,
+          icon: "error",
+          confirmButtonText: "Dismiss",
+        });
+      });
+
       rzp1.open();
       e.preventDefault();
     }

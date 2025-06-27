@@ -1,0 +1,1 @@
+ALTER TABLE subscriptions ADD payer_phone text;

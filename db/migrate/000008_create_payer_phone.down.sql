@@ -1,0 +1,1 @@
+ALTER TABLE subscriptions DROP COLUMN payer_phone;
