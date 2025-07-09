@@ -45,6 +45,7 @@ func NewWithColumns(cols map[string]interface{}) *Subscription {
 	subscription.ProductId = resource.ValidateInt(cols["item_number"])
 	subscription.PaymentStaus = resource.ValidateString(cols["payment_status"])
 	subscription.PaymentGateway = resource.ValidateString(cols["pg"])
+	subscription.FirstName = resource.ValidateString(cols["first_name"])
 
 	return subscription
 }
@@ -106,6 +107,17 @@ func FindSubscription(subscription_id string) (*Subscription, error) {
 func FindCustomerId(userId int64) (*Subscription, error) {
 	q := Query().Limit(1)
 	q.Where("user_id=?", userId)
+	result, err := FindAll(q)
+	if result == nil || err != nil {
+		return nil, err
+	}
+	return result[0], nil
+}
+
+// Find fetches a single subscription record from the database by payer email.
+func FindPayerEmail(payerEmail string) (*Subscription, error) {
+	q := Query().Limit(1)
+	q.Where("payer_email=?", payerEmail)
 	result, err := FindAll(q)
 	if result == nil || err != nil {
 		return nil, err

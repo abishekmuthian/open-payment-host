@@ -48,6 +48,7 @@ Clicking the above image would open the video in YouTube. -->
 - S3 support for delivering digital files via automatic pre-signed URL.
 - Subscriber count for the products (With Square).
 - Automatic SSL and other security features for production.
+- Automatic payment gateway router based on country<sup>new</sup>
 - API & Webhook <sup>experimental</sup>.
 
 and many more.

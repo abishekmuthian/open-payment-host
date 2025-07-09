@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/abishekmuthian/open-payment-host/src/lib/mailchimp"
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
@@ -84,9 +85,19 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 
 		var subscription *Subscription
 
-		subscription, err = FindSubscription(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures[0].ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding paypal order in db using Capture Id": err})
+		if len(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures) < 1 {
+			log.Info(log.V{"msg": "Paypal Webhook,  Payment capture is not present searching using payer email"})
+			subscription, err = FindPayment((paypalEventCheckout.Resource.ID))
+			if err != nil {
+				log.Info(log.V{"Paypal Webhook": "Cannot find the subscription using resource ID"})
+			}
+		}
+
+		if subscription == nil {
+			subscription, err = FindPayment(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures[0].ID)
+			if err != nil {
+				log.Info(log.V{"Webhook, error finding paypal order in db using Capture Id": err})
+			}
 		}
 
 		if subscription == nil {
@@ -97,10 +108,41 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 				log.Error(log.V{"Webhook, error recording paypal order in db": err})
 				return err
 			}
+
+			subscription, err = FindPayment(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures[0].ID)
+			if err != nil {
+				log.Info(log.V{"Webhook, error finding paypal order in db using Capture Id for updating it": err})
+
+				subscription, err = FindPayment(paypalEventCheckout.Resource.ID)
+
+				if err != nil {
+					log.Info(log.V{"Webhook, error finding paypal order in db using Resource Id for updating it": err})
+					return err
+				}
+			}
+			productId := subscription.ProductId
+
+			product, err := products.Find(productId)
+			if err != nil {
+				log.Error(log.V{"Webhook, error finding product in db": err})
+				return err
+			} else {
+				// If mailchimp list id and mailchimp token is available add to the mailchimp list
+				if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
+					// Add to the mailchimp list
+					audience := mailchimp.Audience{
+						MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
+						Email:       subscription.CustomerEmail,
+						Status:      "subscribed",
+					}
+					go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
+				}
+			}
+
 		} else {
 			log.Info(log.V{"Webhook, paypal order already exists in db, Order ID": subscription.ID})
 		}
-	case "CAPTURE.REFUNDED":
+	case "PAYMENT.CAPTURE.REFUNDED":
 		log.Info(log.V{"Paypal Checkout Order Refunded": paypalWebhookEvent})
 		var paypalEventCaptureRefund PaypalEventCaptureRefund
 
@@ -114,13 +156,18 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 		log.Info(log.V{"Paypal Webhook Event Parsed": paypalEventCaptureRefund})
 
 		// Parse paypalEventCaptureRefund.Links[] and find the up link to get the captureid e.g. https://api.sandbox.paypal.com/v2/payments/captures/2K3372465B542845P
-		captureId := strings.Split(paypalEventCaptureRefund.Links[1].Href, "/")[len(strings.Split(paypalEventCaptureRefund.Links[1].Href, "/"))-1]
+		captureId := strings.Split(paypalEventCaptureRefund.Resource.Links[1].Href, "/")[len(strings.Split(paypalEventCaptureRefund.Resource.Links[1].Href, "/"))-1]
 
 		var subscription *Subscription
 
-		subscription, err = FindSubscription(captureId)
+		subscription, err = FindPayment(captureId)
 		if err != nil {
 			log.Info(log.V{"Webhook, error finding paypal order in db using Capture Id for updating it": err})
+			subscription, err = FindPayerEmail(paypalEventCaptureRefund.Resource.Payer.EmailAddress)
+			if err != nil {
+				log.Error(log.V{"Webhook, error finding paypal order in db using Payer Email for updating it": err})
+				return err
+			}
 		}
 
 		transactionParams := make(map[string]string)
@@ -176,6 +223,16 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 					log.Error(log.V{"Webhook, error finding product in db": err})
 					return err
 				} else {
+					// If mailchimp list id and mailchimp token is available add to the mailchimp list
+					if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
+						// Add to the mailchimp list
+						audience := mailchimp.Audience{
+							MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
+							Email:       subscription.CustomerEmail,
+							Status:      "subscribed",
+						}
+						go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
+					}
 					if product.WebhookURL != "" && product.WebhookSecret != "" {
 						params := map[string]interface{}{
 							"subscription_id": subscription.SubscriptionId,
@@ -394,21 +451,25 @@ func recordPaypalCheckoutOrder(checkoutOrder PaypalEventCheckout, subscription *
 	// Params not validated using ValidateParams as user did not create these?
 	transactionParams := make(map[string]string)
 	transactionParams["pg"] = "paypal"
-	transactionParams["txn_id"] = checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].ID
-	transactionParams["payment_date"] = query.TimeString(checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].CreateTime.UTC())
-	transactionParams["payment_gross"] = checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].Amount.Value
-	transactionParams["mc_currency"] = checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].Amount.CurrencyCode
+	if len(checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures) > 0 {
+		transactionParams["txn_id"] = checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].ID
+	} else {
+		transactionParams["txn_id"] = checkoutOrder.Resource.ID
+	}
+	transactionParams["payment_date"] = query.TimeString(checkoutOrder.Resource.CreateTime.UTC())
+	transactionParams["payment_gross"] = checkoutOrder.Resource.PurchaseUnits[0].Amount.Value
+	transactionParams["mc_currency"] = checkoutOrder.Resource.PurchaseUnits[0].Amount.CurrencyCode
 	transactionParams["payer_id"] = checkoutOrder.Resource.Payer.PayerID
 	transactionParams["payer_email"] = checkoutOrder.Resource.Payer.EmailAddress
-	transactionParams["payment_status"] = checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].Status
+	transactionParams["payment_status"] = checkoutOrder.Resource.Status
 	if len(checkoutOrder.Resource.PurchaseUnits[0].Amount.Breakdown.TaxTotal.Value) > 0 {
 		transactionParams["tax"] = checkoutOrder.Resource.PurchaseUnits[0].Amount.Breakdown.TaxTotal.Value
 	}
 	transactionParams["item_name"] = checkoutOrder.Resource.PurchaseUnits[0].Items[0].Name
 	transactionParams["item_number"] = checkoutOrder.Resource.PurchaseUnits[0].Items[0].Sku
 	transactionParams["first_name"] = checkoutOrder.Resource.Payer.Name.GivenName
-	if len(checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].CustomID) > 0 {
-		transactionParams["user_id"] = checkoutOrder.Resource.PurchaseUnits[0].Payments.Captures[0].CustomID
+	if len(checkoutOrder.Resource.PurchaseUnits[0].CustomID) > 0 {
+		transactionParams["user_id"] = checkoutOrder.Resource.PurchaseUnits[0].CustomID
 	}
 
 	dbId, err := subscription.Create(transactionParams)
