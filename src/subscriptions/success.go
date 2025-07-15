@@ -93,7 +93,7 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 				}()
 			}
 
-			if redirectURI != "" && customId != "" {
+			if (redirectURI != "" && redirectURI != "null") && (customId != "" && customId != "null") {
 				return server.RedirectExternal(w, r, redirectURI+"?custom_id="+customId+"&subscription_id="+razorpaySubscriptionId)
 			}
 		} else {
@@ -166,7 +166,7 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 
-		if redirectURI != "" && customId != "" {
+		if (redirectURI != "" && redirectURI != "null") && (customId != "" && customId != "null") {
 			if paypalOrderCompleted {
 				return server.RedirectExternal(w, r, redirectURI+"?custom_id="+customId+"&order_id="+paypalOrderId)
 			} else if paypalSubscriptionCompleted {

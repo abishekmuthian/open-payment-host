@@ -28,4 +28,5 @@ type Subscription struct {
 	ProductId      int64
 	PaymentStaus   string
 	PaymentGateway string
+	FirstName      string
 }
