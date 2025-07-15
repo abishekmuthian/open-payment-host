@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/abishekmuthian/open-payment-host/src/lib/mailchimp"
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
@@ -68,7 +69,7 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventOrderPaid})
 		var subscription *Subscription
 
-		subscription, err = FindSubscription(razorpayEventOrderPaid.Payload.Order.Entity.ID)
+		subscription, err = FindPayment(razorpayEventOrderPaid.Payload.Order.Entity.ID)
 		if err != nil {
 			log.Info(log.V{"Webhook, error finding razorpay order in db using Capture Id": err})
 		}
@@ -81,6 +82,34 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 				log.Error(log.V{"Webhook, error recording razorpay order in db": err})
 				return err
 			}
+
+			// Add the email id to mailchimp
+
+			subscription, err = FindPayment(razorpayEventOrderPaid.Payload.Order.Entity.ID)
+			if err != nil {
+				log.Error(log.V{"Razorpay Webhook, error finding razorpay transaction id in db using entity id for updating it": err})
+
+				return err
+			}
+			productId := subscription.ProductId
+
+			product, err := products.Find(productId)
+			if err != nil {
+				log.Error(log.V{"Webhook, error finding product in db": err})
+				return err
+			} else {
+				// If mailchimp list id and mailchimp token is available add to the mailchimp list
+				if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
+					// Add to the mailchimp list
+					audience := mailchimp.Audience{
+						MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
+						Email:       subscription.CustomerEmail,
+						Status:      "subscribed",
+					}
+					go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
+				}
+			}
+
 		} else {
 			log.Info(log.V{"Webhook, razorpay order already exists in db, Order ID": subscription.ID})
 		}
@@ -126,6 +155,17 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 					log.Error(log.V{"Webhook, error finding product in db": err})
 					return err
 				} else {
+					// If mailchimp list id and mailchimp token is available add to the mailchimp list
+					if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
+						// Add to the mailchimp list
+						audience := mailchimp.Audience{
+							MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
+							Email:       subscription.CustomerEmail,
+							Status:      "subscribed",
+						}
+						go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
+					}
+
 					if product.WebhookURL != "" && product.WebhookSecret != "" {
 						params := map[string]interface{}{
 							"subscription_id": subscription.SubscriptionId,

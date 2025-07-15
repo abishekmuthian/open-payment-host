@@ -149,7 +149,7 @@ func HandlePaypalCreateOrder(w http.ResponseWriter, r *http.Request) error {
 	if amount == nil || currency == nil || tax == nil {
 		amount = product.PaypalPrice["DF"]["amount"]
 		currency = product.PaypalPrice["DF"]["currency"]
-		tax = product.PaypalPrice[clientCountry]["tax"]
+		tax = product.PaypalPrice["DF"]["tax"]
 	}
 
 	data := PaypalCreateOrder{
@@ -176,6 +176,7 @@ func HandlePaypalCreateOrder(w http.ResponseWriter, r *http.Request) error {
 						Name:        product.Name,
 						Description: product.Description,
 						Quantity:    1,
+						Sku:         fmt.Sprintf("%d", product.ID),
 						UnitAmount: UnitAmount{
 							CurrencyCode: currency.(string),
 							Value:        fmt.Sprintf("%.2f", amount),
