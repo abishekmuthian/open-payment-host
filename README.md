@@ -1,8 +1,14 @@
-# Open Payment Host
+![](demo/oph-linkedin.png)
+
+# Open Payment Host  
+
+![Version 0.3.1](https://badgen.net/static/version/0.3.1/blue)
 
 Sell Subscriptions, Newsletters, Digital Files without paying commissions.
 
-![Open Payment Host post page](/demo/Square/4.post.gif)
+<p align="center">
+    <img src="./demo/Square/4.post.gif">
+</p>
 
 ## What
 
