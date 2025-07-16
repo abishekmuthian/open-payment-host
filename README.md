@@ -120,10 +120,12 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 
 ![File delivery after payment after square payment](/demo/Square/8.File_download_delivery.png)
 
-### Paypal
-coming soon.
+### Automatic payment gateway router
 
-### Razorpay
+#### Paypal
+https://github.com/user-attachments/assets/41c0d989-4a4f-43e4-8b54-f7938be3dda0
+
+#### Razorpay
 https://github.com/user-attachments/assets/86ea6d40-37cf-42f9-81f2-590671baa88c
 
 ## Usage
