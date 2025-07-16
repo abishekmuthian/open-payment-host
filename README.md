@@ -124,7 +124,7 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 coming soon.
 
 ### Razorpay
-<video src="./demo/Razorpay/razorpay.mp4" width="1246" height="701" autoplay loop></video>
+<video src="./demo/Razorpay/razorpay.mp4" width="1246" height="701" controls autoplay loop></video>
 
 ## Usage
 
