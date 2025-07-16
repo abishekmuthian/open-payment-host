@@ -67,16 +67,19 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 
 ## Immediate Goals
 - [x] Product pages
-- [x] Stripe support
-- [x] Square support
-- [x] Paypal support
-- [x] Razorpay support
+- [x] Stripe integration
+- [x] Square integration
+- [x] Paypal integration
+- [x] Razorpay integration
 - [x] Payment router
 - [x] File download
 - [ ] Documentation website
 - [ ] Accessibility
 
 ## Long Term Goals
+- [ ] Paddle integration
+- [ ] PayU integration
+- [ ] Cashfree integration
 - [ ] Community forum
 - [ ] Localisation
 
