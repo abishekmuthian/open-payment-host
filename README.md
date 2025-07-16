@@ -3,10 +3,11 @@
 # Open Payment Host  
 
 ![Version 0.3.1](https://badgen.net/static/version/0.3.1/blue)
-![Go](https://badgen.net/static/-/go/blue)
-![htmx](https://badgen.net/static/-/htmx/blue)
-![hyperscript](https://badgen.net/static/-/hyperscript/blue)
-![tailwind](https://badgen.net/static/-/tailwindcss/blue)
+[![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
+[![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
+![Hyperscript](https://badgen.net/static/-/Hyperscript/blue)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind%20CSS-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](#)
+[![SQLite](https://img.shields.io/badge/SQLite-%2307405e.svg?logo=sqlite&logoColor=white)](#)
 
 
 
