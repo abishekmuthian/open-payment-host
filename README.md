@@ -40,24 +40,22 @@ Clicking the above image would open the video in YouTube. -->
 [https://abishek.openpaymenthost.com](https://abishek.openpaymenthost.com) -->
 
 ## Features
-
-- Customers can buy without logging in, Increases conversion.
+- WYSIWYG editor to create beautiful product pages.
+- One Time and Subscription payments support.
 - Stripe support, Just add the price id for the product and rest is done automatically.
 - Paypal support, Just add the plan id for the product and rest is done automatically <sup>new</sup>.
 - Razorpay support, Just add the plan id for the product and rest is done automatically <sup>new</sup>.
 - Square support, Just add the amount for the product and rest is done automatically.
+- Customers can buy without logging in, Increases conversion.
 - Multi-country pricing, Price changes automatically according to the user's location resulting in better conversion.
 - Light and Dark theme.
 - Mailchimp support, Customers are automatically added to a mailchimp list; Useful for sending newsletters.
-- WYSIWYG editor to create beautiful product pages.
 - File attachment support(images) for the product posts.
 - S3 support for delivering digital files via automatic pre-signed URL.
-- Subscriber count for the products (With Square).
+- Subscriber count for the products.
 - Automatic SSL and other security features for production.
 - Automatic payment gateway router based on country<sup>new</sup>
 - API & Webhook <sup>experimental</sup>.
-
-and many more.
 
 ## Production Demo
 
@@ -66,6 +64,18 @@ and many more.
 ## WIP
 
 This is a work in progress project, although I put lot of effort in ensuring security and stability of the platform users should be aware of possible unknown bugs. That said, I use Open Payment Host as payments host for my own projects.
+
+## Immediate Goals
+- [x] Product pages
+- [x] Payment gateways
+- [x] Payment router
+- [x] File download
+- [] Documentation
+- [] Accessibility
+
+## Long Term Goals
+- [ ] Community forum.
+- [ ] Localisation.
 
 ## Screenshots
 
