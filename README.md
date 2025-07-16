@@ -67,15 +67,18 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 
 ## Immediate Goals
 - [x] Product pages
-- [x] Payment gateways
+- [x] Stripe support
+- [x] Square support
+- [x] Paypal support
+- [x] Razorpay support
 - [x] Payment router
 - [x] File download
-- [] Documentation
-- [] Accessibility
+- [ ] Documentation
+- [ ] Accessibility
 
 ## Long Term Goals
-- [ ] Community forum.
-- [ ] Localisation.
+- [ ] Community forum
+- [ ] Localisation
 
 ## Screenshots
 
