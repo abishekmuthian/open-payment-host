@@ -3,6 +3,12 @@
 # Open Payment Host  
 
 ![Version 0.3.1](https://badgen.net/static/version/0.3.1/blue)
+![Go](https://badgen.net/static/-/go/blue)
+![htmx](https://badgen.net/static/-/htmx/blue)
+![hyperscript](https://badgen.net/static/-/hyperscript/blue)
+![tailwind](https://badgen.net/static/-/tailwindcss/blue)
+
+
 
 Sell Subscriptions, Newsletters, Digital Files without paying commissions.
 
@@ -82,6 +88,8 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 - [ ] Cashfree integration
 - [ ] Community forum
 - [ ] Localisation
+
+
 
 ## Screenshots
 
@@ -341,3 +349,7 @@ tailwindcss: https://github.com/tailwindlabs/tailwindcss licensed under [The MIT
 daisyui: https://github.com/saadeghi/daisyui licensed under [The MIT License](https://github.com/saadeghi/daisyui/blob/master/LICENSE).
 
 trix: https://github.com/basecamp/trix licensed under [The MIT License](https://github.com/basecamp/trix/blob/main/LICENSE).
+
+htmx: https://github.com/bigskysoftware/htmx licensed under [Zero-Clause BSD](https://github.com/bigskysoftware/htmx/blob/master/LICENSE).
+
+hyperscript: https://github.com/bigskysoftware/_hyperscript licensed under [Zero-Clause BSD](https://github.com/bigskysoftware/_hyperscript/blob/master/LICENSE).
