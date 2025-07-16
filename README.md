@@ -73,7 +73,7 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 - [x] Razorpay support
 - [x] Payment router
 - [x] File download
-- [ ] Documentation
+- [ ] Documentation website
 - [ ] Accessibility
 
 ## Long Term Goals
@@ -124,7 +124,7 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 coming soon.
 
 ### Razorpay
-coming soon.
+<video src="/demo/Razorpay/razorpay.mp4" width="1246" height="701" controls autoplay loop></video>
 
 ## Usage
 
