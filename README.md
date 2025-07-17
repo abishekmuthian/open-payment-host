@@ -3,6 +3,13 @@
 # Open Payment Host  
 
 ![Version 0.3.1](https://badgen.net/static/version/0.3.1/blue)
+[![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
+[![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
+[![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind%20CSS-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](#)
+[![SQLite](https://img.shields.io/badge/SQLite-%2307405e.svg?logo=sqlite&logoColor=white)](#)
+
+
 
 Sell Subscriptions, Newsletters, Digital Files without paying commissions.
 
@@ -40,24 +47,22 @@ Clicking the above image would open the video in YouTube. -->
 [https://abishek.openpaymenthost.com](https://abishek.openpaymenthost.com) -->
 
 ## Features
-
-- Customers can buy without logging in, Increases conversion.
+- WYSIWYG editor to create beautiful product pages.
+- One Time and Subscription payments support.
 - Stripe support, Just add the price id for the product and rest is done automatically.
 - Paypal support, Just add the plan id for the product and rest is done automatically <sup>new</sup>.
 - Razorpay support, Just add the plan id for the product and rest is done automatically <sup>new</sup>.
 - Square support, Just add the amount for the product and rest is done automatically.
+- Customers can buy without logging in, Increases conversion.
 - Multi-country pricing, Price changes automatically according to the user's location resulting in better conversion.
 - Light and Dark theme.
 - Mailchimp support, Customers are automatically added to a mailchimp list; Useful for sending newsletters.
-- WYSIWYG editor to create beautiful product pages.
 - File attachment support(images) for the product posts.
 - S3 support for delivering digital files via automatic pre-signed URL.
-- Subscriber count for the products (With Square).
+- Subscriber count for the products.
 - Automatic SSL and other security features for production.
 - Automatic payment gateway router based on country<sup>new</sup>
 - API & Webhook <sup>experimental</sup>.
-
-and many more.
 
 ## Production Demo
 
@@ -66,6 +71,30 @@ and many more.
 ## WIP
 
 This is a work in progress project, although I put lot of effort in ensuring security and stability of the platform users should be aware of possible unknown bugs. That said, I use Open Payment Host as payments host for my own projects.
+
+## Immediate Goals
+- [x] Product pages
+- [x] Stripe integration
+- [x] Square integration
+- [x] Paypal integration
+- [x] Razorpay integration
+- [x] Payment router
+- [x] File download
+- [ ] Documentation website
+- [ ] Accessibility
+
+## Long Term Goals
+- [ ] Paddle integration
+- [ ] PayU integration
+- [ ] Cashfree integration
+- [ ] Community features
+- [ ] Localisation
+
+
+
+If you would like to help me achieve these goals, consider sponsoring me
+
+[![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/abishekmuthian)
 
 ## Screenshots
 
@@ -107,11 +136,13 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 
 ![File delivery after payment after square payment](/demo/Square/8.File_download_delivery.png)
 
-### Paypal
-coming soon.
+### Automatic payment gateway router
 
-### Razorpay
-coming soon.
+#### Paypal
+https://github.com/user-attachments/assets/41c0d989-4a4f-43e4-8b54-f7938be3dda0
+
+#### Razorpay
+https://github.com/user-attachments/assets/86ea6d40-37cf-42f9-81f2-590671baa88c
 
 ## Usage
 
@@ -323,3 +354,7 @@ tailwindcss: https://github.com/tailwindlabs/tailwindcss licensed under [The MIT
 daisyui: https://github.com/saadeghi/daisyui licensed under [The MIT License](https://github.com/saadeghi/daisyui/blob/master/LICENSE).
 
 trix: https://github.com/basecamp/trix licensed under [The MIT License](https://github.com/basecamp/trix/blob/main/LICENSE).
+
+htmx: https://github.com/bigskysoftware/htmx licensed under [Zero-Clause BSD](https://github.com/bigskysoftware/htmx/blob/master/LICENSE).
+
+hyperscript: https://github.com/bigskysoftware/_hyperscript licensed under [Zero-Clause BSD](https://github.com/bigskysoftware/_hyperscript/blob/master/LICENSE).
