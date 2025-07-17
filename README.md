@@ -5,7 +5,7 @@
 ![Version 0.3.1](https://badgen.net/static/version/0.3.1/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
-![Hyperscript](https://badgen.net/static/-/Hyperscript/blue)
+[![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat&logoColor=blue)](#)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind%20CSS-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](#)
 [![SQLite](https://img.shields.io/badge/SQLite-%2307405e.svg?logo=sqlite&logoColor=white)](#)
 
