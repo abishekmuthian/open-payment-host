@@ -87,7 +87,7 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 - [ ] Paddle integration
 - [ ] PayU integration
 - [ ] Cashfree integration
-- [ ] Direct banking API integration.
+- [ ] Direct banking API integration
 - [ ] Community features
 - [ ] Localisation
 
