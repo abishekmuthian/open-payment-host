@@ -16,7 +16,7 @@ import (
 //	"github.com/abishekmuthian/iwillpayforthat/src/lib/server/fragmenta/config"
 
 const (
-	version                     = "0.0.1"
+	version                     = "0.3.2"
 	permissions                 = 0744
 	createDatabaseMigrationName = "Create-Database"
 	createTablesMigrationName   = "Create-Tables"

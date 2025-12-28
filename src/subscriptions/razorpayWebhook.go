@@ -110,6 +110,24 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 				}
 			}
 
+			if product.WebhookURL != "" && product.WebhookSecret != "" {
+				params := map[string]interface{}{
+					"subscription_id": subscription.PaymentId,
+					"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+					"status":          "active",
+					"email":           subscription.CustomerEmail,
+				}
+
+				go func() {
+					err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
+					if err != nil {
+						log.Error(log.V{"Paypal webhook, Error sending webhook to product's URL": err})
+					} else {
+						log.Info(log.V{"msg": "Successfully sent webhook to product's URL"})
+					}
+				}()
+			}
+
 		} else {
 			log.Info(log.V{"Webhook, razorpay order already exists in db, Order ID": subscription.ID})
 		}
@@ -171,6 +189,7 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 							"subscription_id": subscription.SubscriptionId,
 							"custom_id":       strconv.FormatInt(subscription.UserId, 10),
 							"status":          "active",
+							"email":           subscription.CustomerEmail,
 						}
 
 						go func() {
@@ -337,6 +356,7 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 						"subscription_id": subscription.SubscriptionId,
 						"custom_id":       strconv.FormatInt(subscription.UserId, 10),
 						"status":          "cancelled",
+						"email":           subscription.CustomerEmail,
 					}
 
 					go func() {
@@ -419,9 +439,10 @@ func recordRazorpayCheckoutOrder(razorpayEventOrderPaid RazorpayEventOrderPaid, 
 			transactionParams["user_id"] = customID.(string)
 		}
 
-		if phone, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["phone"]; exists {
-			transactionParams["payer_phone"] = phone.(string)
-		}
+		// Phone number storage is disabled for privacy - phone is sent to Razorpay but not stored locally
+		// if phone, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["phone"]; exists {
+		// 	transactionParams["payer_phone"] = phone.(string)
+		// }
 
 		if address, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address"]; exists {
 			transactionParams["address_street"] = address.(string)
@@ -502,9 +523,10 @@ func recordRazorpaySubscription(razorpayEventSubscriptionCompleted RazorpayEvent
 			transactionParams["user_id"] = customID.(string)
 		}
 
-		if phone, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["phone"]; exists {
-			transactionParams["payer_phone"] = phone.(string)
-		}
+		// Phone number storage is disabled for privacy - phone is sent to Razorpay but not stored locally
+		// if phone, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["phone"]; exists {
+		// 	transactionParams["payer_phone"] = phone.(string)
+		// }
 
 		if address, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address"]; exists {
 			transactionParams["address_street"] = address.(string)

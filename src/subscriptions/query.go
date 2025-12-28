@@ -40,6 +40,7 @@ func NewWithColumns(cols map[string]interface{}) *Subscription {
 	subscription.CustomerId = resource.ValidateString(cols["payer_id"])
 	subscription.CustomerEmail = resource.ValidateString(cols["payer_email"])
 	subscription.SubscriptionId = resource.ValidateString(cols["subscr_id"])
+	subscription.PaymentId = resource.ValidateString(cols["txn_id"])
 	subscription.UserId = resource.ValidateInt(cols["user_id"])
 	subscription.Plan = resource.ValidateString(cols["transaction_subject"])
 	subscription.ProductId = resource.ValidateInt(cols["item_number"])

@@ -86,6 +86,7 @@ func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 				"subscription_id": subscriptionId,
 				"custom_id":       strconv.FormatInt(subscription.UserId, 10),
 				"status":          "cancelled",
+				"email":           "",
 			}
 
 			go func() {

@@ -81,6 +81,7 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 					"subscription_id": razorpaySubscriptionId,
 					"custom_id":       customId,
 					"status":          "active",
+					"email":           "",
 				}
 
 				go func() {
@@ -153,6 +154,7 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 					"subscription_id": paypalSubscriptionId,
 					"custom_id":       customId,
 					"status":          "active",
+					"email":           "",
 				}
 
 				go func() {

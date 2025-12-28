@@ -14,9 +14,25 @@
   </th>
   <th>
     <a href="/products/{{.story.ID}}/update" class="btn btn-sm">edit</a>
-    <a href="/products/{{.story.ID}}/destroy" method="post" class="btn btn-sm">delete</a>
+    <button class="btn btn-sm"
+       _="on click
+          halt the event
+          call Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to delete this product? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+          })
+          if the result's isConfirmed
+            call htmx.ajax('POST', '/products/{{.story.ID}}/destroy', {swap:'none'})
+            wait 500ms
+            call window.location.reload()
+          end">delete</button>
   </th>
   <th>
-    {{ .story.TotalSubscribers }} 
+    {{ .story.TotalSubscribers }}
   </th>
 </tr>

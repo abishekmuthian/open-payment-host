@@ -53,15 +53,28 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 
 	switch product.Schedule {
 	case "onetime":
-		amount := product.RazorpayPrice[clientCountry]["amount"]
-		currency := product.RazorpayPrice[clientCountry]["currency"]
+		var amount interface{}
+		var currency interface{}
+
+		// Check if price exists for client country
+		if priceMap, exists := product.RazorpayPrice[clientCountry]; exists && priceMap != nil {
+			amount = priceMap["amount"]
+			currency = priceMap["currency"]
+		}
 
 		// If there is no amount for the client country then get the amount for default country
-
 		if amount == nil || currency == nil {
 			clientCountry = "DF"
-			amount = product.RazorpayPrice[clientCountry]["amount"]
-			currency = product.RazorpayPrice[clientCountry]["currency"]
+			if priceMap, exists := product.RazorpayPrice[clientCountry]; exists && priceMap != nil {
+				amount = priceMap["amount"]
+				currency = priceMap["currency"]
+			}
+		}
+
+		// Check if amount and currency are still nil after fallback
+		if amount == nil || currency == nil {
+			log.Error(log.V{"Razorpay price not configured for product": productId})
+			return server.InternalError(errors.New("razorpay price not configured for this product"))
 		}
 
 		// Convert the amount string to integer and multiply by 100 to get the amount in paisa
@@ -74,7 +87,7 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 
 		data := map[string]interface{}{
 			"amount":   amountInt, // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
-			"currency": "INR",
+			"currency": currency,
 		}
 		order, err := client.Order.Create(data, nil)
 
@@ -92,7 +105,7 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 		view.AddKey("meta_product_order_id", order["id"])
 		view.AddKey("meta_payment_script_type", "checkout")
 
-	case "monthly":
+	case "monthly", "yearly":
 		// Subscription ID retrieved from product
 		view.AddKey("meta_product_subscription_ID", subscriptionId)
 		view.AddKey("meta_payment_script_type", "subscription")
@@ -113,6 +126,7 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 
 	view.AddKey("meta_product_title", product.Name)
 	view.AddKey("meta_razorpay_key_id", config.Get("razorpay_key_id"))
+	view.AddKey("clientCountry", clientCountry)
 
 	// Set the name and year
 	view.AddKey("name", config.Get("name"))

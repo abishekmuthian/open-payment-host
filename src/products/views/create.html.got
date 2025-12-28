@@ -1,345 +1,423 @@
 <div class="flex justify-items-center-safe p-12">
-  <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
-    <form class="space-y-5 mt-5" method="post" enctype="multipart/form-data">
-      <h1 class="text-4xl font-medium">Add Product</h1>
+    <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
+        <form
+            class="space-y-5 mt-5"
+            method="post"
+            enctype="multipart/form-data"
+        >
+            <h1 class="text-4xl font-medium">Add Product</h1>
 
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Product Name</span>
-        </label>
-        <input
-          type="text"
-          name="name"
-          id="title"
-          placeholder="Product name followed by two #hashtags"
-          class="input w-full max-w-lg prose lg:prose-xl"
-          required
-        />
-      </div>
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl">Product Name</span>
+                </label>
+                <input
+                    type="text"
+                    name="name"
+                    id="title"
+                    placeholder="Product name followed by two #hashtags"
+                    class="input w-full max-w-lg prose lg:prose-xl"
+                    required
+                />
+            </div>
 
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Product Summary</span>
-        </label>
-        <p class="text-sm/6">
-          Summary will be displayed below card image, Keep it small.
-        </p>
-        <input
-          type="text"
-          name="summary"
-          id="summary"
-          placeholder="Product summary for the card"
-          class="input w-full max-w-2xl prose lg:prose-xl"
-          required
-        />
-      </div>
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl">Product Summary</span>
+                </label>
+                <p class="text-sm/6">
+                    Summary will be displayed below card image, Keep it small.
+                </p>
+                <input
+                    type="text"
+                    name="summary"
+                    id="summary"
+                    placeholder="Product summary for the card"
+                    class="input w-full max-w-2xl prose lg:prose-xl"
+                    required
+                />
+            </div>
 
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Featured Image</span>
-        </label>
-        <p class="text-sm/6">Recommended dimension: 1200x600</p>
-        <input
-          type="file"
-          name="featuredimage"
-          class="file-input file-input-bordered w-full max-w-xs"
-        />
-      </div>
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl">Featured Image</span>
+                </label>
+                <p class="text-sm/6">Recommended dimension: 1200x600</p>
+                <input
+                    type="file"
+                    name="featuredimage"
+                    class="file-input file-input-bordered w-full max-w-xs"
+                />
+            </div>
 
-      <div class="flex flex-col space-y-3" id="product-description">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Product Description</span>
-        </label>
-        <p class="text-sm/6">Blog post about the product</p>
-        <input
-          id="trix-input"
-          name="description"
-          type="hidden"
-          name="content"
-        />
-        <trix-editor
-          class="prose lg:prose-xl"
-          id="trix-editor"
-          input="trix-input"
-          required
-        ></trix-editor>
-      </div>
+            <div class="flex flex-col space-y-3" id="product-description">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl">Product Description</span>
+                </label>
+                <p class="text-sm/6">Blog post about the product</p>
+                <input
+                    id="trix-input"
+                    name="description"
+                    type="hidden"
+                    name="content"
+                />
+                <trix-editor
+                    class="prose lg:prose-xl"
+                    id="trix-editor"
+                    input="trix-input"
+                    required
+                ></trix-editor>
+            </div>
 
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Download File</span>
-        </label>
-        <p class="text-sm/6">
-          S3 bucket of the file to be delivered after payment
-        </p>
-        <input
-          type="text"
-          name="s3_bucket"
-          id="s3_bucket"
-          placeholder="bucket"
-          class="input w-full max-w-lg prose lg:prose-xl"
-        />
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl">Download File</span>
+                </label>
+                <p class="text-sm/6">
+                    S3 bucket of the file to be delivered after payment
+                </p>
+                <input
+                    type="text"
+                    name="s3_bucket"
+                    id="s3_bucket"
+                    placeholder="bucket"
+                    class="input w-full max-w-lg prose lg:prose-xl"
+                />
 
-        <p class="text-sm/6">
-          S3 key of the file to be delivered after payment
-        </p>
-        <input
-          type="text"
-          name="s3_key"
-          id="s3_key"
-          placeholder="dummy.pdf"
-          class="input w-full max-w-lg prose lg:prose-xl"
-        />
-      </div>
+                <p class="text-sm/6">
+                    S3 key of the file to be delivered after payment
+                </p>
+                <input
+                    type="text"
+                    name="s3_key"
+                    id="s3_key"
+                    placeholder="dummy.pdf"
+                    class="input w-full max-w-lg prose lg:prose-xl"
+                />
+            </div>
 
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Mailchimp Audience ID</span>
-        </label>
-        <p class="text-sm/6">
-          Optional Mailchimp Audience Id to add subscribers
-        </p>
-        <input
-          type="text"
-          name="mailchimp_audience_id"
-          id="mailchimp_audience_id"
-          placeholder="8ds299893c"
-          class="input w-full max-w-lg prose lg:prose-xl"
-        />
-      </div>
-      <hr />
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Schedule</span>
-        </label>
-        <label class="block text-sm/6 font-medium">
-          <p class="text-sm/6">
-            Pick the schedule for the payment, either One Time or Monthly
-            Subscription
-          </p>
-        </label>
-        <select
-          class="select w-full max-w-60 rounded-sm schedule-select"
-          name="schedule"
-          required
-          _="on change
-              if I.value match 'onetime'
-                {{ if .paypal}}
-                put 'Multi Country Pricing: Select Country, enter Amount e.g. 5 for $5 (exclusive of Tax), 
-                enter Tax e.g. 2 for $2 or 0 for no tax and 
-                enter Currency e.g. USD' into .paypal-price-label
-                {{ end }}
-                {{ if .razorpay }}
-                put 'Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR 500 (inclusive of Tax), 
-                and enter Currency e.g. INR' into .razorpay-price-label
-                {{ end }}
-              else if I.value match 'monthly'
-                  {{ if .paypal}}
-                  put 'Multi Country Pricing: Select Country,enter Amount e.g. 5 for $5, enter e.g. 5 for $5 (exclusive of Tax)  and enter the Paypal Plan ID' into .paypal-price-label
-                  {{ end }}
-                  {{ if .razorpay }}
-                  put 'Multi Country Pricing: Select Country, enter Plan ID' into .razorpay-price-label
-                  {{ end }}
-                end  
-              end
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl"
+                        >Mailchimp Audience ID</span
+                    >
+                </label>
+                <p class="text-sm/6">
+                    Optional Mailchimp Audience Id to add subscribers
+                </p>
+                <input
+                    type="text"
+                    name="mailchimp_audience_id"
+                    id="mailchimp_audience_id"
+                    placeholder="8ds299893c"
+                    class="input w-full max-w-lg prose lg:prose-xl"
+                />
+            </div>
+            <hr />
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl">Schedule</span>
+                </label>
+                <label class="block text-sm/6 font-medium">
+                    <p class="text-sm/6">
+                        Pick the schedule for the payment, either One Time or
+                        Monthly Subscription
+                    </p>
+                </label>
+                <select
+                    class="select w-full max-w-60 rounded-sm schedule-select"
+                    name="schedule"
+                    required
+                    _="on change
+                        if ({{ if .stripe }}#stripe-toggle.checked{{ else }}false{{ end }}) or ({{ if .square }}#square-toggle.checked{{ else }}false{{ end }}) or ({{ if .paypal }}#paypal-toggle.checked{{ else }}false{{ end }}) or ({{ if .razorpay }}#razorpay-toggle.checked{{ else }}false{{ end }})
+                            call Swal.fire({
+                                text: 'Changing schedule will clear existing payment gateway fields. Continue?',
+                                icon: 'warning',
+                                theme: 'auto',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes, change schedule',
+                                cancelButtonText: 'Cancel'
+                            })
+                            if result.isConfirmed
+                                {{ if .stripe }}
+                                if #stripe-toggle.checked
+                                    set #stripe-toggle.checked to false
+                                    trigger click on #stripe-toggle
+                                end
+                                {{ end }}
+                                {{ if .square }}
+                                if #square-toggle.checked
+                                    set #square-toggle.checked to false
+                                    trigger click on #square-toggle
+                                end
+                                {{ end }}
+                                {{ if .paypal }}
+                                if #paypal-toggle.checked
+                                    set #paypal-toggle.checked to false
+                                    trigger change on #paypal-toggle
+                                end
+                                {{ end }}
+                                {{ if .razorpay }}
+                                if #razorpay-toggle.checked
+                                    set #razorpay-toggle.checked to false
+                                    trigger change on #razorpay-toggle
+                                end
+                                {{ end }}
+                            else
+                                halt the event
+                            end
+                        end
+                    "
+                >
+                    <option value="onetime" selected>One Time</option>
+                    <option value="monthly">Monthly Subscription</option>
+                    <option value="yearly">Yearly Subscription</option>
+                </select>
+            </div>
+            {{ if .stripe }}
+            <hr />
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl"
+                        >Stripe Payment Details</span
+                    >
+                </label>
+
+                <input
+                    id="stripe-toggle"
+                    _="on click
+                                 toggle @required on <input, select, textarea/> in #stripe-pricing
+                                 toggle @disabled on <input, select, textarea/> in #stripe-pricing
+                                 toggle @hidden on #stripe-pricing
+                       on load
+                                 set my.checked to false
+                                 if I am not :checked
+                                   repeat for field in <input, select, textarea/> in #stripe-pricing
+                                     remove @required from field
+                                     set field[@disabled] to 'disabled'
+                                   end
+                                   set #stripe-pricing[@hidden] to 'hidden'
+                                 end"
+                    type="checkbox"
+                    class="toggle payment-toggle"
+                />
+
+                <div id="stripe-pricing">
+                    <p class="text-sm/6">
+                        Multi Country Pricing: Select Country and Enter the
+                        Stripe Price API ID
+                    </p>
+
+                    <div
+                        class="space-y-3"
+                        _="
+          on every change in .country-select set currentCountry to the target's value
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+          set the selectedIndex of the target to 0 end
+            "
+                    >
+                        {{ template "products/views/stripe_price.html.got" .}}
+                    </div>
+                </div>
+            </div>
+            {{ end }} {{ if .square }}
+            <hr />
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl"
+                        >Square Payment Details</span
+                    >
+                </label>
+
+                <input
+                    id="square-toggle"
+                    _="on click
+                                 toggle @required on <input, select, textarea/> in #square-pricing
+                                 toggle @disabled on <input, select, textarea/> in #square-pricing
+                                 toggle @hidden on #square-pricing
+                       on load
+                                 set my.checked to false
+                                 if I am not :checked
+                                   repeat for field in <input, select, textarea/> in #square-pricing
+                                     remove @required from field
+                                     set field[@disabled] to 'disabled'
+                                   end
+                                   set #square-pricing[@hidden] to 'hidden'
+                                 end"
+                    type="checkbox"
+                    class="toggle payment-toggle"
+                />
+
+                <div id="square-pricing">
+                    <p class="text-sm/6">
+                        Multi Country Pricing: Select Country and enter Amount
+                        in lowest denomination e.g. 5000 for $5, Currency in ISO
+                        4217 format e.g USD.
+                    </p>
+
+                    <div
+                        class="space-y-3"
+                        _="
+        on every change in .country-select set currentCountry to the target's value
+        set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+        set the selectedIndex of the target to 0 end
           "
-          hx-get="/products/create/schedule"
-          {{
-          if
-          .paypal}}
-          hx-target="#paypal_price_field"
-          {{
-          else
-          if
-          .razorpay
-          }}
-          hx-target="#razorpay_price_field"
-          {{
-          end
-          }}
-        >
-          <option
-            value="onetime"
-            _="on load 
-              set the value of .schedule-select to 'onetime'"
-          >
-            One Time
-          </option>
-          <option value="monthly">Monthly Subscription</option>
-        </select>
-      </div>
-      {{ if .stripe }}
-      <hr />
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Stripe Payment Details</span>
-        </label>
+                    >
+                        {{ template "products/views/square_price.html.got" .}}
+                    </div>
+                </div>
+            </div>
+            {{ end }} {{ if .paypal }}
+            <hr />
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl"
+                        >Paypal Payment Details</span
+                    >
+                </label>
 
-        <p class="text-sm/6">
-          Multi Country Pricing: Select Country and Enter the Stripe Price API
-          ID
-        </p>
+                <input
+                    id="paypal-toggle"
+                    name="paypal-toggle"
+                    hx-post="/products/toggle/paypal"
+                    hx-include="[name='paypal-toggle'], .schedule-select"
+                    hx-target="#paypal-pricing"
+                    hx-swap="innerHTML"
+                    hx-trigger="change"
+                    type="checkbox"
+                    class="toggle payment-toggle"
+                    _="on load set my.checked to false"
+                />
 
-        <div
-          class="space-y-3"
-          _=" 
-          on every change in .country-select set currentCountry to the target's value 
-          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-          set the selectedIndex of the target to 0 end 
-            "
-        >
-          {{ template "products/views/stripe_price.html.got" .}}
-        </div>
-      </div>
-      {{ end }}
+                <div id="paypal-pricing"></div>
+            </div>
 
-      {{ if .square }}
-      <hr />
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Square Payment Details</span>
-        </label>
+            {{ end }} {{ if .razorpay }}
+            <hr />
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl"
+                        >Razorpay Payment Details</span
+                    >
+                </label>
 
-        <p class="text-sm/6">
-          Multi Country Pricing: Select Country and enter Amount in lowest
-          denomination e.g. 5000 for $5, Currency in ISO 4217 format e.g USD.
-        </p>
+                <input
+                    id="razorpay-toggle"
+                    name="razorpay-toggle"
+                    hx-post="/products/toggle/razorpay"
+                    hx-include="[name='razorpay-toggle'], .schedule-select"
+                    hx-target="#razorpay-pricing"
+                    hx-swap="innerHTML"
+                    hx-trigger="change"
+                    type="checkbox"
+                    class="toggle payment-toggle"
+                    _="on load set my.checked to false"
+                />
 
-        <div
-          class="space-y-3"
-          _=" 
-        on every change in .country-select set currentCountry to the target's value 
-        set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-        set the selectedIndex of the target to 0 end 
-          "
-        >
-          {{ template "products/views/square_price.html.got" .}}
-        </div>
-      </div>
-      {{ end }}
+                <div id="razorpay-pricing"></div>
+            </div>
 
-      {{ if .paypal }}
-      <hr />
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Paypal Payment Details</span>
-        </label>
+            {{ end }}
 
-        <div id="paypal-pricing">
-          <p class="text-sm/6 paypal-price-label">
-            Multi Country Pricing: Select Country, enter Amount e.g. 5 for $5
-            (exclusive of Tax), enter Tax e.g. 2 for $2 or 0 for no tax and
-            enter Currency e.g. USD
-          </p>
-          <div
-            id="paypal_price_field"
-            class="space-y-3"
-            _=" 
-          on every change in .country-select set currentCountry to the target's value 
-          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-          set the selectedIndex of the target to 0 end 
-            "
-          >
-            {{ template "products/views/paypal_price_onetime.html.got" .}}
-          </div>
-        </div>
-      </div>
+            <hr />
+            <div class="flex flex-col space-y-3">
+                <label class="block text-sm/6 font-medium">
+                    <span class="label-text text-xl">API</span>
+                </label>
+                <input
+                    _="on click
+                                 set fields to <input, select, textarea/> in #webhook-details
+                                 repeat for field in fields
+                                   if field.pattern is not empty
+                                     if field[@data-original-pattern] is empty
+                                       set field[@data-original-pattern] to field.pattern
+                                     end
+                                     remove @pattern from field
+                                     remove .validator from field
+                                     set field[@disabled] to 'disabled'
+                                   else
+                                     set field[@pattern] to field[@data-original-pattern]
+                                     add .validator to field
+                                     remove @disabled from field
+                                   end
+                                 end
+                                 toggle @hidden on #webhook-details
+                       on load
+                                 if I am not :checked
+                                   set fields to <input, select, textarea/> in #webhook-details
+                                   repeat for field in fields
+                                     if field.pattern is not empty
+                                       if field[@data-original-pattern] is empty
+                                         set field[@data-original-pattern] to field.pattern
+                                       end
+                                       remove @pattern from field
+                                       remove .validator from field
+                                       set field[@disabled] to 'disabled'
+                                     end
+                                   end
+                                   set #webhook-details[@hidden] to 'hidden'
+                                 end"
+                    type="checkbox"
+                    class="toggle"
+                />
+                <div id="webhook-details">
+                    <p class="text-sm/6 razorpay-price-label">
+                        Enter the Webhook URL and Webhook secret of the server
+                        from where you're calling OPH API
+                    </p>
+                    <div
+                        class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+                    >
+                        <input
+                            type="url"
+                            name="webhook_url"
+                            placeholder="https://"
+                            value="https://"
+                            pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
+                            class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
+                            title="Must be valid URL"
+                        />
+                        <p class="validator-hint">Must be valid URL</p>
+                        <input
+                            type="password"
+                            name="webhook_secret"
+                            placeholder="Webhook secret"
+                            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                            minlength="8"
+                            class="input validator w-full rounded-sm max-w-48 prose lg:prose-xl"
+                            title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
+                        />
+                        <p class="validator-hint">
+                            Must be more than 8 characters, including
+                            <br />At least one number <br />At least one
+                            lowercase letter <br />At least one uppercase letter
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-      {{ end }}
-
-      {{ if .razorpay }}
-      <hr />
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">Razorpay Payment Details</span>
-        </label>
-
-        <div id="razorpay-pricing">
-          <p class="text-sm/6 razorpay-price-label">
-            Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR
-            500 (inclusive of Tax), and enter Currency e.g. INR
-          </p>
-          <div
-            id="razorpay_price_field"
-            class="space-y-3"
-            _=" 
-          on every change in .country-select set currentCountry to the target's value 
-          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-          set the selectedIndex of the target to 0 end 
-            "
-          >
-            {{ template "products/views/razorpay_price_onetime.html.got" .}}
-          </div>
-        </div>
-      </div>
-
-      {{ end }}
-
-      <hr />
-      <div class="flex flex-col space-y-3">
-        <label class="block text-sm/6 font-medium">
-          <span class="label-text text-xl">API</span>
-        </label>
-        <div id="webhook-details">
-          <p class="text-sm/6 razorpay-price-label">
-            Enter the Webhook URL and Webhook secret of the server from where
-            you're calling OPH API
-          </p>
-          <div
-            class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
-          >
-            <input
-              type="url"
-              name="webhook_url"
-              placeholder="https://"
-              value="https://"
-              pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
-              class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
-              title="Must be valid URL"
-            />
-            <p class="validator-hint">Must be valid URL</p>
-            <input
-              type="password"
-              name="webhook_secret"
-              placeholder="Webhook secret"
-              pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-              minlength="8"
-              class="input validator w-full rounded-sm max-w-48 prose lg:prose-xl"
-              title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
-            />
-            <p class="validator-hint">
-              Must be more than 8 characters, including
-              <br />At least one number <br />At least one lowercase letter
-              <br />At least one uppercase letter
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex justify-center-safe">
-        <button
-          class="btn"
-          type="submit"
-          _="on click 
-          if value of #trix-input is empty 
+            <div class="flex justify-center-safe">
+                <button
+                    class="btn"
+                    type="submit"
+                    _="on click
+          if value of #trix-input is empty
             call #trix-editor.focus()
             halt the event default
-            call Swal.fire({text:'Product description needs to be filled',   theme:'auto'}) 
+            call Swal.fire({text:'Product description needs to be filled',   theme:'auto'})
           end
           "
-        >
-          Submit
-        </button>
-      </div>
-      <input
-        name="authenticity_token"
-        type="hidden"
-        value="{{.authenticity_token}}"
-      />
-    </form>
-  </div>
+                >
+                    Submit
+                </button>
+            </div>
+            <input
+                name="authenticity_token"
+                type="hidden"
+                value="{{.authenticity_token}}"
+            />
+        </form>
+    </div>
 </div>
