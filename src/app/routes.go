@@ -36,6 +36,10 @@ func SetupRoutes() *mux.Mux {
 	router.Post("/products/create", storyactions.HandleCreate)
 	router.Get("/products/create/price/{fieldIndex:[0-9]+}/{pg:[a-zA-Z]+}/{schedule:[a-zA-Z ]+}", storyactions.HandlePrice)
 	router.Get("/products/create/schedule", storyactions.HandleSchedule)
+	router.Post("/products/toggle/paypal", storyactions.HandleTogglePaypal)
+	router.Post("/products/toggle/razorpay", storyactions.HandleToggleRazorpay)
+	router.Post("/products/{id:[0-9]+}/toggle/paypal", storyactions.HandleTogglePaypalUpdate)
+	router.Post("/products/{id:[0-9]+}/toggle/razorpay", storyactions.HandleToggleRazorpayUpdate)
 
 	// Add suggestion route
 	router.Post("/product/editor/suggestion", storyactions.HandleGetSuggestion)

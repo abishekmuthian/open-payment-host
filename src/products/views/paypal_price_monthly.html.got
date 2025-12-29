@@ -49,7 +49,7 @@
       then call Swal.fire({text:'Select a country first',   theme:'auto'})
     else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
       focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
-      then call Swal.fire({text:'Set a amount first',   theme:'auto'}) 
+      then call Swal.fire({text:'Set a amount first',   theme:'auto'})
     end
     "
   />
@@ -69,10 +69,10 @@
       then call Swal.fire({text:'Select a country first',   theme:'auto'})
     else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
       focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
-      then call Swal.fire({text:'Set a amount first',   theme:'auto'})      
+      then call Swal.fire({text:'Set a amount first',   theme:'auto'})
     else if value of #{{ $pg }}_currency_{{ $fieldIndex }} is empty
       focus() the #{{ $pg }}_currency_{{ $fieldIndex }}
-      then call Swal.fire({text:'Set a currency first',   theme:'auto'})    
+      then call Swal.fire({text:'Set a currency first',   theme:'auto'})
     end
     "
   />
@@ -80,7 +80,7 @@
   {{ if gt $fieldIndex 0}}
   <div class="flex">
     <button
-      _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+      _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'})
     if result.isConfirmed then remove #price_fields_{{ $fieldIndex }} end "
       class="btn rounded-sm"
     >
@@ -93,7 +93,7 @@
   <button
     id="price_add_country_{{ $fieldIndex }}"
     class="btn"
-    hx-get="/products/create/price/{{ $fieldIndex }}/{{ $pg }}/monthly"
+    hx-get="/products/create/price/{{ $fieldIndex }}/{{ $pg }}/{{ $.schedule }}"
     hx-target="#price-field-buttons-{{ $pg }}"
     hx-swap="outerHTML"
   >

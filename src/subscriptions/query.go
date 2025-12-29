@@ -40,7 +40,8 @@ func NewWithColumns(cols map[string]interface{}) *Subscription {
 	subscription.CustomerId = resource.ValidateString(cols["payer_id"])
 	subscription.CustomerEmail = resource.ValidateString(cols["payer_email"])
 	subscription.SubscriptionId = resource.ValidateString(cols["subscr_id"])
-	subscription.UserId = resource.ValidateInt(cols["user_id"])
+	subscription.PaymentId = resource.ValidateString(cols["txn_id"])
+	subscription.UserId = resource.ValidateString(cols["user_id"])
 	subscription.Plan = resource.ValidateString(cols["transaction_subject"])
 	subscription.ProductId = resource.ValidateInt(cols["item_number"])
 	subscription.PaymentStaus = resource.ValidateString(cols["payment_status"])
@@ -104,7 +105,7 @@ func FindSubscription(subscription_id string) (*Subscription, error) {
 }
 
 // Find fetches a single subscription record from the database by user id.
-func FindCustomerId(userId int64) (*Subscription, error) {
+func FindCustomerId(userId string) (*Subscription, error) {
 	q := Query().Limit(1)
 	q.Where("user_id=?", userId)
 	result, err := FindAll(q)

@@ -3,7 +3,6 @@ package actions
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
@@ -43,14 +42,10 @@ func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
-	customIdInt, err := strconv.ParseInt(customId, 10, 64)
-	if err != nil {
-		log.Error(log.V{"Error parsing custom_id to int64": err})
-		return server.InternalError(err)
-	}
-
-	if customIdInt != subscription.UserId {
-		log.Error(log.V{"Invalid custom_id for the subscription": err})
+	// Validate custom_id matches the subscription's UserId
+	// Compare as strings since UserId is now TEXT in database
+	if customId != "" && customId != subscription.UserId {
+		log.Error(log.V{"Invalid custom_id for the subscription - Expected": subscription.UserId, "Got": customId})
 		return server.InternalError(errors.New("Invalid custom_id for the subscription"))
 	}
 
@@ -84,8 +79,9 @@ func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 		if product.WebhookURL != "" && product.WebhookSecret != "" {
 			params := map[string]interface{}{
 				"subscription_id": subscriptionId,
-				"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+				"custom_id":       subscription.UserId,
 				"status":          "cancelled",
+				"email":           "",
 			}
 
 			go func() {

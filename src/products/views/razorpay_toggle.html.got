@@ -1,0 +1,30 @@
+{{ if eq .schedule "onetime"}}
+<p class="text-sm/6 razorpay-price-label">
+    Multi Country Pricing: Select Country, enter Amount e.g.
+    500 for INR 500 (inclusive of Tax), and enter Currency e.g. INR
+</p>
+{{ else if eq .schedule "monthly"}}
+<p class="text-sm/6 razorpay-price-label">
+    Multi Country Pricing: Select Country, enter Plan ID
+</p>
+{{ else if eq .schedule "yearly"}}
+<p class="text-sm/6 razorpay-price-label">
+    Multi Country Pricing: Select Country, enter Plan ID
+</p>
+{{ end }}
+<div
+    id="razorpay_price_field"
+    class="space-y-3"
+    _="
+    on every change in .country-select set currentCountry to the target's value
+    set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+    if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+    set the selectedIndex of the target to 0 end
+    "
+>
+    {{ if eq .schedule "onetime"}}
+    {{ template "products/views/razorpay_price_onetime.html.got" .}}
+    {{ else }}
+    {{ template "products/views/razorpay_price_monthly.html.got" .}}
+    {{ end }}
+</div>

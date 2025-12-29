@@ -184,8 +184,12 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 				if story.Schedule == "onetime" {
 					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
 					view.AddKey("type", "onetime")
-				} else if story.Schedule == "monthly" {
-					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+"Monthly")
+				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
+					scheduleLabel := "Monthly"
+					if story.Schedule == "yearly" {
+						scheduleLabel = "Yearly"
+					}
+					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+scheduleLabel)
 					view.AddKey("type", "subscription")
 				}
 			} else {
@@ -207,8 +211,12 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
 					view.AddKey("type", "onetime")
 					view.AddKey("paypal_payment_link", "/subscriptions/paypal?"+fmt.Sprintf("type=%s&product_id=%d", "onetime", story.ID))
-				} else if story.Schedule == "monthly" {
-					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"Monthly")
+				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
+					scheduleLabel := "Monthly"
+					if story.Schedule == "yearly" {
+						scheduleLabel = "Yearly"
+					}
+					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+scheduleLabel)
 					view.AddKey("type", "subscription")
 					view.AddKey("paypal_payment_link", "/subscriptions/paypal?"+fmt.Sprintf("type=%s&product_id=%d&plan_id=%s&redirect_uri=%s&custom_id=%s", "subscription", story.ID, planId.(string), redirectUri, customId))
 				}
@@ -231,14 +239,21 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 					view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d", "onetime", story.ID))
 					view.AddKey("amount", amount)
 					view.AddKey("currency", currency)
-				} else if story.Schedule == "monthly" {
+				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
 					// Create a subscription using the plan id
 
 					razorpayClient := razorpay.NewClient(config.Get("razorpay_key_id"), config.Get("razorpay_key_secret"))
 
+					// Set total_count based on schedule: 120 for monthly (10 years), 30 for yearly (30 years)
+					// Razorpay UPI payment method requires expire_at to be max 30 years
+					totalCount := 120
+					if story.Schedule == "yearly" {
+						totalCount = 30
+					}
+
 					data := map[string]interface{}{
 						"plan_id":     planId,
-						"total_count": 120,
+						"total_count": totalCount,
 					}
 
 					subscription, err := razorpayClient.Subscription.Create(data, nil)
@@ -251,7 +266,6 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 					subscriptionId := subscription["id"].(string)
 
 					if subscriptionId != "" {
-						// view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"Monthly")
 						view.AddKey("type", "subscription")
 						view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d&subscription_id=%s&redirect_uri=%s&custom_id=%s", "subscription", story.ID, subscriptionId, redirectUri, customId))
 						razorpaySubscription, err := razorpayClient.Subscription.Fetch(subscriptionId, nil, nil)
@@ -271,7 +285,11 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 
 							razorpayCurrency := razorpayItem["currency"]
 
-							view.AddKey("price", strconv.FormatFloat(razorpayAmount.(float64)/100, 'g', 5, 64)+" "+razorpayCurrency.(string)+"/"+"Monthly")
+							scheduleLabel := "Monthly"
+							if story.Schedule == "yearly" {
+								scheduleLabel = "Yearly"
+							}
+							view.AddKey("price", strconv.FormatFloat(razorpayAmount.(float64)/100, 'g', 5, 64)+" "+razorpayCurrency.(string)+"/"+scheduleLabel)
 						} else {
 							log.Error(log.V{"Product show, Error fetching razorpay amount": err})
 						}

@@ -72,13 +72,18 @@ func HandlePaypalShow(w http.ResponseWriter, r *http.Request) error {
 		view.AddKey("loadPaypalOneTimeScript", true)
 
 		view.AddKey("meta_payment_script_type", "checkout")
-	case "monthly":
+	case "monthly", "yearly":
 		planId := product.PaypalPrice[clientCountry]["plan_id"]
 
 		// Add paypal plan id
 		view.AddKey("meta_plan_id", planId) // TODO: Retrieve the plan id from the product
 
-		view.AddKey("price", fmt.Sprintf("%d %s/Monthly", amount, currency))
+		// Display appropriate label based on schedule
+		scheduleLabel := "Monthly"
+		if product.Schedule == "yearly" {
+			scheduleLabel = "Yearly"
+		}
+		view.AddKey("price", fmt.Sprintf("%d %s/%s", amount, currency, scheduleLabel))
 		view.AddKey("meta_payment_script_type", "subscription")
 		view.AddKey("loadPaypalSubscriptionScript", true)
 	}

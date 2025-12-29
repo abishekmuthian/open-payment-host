@@ -99,6 +99,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) error {
 	// Set the name and year
 	view.AddKey("name", config.Get("name"))
 	view.AddKey("year", time.Now().Year())
+	// Load SweetAlert for delete confirmation
+	view.AddKey("loadSweetAlert", true)
+	// Load HTMX and Hyperscript
+	view.AddKey("loadHypermedia", true)
 
 	if strings.HasSuffix(r.URL.Path, ".xml") {
 		view.Layout("")
