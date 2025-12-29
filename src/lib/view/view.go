@@ -101,6 +101,9 @@ func DefaultHelpers() parser.FuncMap {
 	funcs["setif"] = helpers.SetIf
 	funcs["empty"] = helpers.Empty
 
+	// Config helper
+	funcs["config"] = helpers.Config
+
 	// Numeric helpers - clean up and accept currency and other options in centstoprice
 	funcs["centstobase"] = helpers.CentsToBase
 	funcs["centstoprice"] = helpers.CentsToPrice

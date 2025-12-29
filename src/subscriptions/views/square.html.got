@@ -8,7 +8,7 @@
       </label>
       <div id="payment-status-container"></div>
       <div id="card-container"></div>
-      <button id="card-button" class="btn btn-wide checkout" type="button">
+      <button id="card-button" class="btn btn-wide btn-neutral checkout" type="button">
         Pay {{ .price }}
       </button>
     </div>

@@ -8,11 +8,9 @@
       <p>{{ .story.Summary }}</p>
       <div class="card-actionsjustify-end">
         {{ range .story.Tags }}
-        <span class="badge badge-ghost badge-sm">{{.}}</span>
+        <span class="badge badge-outline badge-sm">{{.}}</span>
         {{ end }}
       </div>
     </div>
-  </a>  
+  </a>
 </div>
-
-

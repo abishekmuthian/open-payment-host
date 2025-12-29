@@ -9,7 +9,7 @@
     </div>
     <div>
       {{ range .story.Tags }}
-      <span class="badge badge-ghost badge-lg mt-2">{{.}}</span>
+      <span class="badge badge-outline badge-lg mt-2">{{.}}</span>
       {{ end }}
     </div>
     {{ if .showSubscribe }}
@@ -26,7 +26,7 @@
           type="hidden"
           value="{{.authenticity_token}}"
         />
-        <button type="submit" id="checkout_button" class="btn btn-wide">
+        <button type="submit" id="checkout_button" class="btn btn-wide btn-neutral">
           {{ .price }}
         </button>
       </form>
@@ -34,7 +34,7 @@
       <a
         type="submit"
         id="square_checkout"
-        class="btn btn-wide checkout"
+        class="btn btn-wide btn-neutral checkout"
         method="get"
         href="/subscriptions/billing?amount={{ .amount }}&currency={{ .currency }}&type={{ .type }}&productId={{ .story.ID }}"
         >{{ .price }}</a
@@ -43,7 +43,7 @@
       <a
         type="submit"
         id="paypal_checkout"
-        class="btn btn-wide checkout"
+        class="btn btn-wide btn-neutral checkout"
         method="get"
         href="{{ .paypal_payment_link }}"
         >{{ .price }}</a
@@ -52,7 +52,7 @@
       <a
         type="submit"
         id="razorpay_checkout"
-        class="btn btn-wide checkout"
+        class="btn btn-wide btn-neutral checkout"
         method="get"
         href="{{ .razorpay_payment_link }}"
         >{{ .price }}</a

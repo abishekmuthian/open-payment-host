@@ -5,6 +5,8 @@ import (
 	got "html/template"
 	"strings"
 	"time"
+
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 )
 
 // ARRAYS
@@ -207,4 +209,9 @@ func JSON(t string) got.HTML {
 	t = strings.Replace(t, "\"", "\\\"", -1)
 	// Because we use html/template escape as temlate.HTML
 	return got.HTML(t)
+}
+
+// Config returns a configuration value by key
+func Config(key string) string {
+	return config.Get(key)
 }

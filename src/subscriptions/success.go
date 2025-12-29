@@ -3,6 +3,7 @@ package subscriptions
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
@@ -15,6 +16,37 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/razorpay/razorpay-go/utils"
 )
+
+// contains checks if a string contains a substring
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
+}
+
+// buildRedirectURL constructs a properly formatted redirect URL by appending parameters
+// It handles existing query strings and sanitizes multiple ? into proper & separators
+func buildRedirectURL(baseURL string, params map[string]string) string {
+	// Replace any occurrence of multiple ? with & (except the first one)
+	url := baseURL
+	parts := strings.Split(url, "?")
+	if len(parts) > 1 {
+		// Keep first part and first ?, join rest with &
+		url = parts[0] + "?" + strings.Join(parts[1:], "&")
+	}
+
+	// Determine separator for new parameters
+	separator := "&"
+	if !strings.Contains(url, "?") {
+		separator = "?"
+	}
+
+	// Append new parameters
+	for key, value := range params {
+		url += separator + key + "=" + value
+		separator = "&"
+	}
+
+	return url
+}
 
 // HandlePaymentSuccess handles the success routine of the payment
 func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
@@ -52,7 +84,11 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 		if razorpayOrderCompleted {
 			log.Info(log.V{"Razorpay order completed": razorpayOrderId})
 			if redirectURI != "null" && customId != "null" { // Because the request is from JavaScript
-				return server.RedirectExternal(w, r, redirectURI+"?custom_id="+customId+"&order_id="+razorpayOrderId)
+				params := map[string]string{
+					"custom_id": customId,
+					"order_id":  razorpayOrderId,
+				}
+				return server.RedirectExternal(w, r, buildRedirectURL(redirectURI, params))
 			}
 		} else {
 			log.Error(log.V{"Razorpay order verification failed": razorpayOrderId})
@@ -95,7 +131,11 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 			}
 
 			if (redirectURI != "" && redirectURI != "null") && (customId != "" && customId != "null") {
-				return server.RedirectExternal(w, r, redirectURI+"?custom_id="+customId+"&subscription_id="+razorpaySubscriptionId)
+				params := map[string]string{
+					"custom_id":       customId,
+					"subscription_id": razorpaySubscriptionId,
+				}
+				return server.RedirectExternal(w, r, buildRedirectURL(redirectURI, params))
 			}
 		} else {
 			log.Error(log.V{"Razorpay subscription verification failed": razorpayOrderId})
@@ -170,9 +210,17 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 
 		if (redirectURI != "" && redirectURI != "null") && (customId != "" && customId != "null") {
 			if paypalOrderCompleted {
-				return server.RedirectExternal(w, r, redirectURI+"?custom_id="+customId+"&order_id="+paypalOrderId)
+				params := map[string]string{
+					"custom_id": customId,
+					"order_id":  paypalOrderId,
+				}
+				return server.RedirectExternal(w, r, buildRedirectURL(redirectURI, params))
 			} else if paypalSubscriptionCompleted {
-				return server.RedirectExternal(w, r, redirectURI+"?custom_id="+customId+"&subscription_id="+paypalSubscriptionId)
+				params := map[string]string{
+					"custom_id":       customId,
+					"subscription_id": paypalSubscriptionId,
+				}
+				return server.RedirectExternal(w, r, buildRedirectURL(redirectURI, params))
 			}
 		}
 	}

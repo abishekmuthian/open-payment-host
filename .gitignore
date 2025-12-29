@@ -24,3 +24,4 @@ oph.sqbpro
 build-docker-image.sh
 CLAUDE.md
 AGENTS.md
+*.log

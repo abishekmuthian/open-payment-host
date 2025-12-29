@@ -16,7 +16,7 @@ import (
 //	"github.com/abishekmuthian/iwillpayforthat/src/lib/server/fragmenta/config"
 
 const (
-	version                     = "0.3.3"
+	version                     = "0.3.4"
 	permissions                 = 0744
 	createDatabaseMigrationName = "Create-Database"
 	createTablesMigrationName   = "Create-Tables"
@@ -119,6 +119,7 @@ func generateConfig(projectPath string) error {
 		"razorpay_key_id":             "",
 		"razorpay_key_secret":         "",
 		"razorpay_webhook_secret":     "",
+		"whatsapp_number":             "",
 	}
 
 	// Copying development values to production and then adding more
