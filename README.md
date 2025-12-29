@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.1](https://badgen.net/static/version/0.3.1/blue)
+![Version 0.3.3](https://badgen.net/static/version/0.3.3/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
@@ -27,7 +27,11 @@ Selling digital items on web as an indie requires using platforms where we have 
 
 ## Who
 
-This is for those who are looking to self-host an alternative for Gumroad, Buy Me a Coffee, Ko-fi etc.
+* Those who are looking to self-host an alternative for Gumroad, Buy Me a Coffee, Ko-fi etc.
+
+* Those who churn out lot of projects and don't want to integrate payment gateway every time.
+
+* Those who want to use multiple payment gateways for different countries e.g. for parity pricing or for redundancy.
 
 ## How
 
@@ -87,6 +91,7 @@ This is a work in progress project, although I put lot of effort in ensuring sec
 - [ ] Paddle integration
 - [ ] PayU integration
 - [ ] Cashfree integration
+- [ ] Direct banking API integration
 - [ ] Community features
 - [ ] Localisation
 
@@ -310,6 +315,91 @@ Set the following events to send:
 9. `subscription.cancelled`
 10. `subscription.completed`
 11. `subscription.updated`
+
+### API and Webhook <sup>Experimental</sup>
+> Note: API features are currently supported for Paypal and Razorpay payment gateways only. If you require support for other PG, kindly open a issue.
+
+You can call Open Payment Host for just payments from another website. Once payment is completed the user is redirected back to your website and the payment related data is sent to the webhook mentioned in the product page.
+
+#### Redirect to the OPH product page
+
+`https://<your-oph-domain-for-the-product>?custom_id=<custom-id>&redirect_uri=<redirect-uri>`
+
+#### URL Parameters
+`custom_id` : custom id e.g. user id.
+
+`redirect_uri` : redirect URI e.g. success page.
+
+#### Webhook Callback Request
+
+#### Request Header
+
+`X-OPH-Signature` : Signature generated using `SHA-256` with the `webhook secret` as key given in the product page. 
+
+*Note: Generate signature for the webhook request body and compare it with the signature in the header to verify that they are from your Open Payment Host.*
+
+#### Request Body
+
+```
+{
+    "subscription_id": "xxxx",
+    "custom_id": "xxxx",
+    "status": "active"
+}
+```
+#### Request Parameters
+
+`subscription_id` : subscription id of the payment. Store it to track the subscription of the user.
+
+`custom_id` : e.g. user id to identify the user and enable subscription features.
+
+`status` : `active` when the subscription is created and `cancelled` when the subscription is cancelled.
+
+#### Cancel Subscription
+
+To cancel the subscription, make a `GET` request.
+
+`https://<your-oph-domain>/subscriptions/cancel?subscription_id=<subscription_id>&redirect_uri=<your-application-domain>&custom_id=<custom-id>`
+
+#### URL Parameters
+
+`subscription_id` : subscription id of the payment.
+
+`redirect_uri` : redirect URI e.g. cancellation success page.
+
+`custom_id` : custom id e.g. user id.
+
+#### Webhook Callback Request
+
+After successful cancellation, OPH will send a webhook POST request to your configured webhook URL.
+
+#### Request Header
+
+`X-OPH-Signature` : HMAC SHA256 signature of the request body using your webhook secret.
+
+#### Request Body
+
+The request body is JSON with the following parameters:
+
+```json
+{
+  "subscription_id": "sub_xxxxx",
+  "custom_id": "your-user-id",
+  "status": "cancelled",
+  "email": ""
+}
+```
+
+#### Request Parameters
+
+`subscription_id` : The subscription ID that was cancelled.
+
+`custom_id` : The custom ID (user ID) associated with the subscription.
+
+`status` : Always "cancelled" for cancellation webhooks.
+
+`email` : Email address (may be empty for cancellations).
+
 
 ## Developer
 

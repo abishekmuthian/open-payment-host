@@ -37,6 +37,7 @@ func HandlePrice(w http.ResponseWriter, r *http.Request) error {
 	// view.AddKey("paypalSchedule", params.Get("paypal_schedule"))
 
 	view.AddKey("fieldIndex", fieldIndex+1)
+	view.AddKey("schedule", schedule)
 
 	if pg == "stripe" {
 		view.Template("products/views/stripe_price.html.got")
@@ -49,7 +50,7 @@ func HandlePrice(w http.ResponseWriter, r *http.Request) error {
 	if pg == "paypal" {
 		if schedule == "onetime" {
 			view.Template("products/views/paypal_price_onetime.html.got")
-		} else if schedule == "monthly" {
+		} else if schedule == "monthly" || schedule == "yearly" {
 			view.Template("products/views/paypal_price_monthly.html.got")
 		}
 	}
@@ -57,7 +58,7 @@ func HandlePrice(w http.ResponseWriter, r *http.Request) error {
 	if pg == "razorpay" {
 		if schedule == "onetime" {
 			view.Template("products/views/razorpay_price_onetime.html.got")
-		} else if schedule == "monthly" {
+		} else if schedule == "monthly" || schedule == "yearly" {
 			view.Template("products/views/razorpay_price_monthly.html.got")
 		}
 	}

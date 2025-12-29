@@ -142,16 +142,59 @@
 
         <select
           class="select w-full max-w-60 rounded-sm schedule-select"
-          hx-get="/products/create/schedule"
-          {{ if .paypal}}
-          hx-target="#paypal_price_field"
-          {{ else if .razorpay }}
-          hx-target="#razorpay_price_field"
-          {{ end }}
           name="schedule"
+          _="on change
+              set oldValue to my[@data-current-value]
+              set newValue to my.value
+              log 'Schedule change - old:', oldValue, 'new:', newValue
+              if ({{ if .stripe }}#stripe-toggle-update.checked{{ else }}false{{ end }}) or ({{ if .square }}#square-toggle-update.checked{{ else }}false{{ end }}) or ({{ if .paypal }}#paypal-toggle-update.checked{{ else }}false{{ end }}) or ({{ if .razorpay }}#razorpay-toggle-update.checked{{ else }}false{{ end }})
+                  call Swal.fire({
+                      text: 'Changing schedule will clear existing payment gateway fields. Continue?',
+                      icon: 'warning',
+                      theme: 'auto',
+                      showCancelButton: true,
+                      confirmButtonText: 'Yes, change schedule',
+                      cancelButtonText: 'Cancel'
+                  })
+                  if result.isConfirmed
+                      set my[@data-current-value] to newValue
+                      {{ if .stripe }}
+                      if #stripe-toggle-update.checked
+                          set #stripe-toggle-update.checked to false
+                          trigger click on #stripe-toggle-update
+                      end
+                      {{ end }}
+                      {{ if .square }}
+                      if #square-toggle-update.checked
+                          set #square-toggle-update.checked to false
+                          trigger click on #square-toggle-update
+                      end
+                      {{ end }}
+                      {{ if .paypal }}
+                      if #paypal-toggle-update.checked
+                          set #paypal-toggle-update.checked to false
+                          trigger change on #paypal-toggle-update
+                      end
+                      {{ end }}
+                      {{ if .razorpay }}
+                      if #razorpay-toggle-update.checked
+                          set #razorpay-toggle-update.checked to false
+                          trigger change on #razorpay-toggle-update
+                      end
+                      {{ end }}
+                  else
+                      set my.value to oldValue
+                  end
+              else
+                  set my[@data-current-value] to newValue
+              end
+          on load
+              set my.value to '{{ .story.Schedule }}'
+              set my[@data-current-value] to my.value
+          "
         >
           {{ if eq .story.Schedule "onetime" }}
-          <option value="onetime" _="on load add @selected to me">
+          <option value="onetime" selected>
             One Time
           </option>
           {{ else }}
@@ -161,11 +204,21 @@
           }}
 
           {{ if eq .story.Schedule "monthly" }}
-          <option value="monthly" _="on load add @selected to me">
+          <option value="monthly" selected>
             Monthly Subscription
           </option>
           {{ else }}
           <option value="monthly">Monthly Subscription</option>
+          {{
+            end
+          }}
+
+          {{ if eq .story.Schedule "yearly" }}
+          <option value="yearly" selected>
+            Yearly Subscription
+          </option>
+          {{ else }}
+          <option value="yearly">Yearly Subscription</option>
           {{
             end
           }}
@@ -180,6 +233,28 @@
           <span class="label-text text-xl">Stripe Payment Details</span>
         </label>
 
+        <input
+          id="stripe-toggle-update"
+          _="on load
+                       {{ if gt (len .stripePrices) 0 }}
+                       set my.checked to true
+                       {{ else }}
+                       set my.checked to false
+                       repeat for field in <input, select, textarea/> in #stripe-pricing
+                         remove @required from field
+                         set @disabled of field to 'disabled'
+                       end
+                       set @hidden of #stripe-pricing to 'hidden'
+                       {{ end }}
+                   on click
+                       toggle @required on <input, select, textarea/> in #stripe-pricing
+                       toggle @disabled on <input, select, textarea/> in #stripe-pricing
+                       toggle @hidden on #stripe-pricing"
+          type="checkbox"
+          class="toggle payment-toggle"
+        />
+
+        <div id="stripe-pricing">
         <p class="text-sm/6">
           Multi Country Pricing: Select Country and Enter the Stripe Price API
           ID
@@ -187,11 +262,11 @@
 
         <div
           class="space-y-3"
-          _=" 
-        on every change in .country-select set currentCountry to the target's value 
-        set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-        set the selectedIndex of the target to 0 end 
+          _="
+        on every change in .country-select set currentCountry to the target's value
+        set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+        set the selectedIndex of the target to 0 end
           "
         >
           {{ $fieldIndex := .fieldIndex}}
@@ -249,7 +324,7 @@
             {{ if gt $fieldIndex 0}}
             <div class="flex">
               <button
-                _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+                _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'})
               if result.isConfirmed then remove #price_fields_{{
                   $fieldIndex
                 }} end "
@@ -289,6 +364,28 @@
           <span class="label-text text-xl">Square Payment Details</span>
         </label>
 
+        <input
+          id="square-toggle-update"
+          _="on load
+                       {{ if gt (len .squarePrices) 0 }}
+                       set my.checked to true
+                       {{ else }}
+                       set my.checked to false
+                       repeat for field in <input, select, textarea/> in #square-pricing
+                         remove @required from field
+                         set @disabled of field to 'disabled'
+                       end
+                       set @hidden of #square-pricing to 'hidden'
+                       {{ end }}
+                   on click
+                       toggle @required on <input, select, textarea/> in #square-pricing
+                       toggle @disabled on <input, select, textarea/> in #square-pricing
+                       toggle @hidden on #square-pricing"
+          type="checkbox"
+          class="toggle payment-toggle"
+        />
+
+        <div id="square-pricing">
         <p class="text-sm/6">
           Multi Country Pricing: Select Country and enter Amount in lowest
           denomination e.g. 5000 for $5, Currency in ISO 4217 format e.g USD.
@@ -296,11 +393,11 @@
 
         <div
           class="space-y-3"
-          _=" 
-        on every change in .country-select set currentCountry to the target's value 
-        set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-        set the selectedIndex of the target to 0 end 
+          _="
+        on every change in .country-select set currentCountry to the target's value
+        set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+        set the selectedIndex of the target to 0 end
           "
         >
           {{ $fieldIndex := .fieldIndex}}
@@ -375,7 +472,7 @@
             then call Swal.fire({text:'Set a amount first',   theme:'auto'})
           else if value of #{{ $pg }}_tax_{{ $fieldIndex }} is empty
             focus() the #{{ $pg }}_tax_{{ $fieldIndex }}
-            then call Swal.fire({text:'Set a tax first',   theme:'auto'})  
+            then call Swal.fire({text:'Set a tax first',   theme:'auto'})
           end
           "
             />
@@ -383,7 +480,7 @@
             {{ if gt $fieldIndex 0}}
             <div class="flex">
               <button
-                _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+                _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'})
           if result.isConfirmed then remove #price_fields_{{
                   $fieldIndex
                 }} end "
@@ -424,6 +521,24 @@
           <span class="label-text text-xl">Paypal Payment Details</span>
         </label>
 
+        <input
+          id="paypal-toggle-update"
+          name="paypal-toggle"
+          hx-post="/products/{{ .story.ID }}/toggle/paypal"
+          hx-include="[name='paypal-toggle'], .schedule-select"
+          hx-target="#paypal-pricing"
+          hx-swap="innerHTML"
+          hx-trigger="change"
+          _="on load
+                       {{ if gt (len .paypalPrices) 0 }}
+                       set my.checked to true
+                       {{ else }}
+                       set my.checked to false
+                       {{ end }}"
+          type="checkbox"
+          class="toggle payment-toggle"
+        />
+
         <div id="paypal-pricing">
           {{ if eq .story.Schedule "onetime" }}
 
@@ -444,11 +559,11 @@
           <div
             id="paypal_price_field"
             class="space-y-3"
-            _=" 
-          on every change in .country-select set currentCountry to the target's value 
-          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-          set the selectedIndex of the target to 0 end 
+            _="
+          on every change in .country-select set currentCountry to the target's value
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+          set the selectedIndex of the target to 0 end
             "
           >
             {{ $fieldIndex := .fieldIndex}}
@@ -528,14 +643,14 @@
 
               {{ end }}
 
-              <input type="text" 
+              <input type="text"
               name="{{ $pg }}_currency_{{ $fieldIndex }}"
-              id="{{ $pg }}_currency_{{ $fieldIndex }}" 
+              id="{{ $pg }}_currency_{{ $fieldIndex }}"
               value="{{
                 $values.currency
-              }}" 
+              }}"
               class="input w-full rounded-sm {{ if eq $.story.Schedule "onetime"}} max-w-24 {{ else if eq $.story.Schedule "monthly"}} max-w-18 {{end}} prose lg:prose-xl"
-              required 
+              required
               _="on click or input if value of #{{ $pg }}_country_{{
                 $fieldIndex
               }}
@@ -560,7 +675,7 @@
                 id="{{ $pg }}_plan_id_{{ $fieldIndex }}"
                 value="{{
                 $values.plan_id
-                }}"                
+                }}"
                 class="input rounded-sm w-full max-w-48 prose lg:prose-xl paypal-plan-id"
                 required
                 _="on click or input
@@ -571,10 +686,10 @@
                   then call Swal.fire({text:'Select a country first',   theme:'auto'})
                 else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
                   focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
-                  then call Swal.fire({text:'Set a amount first',   theme:'auto'})      
+                  then call Swal.fire({text:'Set a amount first',   theme:'auto'})
                 else if value of #{{ $pg }}_currency_{{ $fieldIndex }} is empty
                   focus() the #{{ $pg }}_currency_{{ $fieldIndex }}
-                  then call Swal.fire({text:'Set a currency first',   theme:'auto'})    
+                  then call Swal.fire({text:'Set a currency first',   theme:'auto'})
                 end
                 "
               />
@@ -584,7 +699,7 @@
               {{ if gt $fieldIndex 0}}
               <div class="flex">
                 <button
-                  _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+                  _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'})
           if result.isConfirmed then remove #price_fields_{{
                     $fieldIndex
                   }} end "
@@ -629,15 +744,33 @@
           <span class="label-text text-xl">Razorpay Payment Details</span>
         </label>
 
+        <input
+          id="razorpay-toggle-update"
+          name="razorpay-toggle"
+          hx-post="/products/{{ .story.ID }}/toggle/razorpay"
+          hx-include="[name='razorpay-toggle'], .schedule-select"
+          hx-target="#razorpay-pricing"
+          hx-swap="innerHTML"
+          hx-trigger="change"
+          _="on load
+                       {{ if gt (len .razorpayPrices) 0 }}
+                       set my.checked to true
+                       {{ else }}
+                       set my.checked to false
+                       {{ end }}"
+          type="checkbox"
+          class="toggle payment-toggle"
+        />
+
         <div id="razorpay-pricing">
           {{ if eq .story.Schedule "onetime" }}
 
           <p class="text-sm/6 razorpay-price-label">
-            Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR 500 (inclusive of Tax), 
+            Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR 500 (inclusive of Tax),
                 and enter Currency e.g. INR
           </p>
 
-          {{ else if eq .story.Schedule "monthly" }}
+          {{ else if or (eq .story.Schedule "monthly") (eq .story.Schedule "yearly") }}
 
           <p>
             Multi Country Pricing: Select Country, enter Plan ID
@@ -647,11 +780,11 @@
           <div
             id="razorpay_price_field"
             class="space-y-3"
-            _=" 
-          on every change in .country-select set currentCountry to the target's value 
-          set sameCountries to <.country-select option:checked[value='${currentCountry}']/> 
-          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'}) 
-          set the selectedIndex of the target to 0 end 
+            _="
+          on every change in .country-select set currentCountry to the target's value
+          set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+          set the selectedIndex of the target to 0 end
             "
           >
             {{ $fieldIndex := .fieldIndex}}
@@ -711,14 +844,14 @@
               "
               />
 
-              <input type="text" 
+              <input type="text"
               name="{{ $pg }}_currency_{{ $fieldIndex }}"
-              id="{{ $pg }}_currency_{{ $fieldIndex }}" 
+              id="{{ $pg }}_currency_{{ $fieldIndex }}"
               value="{{
                 $values.currency
-              }}" 
+              }}"
               class="input w-full rounded-sm {{ if eq $.story.Schedule "onetime"}} max-w-24 {{ else if eq $.story.Schedule "monthly"}} max-w-18 {{end}} prose lg:prose-xl"
-              required 
+              required
               _="on click or input if value of #{{ $pg }}_country_{{
                 $fieldIndex
               }}
@@ -738,14 +871,14 @@
 
               {{ end }}
 
-              {{ if eq $.story.Schedule "monthly"}}
+              {{ if or (eq $.story.Schedule "monthly") (eq $.story.Schedule "yearly") }}
               <input
                 type="text"
                 name="{{ $pg }}_plan_id_{{ $fieldIndex }}"
                 id="{{ $pg }}_plan_id_{{ $fieldIndex }}"
                 value="{{
                 $values.plan_id
-                }}"                
+                }}"
                 class="input rounded-sm w-full max-w-48 prose lg:prose-xl razorpay-plan-id"
                 required
                 _="on click or input
@@ -756,10 +889,10 @@
                   then call Swal.fire({text:'Select a country first',   theme:'auto'})
                 else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
                   focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
-                  then call Swal.fire({text:'Set a amount first',   theme:'auto'})      
+                  then call Swal.fire({text:'Set a amount first',   theme:'auto'})
                 else if value of #{{ $pg }}_currency_{{ $fieldIndex }} is empty
                   focus() the #{{ $pg }}_currency_{{ $fieldIndex }}
-                  then call Swal.fire({text:'Set a currency first',   theme:'auto'})    
+                  then call Swal.fire({text:'Set a currency first',   theme:'auto'})
                 end
                 "
               />
@@ -769,7 +902,7 @@
               {{ if gt $fieldIndex 0}}
               <div class="flex">
                 <button
-                  _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
+                  _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'})
           if result.isConfirmed then remove #price_fields_{{
                     $fieldIndex
                   }} end "
@@ -832,6 +965,43 @@
         <label class="block text-sm/6 font-medium">
           <span class="label-text text-xl">API</span>
         </label>
+        <input
+          _="on load
+                       {{ if and (ne .story.WebhookURL "") (ne .story.WebhookSecret "") }}
+                       set my.checked to true
+                       {{ else }}
+                       set my.checked to false
+                       set fields to <input, select, textarea/> in #webhook-details
+                       repeat for field in fields
+                         if field.pattern is not empty
+                           set @data-original-pattern of field to field.pattern
+                           remove @pattern from field
+                           remove .validator from field
+                           set @disabled of field to 'disabled'
+                         end
+                       end
+                       set @hidden of #webhook-details to 'hidden'
+                       {{ end }}
+                   on click
+                       set fields to <input, select, textarea/> in #webhook-details
+                       repeat for field in fields
+                         if field.pattern is not empty
+                           if @data-original-pattern of field is empty
+                             set @data-original-pattern of field to field.pattern
+                           end
+                           remove @pattern from field
+                           remove .validator from field
+                           set @disabled of field to 'disabled'
+                         else
+                           set @pattern of field to @data-original-pattern of field
+                           add .validator to field
+                           remove @disabled from field
+                         end
+                       end
+                       toggle @hidden on #webhook-details"
+          type="checkbox"
+          class="toggle"
+        />
         <div id="webhook-details">
           <p class="text-sm/6 razorpay-price-label">
             Enter the Webhook URL and Webhook secret of the server from where
@@ -845,25 +1015,25 @@
               name="webhook_url"
               placeholder="https://"
               value="{{ .story.WebhookURL }}"
-              pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
+              pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
               class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
               title="Must be valid URL"
             />
             <p class="validator-hint">Must be valid URL</p>
             <input
-              type="password"
+              type="text"
               name="webhook_secret"
-              placeholder="Webhook secret"
+              placeholder="64-character hexadecimal string"
               value="{{ .story.WebhookSecret }}"
-              pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-              minlength="8"
-              class="input validator w-full rounded-sm max-w-48 prose lg:prose-xl"
-              title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
+              pattern="^[a-fA-F0-9]{64}$"
+              minlength="64"
+              maxlength="64"
+              class="input validator w-full rounded-sm max-w-96 prose lg:prose-xl"
+              title="Must be a 64-character hexadecimal string (32 bytes)"
             />
             <p class="validator-hint">
-              Must be more than 8 characters, including
-              <br />At least one number <br />At least one lowercase letter
-              <br />At least one uppercase letter
+              Must be a 64-character hexadecimal string (32 bytes)
+              <br />Example: Use `openssl rand -hex 32` to generate
             </p>
           </div>
         </div>

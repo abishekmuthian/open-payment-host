@@ -61,7 +61,7 @@ func HandleCustomerPortal(w http.ResponseWriter, r *http.Request) error {
 	// billing in the portal.
 	returnURL := config.Get("stripe_callback_domain") + "/" + "users" + "/" + strconv.FormatInt(currentUser.ID, 10) + "/update"
 
-	subscription, err := FindCustomerId(currentUser.ID)
+	subscription, err := FindCustomerId(strconv.FormatInt(currentUser.ID, 10))
 
 	if err == nil {
 		params := &stripe.BillingPortalSessionParams{

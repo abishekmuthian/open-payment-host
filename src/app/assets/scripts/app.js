@@ -47,7 +47,7 @@ function ActivateMethodLinks() {
     if (link.getAttribute("method") == "delete") {
       if (
         !confirm(
-          "Are you sure you want to delete this item, this action cannot be undone?"
+          "Are you sure you want to delete this item, this action cannot be undone?",
         )
       ) {
         e.preventDefault();
@@ -94,7 +94,7 @@ function ActivateMethodLinks() {
       function (request) {
         // Respond to error
         console.log("error", request);
-      }
+      },
     );
 
     e.preventDefault();
@@ -133,7 +133,7 @@ function ActivateFilterFields() {
     "change",
     function (e) {
       this.form.submit();
-    }
+    },
   );
 }
 
@@ -304,7 +304,7 @@ function orderID() {
 function ClearSessionStorage() {
   if (
     window.location.href.substring(
-      window.location.href.lastIndexOf("/") + 1
+      window.location.href.lastIndexOf("/") + 1,
     ) !== "create"
   ) {
     sessionStorage.setItem("description", "");
@@ -321,8 +321,10 @@ function ActivateHTMX() {
   // Get authenticity token from head of page
   var token = authenticityToken();
 
-  // add the auth token to the request as a header
+  // add the auth token to the request as a header (for compatibility)
+  // and also add to request parameters (required by backend)
   htmx.on("htmx:configRequest", (e) => {
     e.detail.headers["authenticity_token"] = token;
+    e.detail.parameters["authenticity_token"] = token;
   });
 }

@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   const redirectURI = decodeURIComponent(urlParams.get("redirect_uri"));
 
   document.getElementById("rzp-button1").onclick = function (e) {
+    // Check if phone field exists (for Indian users only)
+    const phoneField = document.querySelector(".razorpay-input-phone");
+    const stateField = document.querySelector(".razorpay-input-state");
+
     // if .razorpay-input-name input has no value
     if (
       !document.querySelector(".razorpay-input-name").value ||
@@ -33,11 +37,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         theme: "auto",
       });
     }
-    // if .razorpay-input-phone input has no value
-    else if (
-      !document.querySelector(".razorpay-input-phone").value ||
-      !document.querySelector(".razorpay-input-phone").checkValidity()
-    ) {
+    // if .razorpay-input-phone input exists and has no value (Indian users only)
+    else if (phoneField && (!phoneField.value || !phoneField.checkValidity())) {
       Swal.fire({
         text: "Please enter a valid phone number",
         icon: "error",
@@ -69,12 +70,19 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
     }
 
-    // if .razorpay-input-state select has no value
+    // if .razorpay-input-state select has no value (for Indian users with dropdown)
+    // or if it's an input field (for non-Indian users), check if it has a value
     else if (
-      document.querySelector(".razorpay-input-state").value == "Select State"
+      (stateField.tagName === "SELECT" &&
+        stateField.value === "Select State") ||
+      (stateField.tagName === "INPUT" &&
+        (!stateField.value || !stateField.checkValidity()))
     ) {
       Swal.fire({
-        text: "Please select your state",
+        text:
+          stateField.tagName === "SELECT"
+            ? "Please select your state"
+            : "Please enter your state",
         icon: "error",
         theme: "auto",
       });
@@ -121,17 +129,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         prefill: {
           name: document.querySelector(".razorpay-input-name").value,
           email: document.querySelector(".razorpay-input-email").value,
-          contact: document.querySelector(".razorpay-input-phone").value,
+          contact: phoneField ? phoneField.value : "",
         },
         notes: {
           custom_id: customId !== "null" ? customId : "",
           product_id: productId,
           name: document.querySelector(".razorpay-input-name").value,
           email: document.querySelector(".razorpay-input-email").value,
-          phone: document.querySelector(".razorpay-input-phone").value,
+          phone: phoneField ? phoneField.value : "",
           address: document.querySelector(".razorpay-input-address").value,
           address_city: document.querySelector(".razorpay-input-city").value,
-          address_state: document.querySelector(".razorpay-input-state").value,
+          address_state: stateField.value,
           address_pincode: document.querySelector(".razorpay-input-pincode")
             .value,
         },

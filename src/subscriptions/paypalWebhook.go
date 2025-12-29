@@ -24,8 +24,14 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
+	// Determine API base URL based on environment
+	apiBase := paypal.APIBaseLive
+	if !config.Production() {
+		apiBase = paypal.APIBaseSandBox
+	}
+
 	// Create a client instance
-	c, err := paypal.NewClient(config.Get("paypal_client_id"), config.Get("paypal_client_secret"), paypal.APIBaseSandBox)
+	c, err := paypal.NewClient(config.Get("paypal_client_id"), config.Get("paypal_client_secret"), apiBase)
 
 	if err != nil {
 		log.Error(log.V{"Paypal Client Initialization": err})
@@ -139,6 +145,24 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 				}
 			}
 
+			if product.WebhookURL != "" && product.WebhookSecret != "" {
+				params := map[string]interface{}{
+					"subscription_id": subscription.PaymentId,
+					"custom_id":       subscription.UserId,
+					"status":          "active",
+					"email":           subscription.CustomerEmail,
+				}
+
+				go func() {
+					err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
+					if err != nil {
+						log.Error(log.V{"Paypal webhook, Error sending webhook to product's URL": err})
+					} else {
+						log.Info(log.V{"msg": "Successfully sent webhook to product's URL"})
+					}
+				}()
+			}
+
 		} else {
 			log.Info(log.V{"Webhook, paypal order already exists in db, Order ID": subscription.ID})
 		}
@@ -236,8 +260,9 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 					if product.WebhookURL != "" && product.WebhookSecret != "" {
 						params := map[string]interface{}{
 							"subscription_id": subscription.SubscriptionId,
-							"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+							"custom_id":       subscription.UserId,
 							"status":          "active",
+							"email":           subscription.CustomerEmail,
 						}
 
 						go func() {
@@ -373,8 +398,9 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 				if product.WebhookURL != "" && product.WebhookSecret != "" {
 					params := map[string]interface{}{
 						"subscription_id": subscription.SubscriptionId,
-						"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+						"custom_id":       subscription.UserId,
 						"status":          "cancelled",
+						"email":           subscription.CustomerEmail,
 					}
 
 					go func() {

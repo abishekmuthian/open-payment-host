@@ -23,7 +23,8 @@ type Subscription struct {
 	CustomerId     string
 	CustomerEmail  string
 	SubscriptionId string
-	UserId         int64
+	PaymentId      string
+	UserId         string
 	Plan           string
 	ProductId      int64
 	PaymentStaus   string
