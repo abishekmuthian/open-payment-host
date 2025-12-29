@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.2](https://badgen.net/static/version/0.3.2/blue)
+![Version 0.3.3](https://badgen.net/static/version/0.3.3/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
@@ -368,6 +368,37 @@ To cancel the subscription, make a `GET` request.
 `redirect_uri` : redirect URI e.g. cancellation success page.
 
 `custom_id` : custom id e.g. user id.
+
+#### Webhook Callback Request
+
+After successful cancellation, OPH will send a webhook POST request to your configured webhook URL.
+
+#### Request Header
+
+`X-OPH-Signature` : HMAC SHA256 signature of the request body using your webhook secret.
+
+#### Request Body
+
+The request body is JSON with the following parameters:
+
+```json
+{
+  "subscription_id": "sub_xxxxx",
+  "custom_id": "your-user-id",
+  "status": "cancelled",
+  "email": ""
+}
+```
+
+#### Request Parameters
+
+`subscription_id` : The subscription ID that was cancelled.
+
+`custom_id` : The custom ID (user ID) associated with the subscription.
+
+`status` : Always "cancelled" for cancellation webhooks.
+
+`email` : Email address (may be empty for cancellations).
 
 
 ## Developer

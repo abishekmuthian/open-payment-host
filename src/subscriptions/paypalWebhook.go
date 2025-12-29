@@ -148,7 +148,7 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 			if product.WebhookURL != "" && product.WebhookSecret != "" {
 				params := map[string]interface{}{
 					"subscription_id": subscription.PaymentId,
-					"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+					"custom_id":       subscription.UserId,
 					"status":          "active",
 					"email":           subscription.CustomerEmail,
 				}
@@ -260,7 +260,7 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 					if product.WebhookURL != "" && product.WebhookSecret != "" {
 						params := map[string]interface{}{
 							"subscription_id": subscription.SubscriptionId,
-							"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+							"custom_id":       subscription.UserId,
 							"status":          "active",
 							"email":           subscription.CustomerEmail,
 						}
@@ -398,7 +398,7 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 				if product.WebhookURL != "" && product.WebhookSecret != "" {
 					params := map[string]interface{}{
 						"subscription_id": subscription.SubscriptionId,
-						"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+						"custom_id":       subscription.UserId,
 						"status":          "cancelled",
 						"email":           subscription.CustomerEmail,
 					}

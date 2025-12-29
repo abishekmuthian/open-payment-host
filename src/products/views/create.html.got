@@ -381,18 +381,18 @@
                         />
                         <p class="validator-hint">Must be valid URL</p>
                         <input
-                            type="password"
+                            type="text"
                             name="webhook_secret"
-                            placeholder="Webhook secret"
-                            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-                            minlength="8"
-                            class="input validator w-full rounded-sm max-w-48 prose lg:prose-xl"
-                            title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
+                            placeholder="64-character hexadecimal string"
+                            pattern="^[a-fA-F0-9]{64}$"
+                            minlength="64"
+                            maxlength="64"
+                            class="input validator w-full rounded-sm max-w-96 prose lg:prose-xl"
+                            title="Must be a 64-character hexadecimal string (32 bytes)"
                         />
                         <p class="validator-hint">
-                            Must be more than 8 characters, including
-                            <br />At least one number <br />At least one
-                            lowercase letter <br />At least one uppercase letter
+                            Must be a 64-character hexadecimal string (32 bytes)
+                            <br />Example: Use `openssl rand -hex 32` to generate
                         </p>
                     </div>
                 </div>

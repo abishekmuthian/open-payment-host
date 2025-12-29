@@ -75,59 +75,58 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		if subscription == nil {
-			subscription := New()
-			err := recordRazorpayCheckoutOrder(razorpayEventOrderPaid, subscription)
+			newSubscription := New()
+			err := recordRazorpayCheckoutOrder(razorpayEventOrderPaid, newSubscription)
 
 			if err != nil {
 				log.Error(log.V{"Webhook, error recording razorpay order in db": err})
 				return err
 			}
 
-			// Add the email id to mailchimp
-
+			// Fetch the created subscription to get the complete record
 			subscription, err = FindPayment(razorpayEventOrderPaid.Payload.Order.Entity.ID)
 			if err != nil {
 				log.Error(log.V{"Razorpay Webhook, error finding razorpay transaction id in db using entity id for updating it": err})
-
 				return err
 			}
-			productId := subscription.ProductId
 
+			productId := subscription.ProductId
 			product, err := products.Find(productId)
 			if err != nil {
 				log.Error(log.V{"Webhook, error finding product in db": err})
 				return err
-			} else {
-				// If mailchimp list id and mailchimp token is available add to the mailchimp list
-				if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
-					// Add to the mailchimp list
-					audience := mailchimp.Audience{
-						MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
-						Email:       subscription.CustomerEmail,
-						Status:      "subscribed",
-					}
-					go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
-				}
 			}
 
+			// If mailchimp list id and mailchimp token is available add to the mailchimp list
+			if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
+				audience := mailchimp.Audience{
+					MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
+					Email:       subscription.CustomerEmail,
+					Status:      "subscribed",
+				}
+				go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
+			}
+
+			// Send webhook notification only once
 			if product.WebhookURL != "" && product.WebhookSecret != "" {
 				params := map[string]interface{}{
 					"subscription_id": subscription.PaymentId,
-					"custom_id":       strconv.FormatInt(subscription.UserId, 10),
+					"custom_id":       subscription.UserId,
 					"status":          "active",
 					"email":           subscription.CustomerEmail,
 				}
 
+				log.Info(log.V{"Razorpay order.paid webhook params": params, "event": "order.paid"})
+
 				go func() {
 					err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
 					if err != nil {
-						log.Error(log.V{"Paypal webhook, Error sending webhook to product's URL": err})
+						log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
 					} else {
-						log.Info(log.V{"msg": "Successfully sent webhook to product's URL"})
+						log.Info(log.V{"msg": "Successfully sent webhook to product's URL", "event": "order.paid"})
 					}
 				}()
 			}
-
 		} else {
 			log.Info(log.V{"Webhook, razorpay order already exists in db, Order ID": subscription.ID})
 		}
@@ -154,11 +153,11 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		if subscription == nil {
-			subscription := New()
-			err := recordRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
+			newSubscription := New()
+			err := recordRazorpaySubscription(razorpayEventSubscriptionCompleted, newSubscription)
 
 			if err != nil {
-				log.Error(log.V{"Webhook, error recording razorpay order in db": err})
+				log.Error(log.V{"Webhook, error recording razorpay subscription in db": err})
 				return err
 			}
 
@@ -172,42 +171,43 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 				if err != nil {
 					log.Error(log.V{"Webhook, error finding product in db": err})
 					return err
-				} else {
-					// If mailchimp list id and mailchimp token is available add to the mailchimp list
-					if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
-						// Add to the mailchimp list
-						audience := mailchimp.Audience{
-							MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
-							Email:       subscription.CustomerEmail,
-							Status:      "subscribed",
-						}
-						go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
+				}
+
+				// If mailchimp list id and mailchimp token is available add to the mailchimp list
+				if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
+					audience := mailchimp.Audience{
+						MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
+						Email:       subscription.CustomerEmail,
+						Status:      "subscribed",
+					}
+					go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
+				}
+
+				if product.WebhookURL != "" && product.WebhookSecret != "" {
+					params := map[string]interface{}{
+						"subscription_id": subscription.SubscriptionId,
+						"custom_id":       subscription.UserId,
+						"status":          "active",
+						"email":           subscription.CustomerEmail,
 					}
 
-					if product.WebhookURL != "" && product.WebhookSecret != "" {
-						params := map[string]interface{}{
-							"subscription_id": subscription.SubscriptionId,
-							"custom_id":       strconv.FormatInt(subscription.UserId, 10),
-							"status":          "active",
-							"email":           subscription.CustomerEmail,
-						}
+					log.Info(log.V{"Razorpay subscription.activated webhook params": params, "event": "subscription.activated"})
 
-						go func() {
-							err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
-							if err != nil {
-								log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
-							} else {
-								log.Info(log.V{"msg": "Successfully sent webhook to product's URL"})
-							}
-						}()
-					}
+					go func() {
+						err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
+						if err != nil {
+							log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
+						} else {
+							log.Info(log.V{"msg": "Successfully sent webhook to product's URL", "event": "subscription.activated"})
+						}
+					}()
 				}
 			} else {
 				log.Error(log.V{"Razorpay Webhook, error finding subscription to send webhook": err})
 			}
 
 		} else {
-			log.Info(log.V{"Webhook, razorpay subscription already exists in db, Order ID": subscription.ID})
+			log.Info(log.V{"Webhook, razorpay subscription already exists in db, Subscription ID": subscription.ID})
 		}
 	case "subscription.charged":
 		log.Info(log.V{"Razorpay webhook event": "Subscription Charged"})
@@ -350,24 +350,26 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 			if err != nil {
 				log.Error(log.V{"Webhook, error finding product in db": err})
 				return err
-			} else {
-				if product.WebhookURL != "" && product.WebhookSecret != "" {
-					params := map[string]interface{}{
-						"subscription_id": subscription.SubscriptionId,
-						"custom_id":       strconv.FormatInt(subscription.UserId, 10),
-						"status":          "cancelled",
-						"email":           subscription.CustomerEmail,
-					}
+			}
 
-					go func() {
-						err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
-						if err != nil {
-							log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
-						} else {
-							log.Info(log.V{"msg": "Successfully sent webhook to product's URL"})
-						}
-					}()
+			if product.WebhookURL != "" && product.WebhookSecret != "" {
+				params := map[string]interface{}{
+					"subscription_id": subscription.SubscriptionId,
+					"custom_id":       subscription.UserId,
+					"status":          "cancelled",
+					"email":           subscription.CustomerEmail,
 				}
+
+				log.Info(log.V{"Razorpay subscription.cancelled webhook params": params, "event": "subscription.cancelled"})
+
+				go func() {
+					err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
+					if err != nil {
+						log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
+					} else {
+						log.Info(log.V{"msg": "Successfully sent webhook to product's URL", "event": "subscription.cancelled"})
+					}
+				}()
 			}
 		}
 	case "subscription.paused":
