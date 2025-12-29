@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.3](https://badgen.net/static/version/0.3.3/blue)
+![Version 0.3.4](https://badgen.net/static/version/0.3.4/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
@@ -251,6 +251,7 @@ User configurable values are included in the table below.
 | razorpay                              | Enable the razorpay payment gateway, when enabled all other razorpay credentials are mandatory. | Dev/Prod: yes                                                                       |
 | razorpay_key_secret                   | Razorpay key secret                                                                             | Dev: XXX, Prod: XXX                                                                 |
 | razorpay_webhook_secret               | Razorpay webhook secret                                                                         | Dev: XXX, Prod: XXX                                                                 |
+| whatsapp_number                       | Whatsapp number for customer support                                                            | Phone number without +,space or dash e.g. 15551234567                               |
 
 
 
