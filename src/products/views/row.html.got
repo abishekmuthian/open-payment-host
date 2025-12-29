@@ -7,7 +7,7 @@
       </div>
       <div>
         {{ range .story.Tags }}
-        <span class="badge badge-ghost badge-sm">{{.}}</span>
+        <span class="badge badge-outline badge-sm">{{.}}</span>
         {{ end }}
       </div>
     </div>
