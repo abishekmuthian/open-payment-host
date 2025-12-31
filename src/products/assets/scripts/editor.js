@@ -1,8 +1,7 @@
 DOM.Ready(function () {
-  if (!window.trix) {
-    console.log("Not loading Trix script on this page");
-    return;
-  }
+  // Don't check for window.trix here - it may not be loaded yet
+  // The event listener will only fire if Trix is present on the page
+
   // Disable File Attachments
   /*   addEventListener("trix-initialize", function (e) {
     const file_tools = document.querySelector(".trix-button-group--file-tools");
@@ -72,9 +71,9 @@ DOM.Ready(function () {
       });
   }
 
-  document
-    .querySelector("trix-editor")
-    .addEventListener("keydown", function (event) {
+  const trixEditorElement = document.querySelector("trix-editor");
+  if (trixEditorElement) {
+    trixEditorElement.addEventListener("keydown", function (event) {
       const trixEditor = this.editor;
 
       if (event.key === "Tab" && isAutocompleteActive) {
@@ -90,4 +89,7 @@ DOM.Ready(function () {
         triggerAutocomplete(this);
       }
     });
+  } else {
+    console.log("Not loading Trix editor on this page");
+  }
 });
