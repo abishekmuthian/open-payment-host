@@ -1,0 +1,24 @@
+{{/* Partial template for HTMX infinite scroll - returns product cards */}}
+{{ $0 := . }}
+{{ range $index, $value := .products }}
+{{ set $0 "story" $value }}
+{{ template "products/views/card.html.got" $0 }}
+{{ end }}
+
+{{/* Load More button - uses out-of-band swap to replace itself */}}
+{{ if lt .itemsShown .productsCount }}
+<div id="load-more-container" hx-swap-oob="true" class="mt-8 flex justify-center">
+  <button
+    id="load-more-btn"
+    hx-get="/?page={{ add .page 1 }}"
+    hx-target="#products-container"
+    hx-swap="beforeend"
+    class="btn"
+  >
+    Load More
+  </button>
+</div>
+{{ else }}
+{{/* When no more products, send empty div replacement to remove it */}}
+<div id="load-more-container" hx-swap-oob="true"></div>
+{{ end }}

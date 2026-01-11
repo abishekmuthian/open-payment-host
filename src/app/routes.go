@@ -36,10 +36,16 @@ func SetupRoutes() *mux.Mux {
 	router.Post("/products/create", storyactions.HandleCreate)
 	router.Get("/products/create/price/{fieldIndex:[0-9]+}/{pg:[a-zA-Z]+}/{schedule:[a-zA-Z ]+}", storyactions.HandlePrice)
 	router.Get("/products/create/schedule", storyactions.HandleSchedule)
+	router.Post("/products/toggle/stripe", storyactions.HandleToggleStripe)
+	router.Post("/products/toggle/square", storyactions.HandleToggleSquare)
 	router.Post("/products/toggle/paypal", storyactions.HandleTogglePaypal)
 	router.Post("/products/toggle/razorpay", storyactions.HandleToggleRazorpay)
+	router.Post("/products/toggle/api", storyactions.HandleToggleAPI)
+	router.Post("/products/{id:[0-9]+}/toggle/stripe", storyactions.HandleToggleStripeUpdate)
+	router.Post("/products/{id:[0-9]+}/toggle/square", storyactions.HandleToggleSquareUpdate)
 	router.Post("/products/{id:[0-9]+}/toggle/paypal", storyactions.HandleTogglePaypalUpdate)
 	router.Post("/products/{id:[0-9]+}/toggle/razorpay", storyactions.HandleToggleRazorpayUpdate)
+	router.Post("/products/{id:[0-9]+}/toggle/api", storyactions.HandleToggleAPIUpdate)
 
 	// Add suggestion route
 	router.Post("/product/editor/suggestion", storyactions.HandleGetSuggestion)

@@ -1,15 +1,18 @@
 {{ if eq .schedule "onetime"}}
 <p class="text-sm/6 razorpay-price-label">
     Multi Country Pricing: Select Country, enter Amount e.g.
-    500 for INR 500 (inclusive of Tax), and enter Currency e.g. INR
+    500 for INR 500 (inclusive of Tax), and enter Currency e.g. INR.
+    It's recommended to set price for 'Any Country (Default)'.
 </p>
 {{ else if eq .schedule "monthly"}}
 <p class="text-sm/6 razorpay-price-label">
-    Multi Country Pricing: Select Country, enter Plan ID
+    Multi Country Pricing: Select Country, enter Plan ID.
+    It's recommended to set price for 'Any Country (Default)'.
 </p>
 {{ else if eq .schedule "yearly"}}
 <p class="text-sm/6 razorpay-price-label">
-    Multi Country Pricing: Select Country, enter Plan ID
+    Multi Country Pricing: Select Country, enter Plan ID.
+    It's recommended to set price for 'Any Country (Default)'.
 </p>
 {{ end }}
 <div

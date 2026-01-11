@@ -97,6 +97,23 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 				return err
 			}
 
+			// Update counters based on product schedule for order.paid events
+			if product != nil {
+				productParams := make(map[string]string)
+				if product.Schedule == "onetime" {
+					product.TotalOnetimePayments += 1
+					productParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
+				} else {
+					// Monthly or yearly subscription
+					product.TotalSubscribers += 1
+					productParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
+				}
+				err = product.Update(productParams)
+				if err != nil {
+					log.Error(log.V{"Razorpay webhook, Error updating product counters for order.paid": err})
+				}
+			}
+
 			// If mailchimp list id and mailchimp token is available add to the mailchimp list
 			if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
 				audience := mailchimp.Audience{
@@ -110,10 +127,10 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 			// Send webhook notification only once
 			if product.WebhookURL != "" && product.WebhookSecret != "" {
 				params := map[string]interface{}{
-					"subscription_id": subscription.PaymentId,
-					"custom_id":       subscription.UserId,
-					"status":          "active",
-					"email":           subscription.CustomerEmail,
+					"order_id":  subscription.PaymentId,
+					"custom_id": subscription.UserId,
+					"status":    "active",
+					"email":     subscription.CustomerEmail,
 				}
 
 				log.Info(log.V{"Razorpay order.paid webhook params": params, "event": "order.paid"})
@@ -581,14 +598,20 @@ func recordRazorpaySubscription(razorpayEventSubscriptionCompleted RazorpayEvent
 	if err == nil {
 		log.Info(log.V{"Webhook, razorpay subscription added to db, ID: ": dbId})
 
-		// Update total subscribers for the product
+		// Update counters based on product schedule
 		if product != nil {
-			product.TotalSubscribers += 1
 			transactionParams := make(map[string]string)
-			transactionParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10) // Use FormatInt instead of Itoa
+			if product.Schedule == "onetime" {
+				product.TotalOnetimePayments += 1
+				transactionParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
+			} else {
+				// Monthly or yearly subscription
+				product.TotalSubscribers += 1
+				transactionParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
+			}
 			err = product.Update(transactionParams)
 			if err != nil {
-				log.Error(log.V{"Razorpay webhook, Error updating total subscribers for product": err})
+				log.Error(log.V{"Razorpay webhook, Error updating product counters": err})
 				return err
 			}
 		}
@@ -613,7 +636,8 @@ func updateRazorpaySubscription(razorpayEventSubscriptionCompleted RazorpayEvent
 			return err
 		} else if product != nil {
 			// Check if product status is not active and then decrement the count
-			if subscription.PaymentStaus != "active" {
+			// Only decrement for recurring subscriptions (not one-time payments)
+			if subscription.PaymentStaus != "active" && product.Schedule != "onetime" {
 
 				// Decrement the total subscribers in the product
 				product.TotalSubscribers -= 1

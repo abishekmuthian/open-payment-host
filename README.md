@@ -279,6 +279,8 @@ Set the following events to send:
 
 1. `subscription.created `
 2. `subscription.updated `
+3. `payment.create`
+4. `payment.updated`
 
 ### Paypal Webhook Setup 
 

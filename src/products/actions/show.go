@@ -115,36 +115,41 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 		// Find which price has the clientCountry
 
 		var pg string
-		if story.StripePrice[clientCountry] != "" {
+		if story.StripePrice != nil && story.StripePrice[clientCountry] != "" {
 			pg = "stripe"
 			log.Info(log.V{"msg": "Show, Using Stripe Price as client country was found"})
-		} else if story.SquarePrice[clientCountry]["amount"] != nil {
+		} else if story.SquarePrice != nil && story.SquarePrice[clientCountry] != nil && story.SquarePrice[clientCountry]["amount"] != nil {
 			pg = "square"
 			log.Info(log.V{"msg": "Show, Using Square Price as client country was found"})
-		} else if story.PaypalPrice[clientCountry]["amount"] != nil || story.PaypalPrice[clientCountry]["plan_id"] != nil {
+		} else if story.PaypalPrice != nil && story.PaypalPrice[clientCountry] != nil && (story.PaypalPrice[clientCountry]["amount"] != nil || story.PaypalPrice[clientCountry]["plan_id"] != nil) {
 			pg = "paypal"
 			log.Info(log.V{"msg": "Show, Using PayPal Price as client country was found"})
-		} else if story.RazorpayPrice[clientCountry]["amount"] != nil || story.RazorpayPrice[clientCountry]["plan_id"] != nil {
+		} else if story.RazorpayPrice != nil && story.RazorpayPrice[clientCountry] != nil && (story.RazorpayPrice[clientCountry]["amount"] != nil || story.RazorpayPrice[clientCountry]["plan_id"] != nil) {
 			pg = "razorpay"
 			log.Info(log.V{"msg": "Show, Using Razorpay Price as client country was found"})
-		} else if story.StripePrice["DF"] != "" {
+		} else if story.StripePrice != nil && story.StripePrice["DF"] != "" {
 			pg = "stripe"
 			clientCountry = "DF"
 			log.Info(log.V{"msg": "Show, Using Stripe Price as default country was found"})
-		} else if story.SquarePrice["DF"]["amount"] != nil {
+		} else if story.SquarePrice != nil && story.SquarePrice["DF"] != nil && story.SquarePrice["DF"]["amount"] != nil {
 			pg = "square"
 			clientCountry = "DF"
 			log.Info(log.V{"msg": "Show, Using Square Price as default country was found"})
 
-		} else if story.PaypalPrice["DF"]["amount"] != nil || story.PaypalPrice["DF"]["plan_id"] != nil {
+		} else if story.PaypalPrice != nil && story.PaypalPrice["DF"] != nil && (story.PaypalPrice["DF"]["amount"] != nil || story.PaypalPrice["DF"]["plan_id"] != nil) {
 			pg = "paypal"
 			clientCountry = "DF"
 			log.Info(log.V{"msg": "Show, Using PayPal Price as default country was found"})
 
-		} else if story.RazorpayPrice["DF"]["amount"] != nil || story.RazorpayPrice["DF"]["plan_id"] != nil {
+		} else if story.RazorpayPrice != nil && story.RazorpayPrice["DF"] != nil && (story.RazorpayPrice["DF"]["amount"] != nil || story.RazorpayPrice["DF"]["plan_id"] != nil) {
 			pg = "razorpay"
 			clientCountry = "DF"
 			log.Info(log.V{"msg": "Show, Using Razorpay Price as default country was found"})
+		} else {
+			// No payment gateway configured for this country
+			log.Error(log.V{"Show, No payment gateway configured for country": clientCountry})
+			view.Template("products/views/show.html.got")
+			return view.Render()
 		}
 
 		switch pg {
@@ -236,7 +241,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 				if story.Schedule == "onetime" {
 					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
 					view.AddKey("type", "onetime")
-					view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d", "onetime", story.ID))
+					view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d&redirect_uri=%s&custom_id=%s", "onetime", story.ID, redirectUri, customId))
 					view.AddKey("amount", amount)
 					view.AddKey("currency", currency)
 				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
@@ -302,7 +307,8 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 			}
 
 		default:
-			return errors.New("invalid payment gateway")
+			log.Error(log.V{"Show, Invalid payment gateway selected": pg, "country": clientCountry})
+			return errors.New("invalid payment gateway: " + pg + " for country: " + clientCountry)
 		}
 
 		// Check which payment gateway has the price for this country and use it

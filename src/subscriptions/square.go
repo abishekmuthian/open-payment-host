@@ -94,6 +94,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		AmountMoney       AmountMoney `json:"amount_money"`
 		SourceID          string      `json:"source_id"`
 		VerificationToken string      `json:"verification_token"`
+		ReferenceID       string      `json:"reference_id,omitempty"`
 	}
 
 	data := Payload{
@@ -104,6 +105,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		},
 		SourceID:          paymentToken,
 		VerificationToken: verificationToken,
+		ReferenceID:       fmt.Sprintf("Product Id: %d", productId),
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {

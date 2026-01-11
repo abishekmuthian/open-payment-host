@@ -95,6 +95,22 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 						story, err := products.Find(productID)
 
 						if err == nil {
+							// Update counters based on actual payment mode (not product schedule)
+							transactionParams := make(map[string]string)
+							if event.Data.Object.Mode == "payment" {
+								// One-time payment
+								story.TotalOnetimePayments += 1
+								transactionParams["total_onetime_payments"] = strconv.FormatInt(story.TotalOnetimePayments, 10)
+							} else if event.Data.Object.Mode == "subscription" {
+								// Monthly or yearly subscription
+								story.TotalSubscribers += 1
+								transactionParams["total_subscribers"] = strconv.FormatInt(story.TotalSubscribers, 10)
+							}
+							err = story.Update(transactionParams)
+							if err != nil {
+								log.Error(log.V{"Stripe webhook, Error updating product counters": err})
+							}
+
 							// If mailchimp list id and mailchimp token is available add to the mailchimp list
 							if story.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
 								// Add to the mailchimp list
@@ -177,7 +193,16 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 			story, err := products.Find(subscription.ProductId)
 
 			if err == nil {
-				// TODO: Implement subscription cancellation update for Stripe
+				// Decrement subscriber count only for recurring subscriptions (not one-time payments)
+				if story.Schedule != "onetime" {
+					story.TotalSubscribers -= 1
+					transactionParams := make(map[string]string)
+					transactionParams["total_subscribers"] = strconv.FormatInt(story.TotalSubscribers, 10)
+					err = story.Update(transactionParams)
+					if err != nil {
+						log.Error(log.V{"Stripe webhook, Error updating total subscribers for product": err})
+					}
+				}
 
 				// If mailchimp list id and mailchimp token is available add to the mailchimp list
 				if story.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
