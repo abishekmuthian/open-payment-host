@@ -1,6 +1,7 @@
 package appactions
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ import (
 func HandleHome(w http.ResponseWriter, r *http.Request) error {
 
 	// FIXME listLimit should be int64 to reflect page, so needs changes in query limit
-	const listLimit = 9
+	const listLimit = 10
 
 	// Build a query
 	q := products.Query().Limit(listLimit)
@@ -49,12 +50,36 @@ func HandleHome(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
+	// Calculate items shown for pagination logic
+	itemsShown := (page + 1) * listLimit
+
+	// Detect HTMX request (partial response for infinite scroll)
+	htmxHeader := r.Header.Get("HX-Request")
+	isHTMXRequest := htmxHeader == "true"
+
+	// Debug logging
+	log.Printf("HX-Request header: '%s', isHTMXRequest: %v", htmxHeader, isHTMXRequest)
+
 	// Render the template
 	view := view.NewRenderer(w, r)
+
+	if isHTMXRequest {
+		// Partial response: just product cards + Load More button
+		view.AddKey("products", results)
+		view.AddKey("page", page)
+		view.AddKey("productsCount", productsCount)
+		view.AddKey("itemsShown", itemsShown)
+		view.Layout("") // Disable layout for HTMX partial response
+		view.Template("products/views/home-cards.html.got")
+		return view.Render()
+	}
+
+	// Full page response: existing code
 	view.AddKey("home", 1)
 	view.AddKey("page", page)
 	view.AddKey("productsCount", productsCount)
 	view.AddKey("products", results)
+	view.AddKey("itemsShown", itemsShown)
 	view.Template("products/views/home.html.got")
 	view.AddKey("meta_url", config.Get("meta_url"))
 	view.AddKey("meta_image", config.Get("meta_image"))

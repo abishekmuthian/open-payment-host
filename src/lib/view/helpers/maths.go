@@ -126,6 +126,11 @@ func Add(a int, b int) int {
 	return a + b
 }
 
+// Add64 returns a + b for int64 values
+func Add64(a int64, b int64) int64 {
+	return a + b
+}
+
 // Subtract returns a - b
 func Subtract(a int, b int) int {
 	return a - b

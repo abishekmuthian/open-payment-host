@@ -142,13 +142,13 @@
                                 {{ if .stripe }}
                                 if #stripe-toggle.checked
                                     set #stripe-toggle.checked to false
-                                    trigger click on #stripe-toggle
+                                    trigger change on #stripe-toggle
                                 end
                                 {{ end }}
                                 {{ if .square }}
                                 if #square-toggle.checked
                                     set #square-toggle.checked to false
-                                    trigger click on #square-toggle
+                                    trigger change on #square-toggle
                                 end
                                 {{ end }}
                                 {{ if .paypal }}
@@ -185,41 +185,18 @@
 
                 <input
                     id="stripe-toggle"
-                    _="on click
-                                 toggle @required on <input, select, textarea/> in #stripe-pricing
-                                 toggle @disabled on <input, select, textarea/> in #stripe-pricing
-                                 toggle @hidden on #stripe-pricing
-                       on load
-                                 set my.checked to false
-                                 if I am not :checked
-                                   repeat for field in <input, select, textarea/> in #stripe-pricing
-                                     remove @required from field
-                                     set field[@disabled] to 'disabled'
-                                   end
-                                   set #stripe-pricing[@hidden] to 'hidden'
-                                 end"
+                    name="stripe-toggle"
+                    hx-post="/products/toggle/stripe"
+                    hx-include="[name='stripe-toggle'], .schedule-select"
+                    hx-target="#stripe-pricing"
+                    hx-swap="innerHTML"
+                    hx-trigger="change"
                     type="checkbox"
                     class="toggle payment-toggle"
+                    _="on load set my.checked to false"
                 />
 
-                <div id="stripe-pricing">
-                    <p class="text-sm/6">
-                        Multi Country Pricing: Select Country and Enter the
-                        Stripe Price API ID
-                    </p>
-
-                    <div
-                        class="space-y-3"
-                        _="
-          on every change in .country-select set currentCountry to the target's value
-          set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
-          if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
-          set the selectedIndex of the target to 0 end
-            "
-                    >
-                        {{ template "products/views/stripe_price.html.got" .}}
-                    </div>
-                </div>
+                <div id="stripe-pricing"></div>
             </div>
             {{ end }} {{ if .square }}
             <hr />
@@ -232,42 +209,18 @@
 
                 <input
                     id="square-toggle"
-                    _="on click
-                                 toggle @required on <input, select, textarea/> in #square-pricing
-                                 toggle @disabled on <input, select, textarea/> in #square-pricing
-                                 toggle @hidden on #square-pricing
-                       on load
-                                 set my.checked to false
-                                 if I am not :checked
-                                   repeat for field in <input, select, textarea/> in #square-pricing
-                                     remove @required from field
-                                     set field[@disabled] to 'disabled'
-                                   end
-                                   set #square-pricing[@hidden] to 'hidden'
-                                 end"
+                    name="square-toggle"
+                    hx-post="/products/toggle/square"
+                    hx-include="[name='square-toggle'], .schedule-select"
+                    hx-target="#square-pricing"
+                    hx-swap="innerHTML"
+                    hx-trigger="change"
                     type="checkbox"
                     class="toggle payment-toggle"
+                    _="on load set my.checked to false"
                 />
 
-                <div id="square-pricing">
-                    <p class="text-sm/6">
-                        Multi Country Pricing: Select Country and enter Amount
-                        in lowest denomination e.g. 5000 for $5, Currency in ISO
-                        4217 format e.g USD.
-                    </p>
-
-                    <div
-                        class="space-y-3"
-                        _="
-        on every change in .country-select set currentCountry to the target's value
-        set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
-        if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
-        set the selectedIndex of the target to 0 end
-          "
-                    >
-                        {{ template "products/views/square_price.html.got" .}}
-                    </div>
-                </div>
+                <div id="square-pricing"></div>
             </div>
             {{ end }} {{ if .paypal }}
             <hr />
@@ -327,75 +280,19 @@
                     <span class="label-text text-xl">API</span>
                 </label>
                 <input
-                    _="on click
-                                 set fields to <input, select, textarea/> in #webhook-details
-                                 repeat for field in fields
-                                   if field.pattern is not empty
-                                     if field[@data-original-pattern] is empty
-                                       set field[@data-original-pattern] to field.pattern
-                                     end
-                                     remove @pattern from field
-                                     remove .validator from field
-                                     set field[@disabled] to 'disabled'
-                                   else
-                                     set field[@pattern] to field[@data-original-pattern]
-                                     add .validator to field
-                                     remove @disabled from field
-                                   end
-                                 end
-                                 toggle @hidden on #webhook-details
-                       on load
-                                 if I am not :checked
-                                   set fields to <input, select, textarea/> in #webhook-details
-                                   repeat for field in fields
-                                     if field.pattern is not empty
-                                       if field[@data-original-pattern] is empty
-                                         set field[@data-original-pattern] to field.pattern
-                                       end
-                                       remove @pattern from field
-                                       remove .validator from field
-                                       set field[@disabled] to 'disabled'
-                                     end
-                                   end
-                                   set #webhook-details[@hidden] to 'hidden'
-                                 end"
+                    id="api-toggle"
+                    name="api-toggle"
+                    hx-post="/products/toggle/api"
+                    hx-include="[name='api-toggle']"
+                    hx-target="#webhook-details"
+                    hx-swap="innerHTML"
+                    hx-trigger="change"
                     type="checkbox"
                     class="toggle"
+                    _="on load set my.checked to false"
                 />
-                <div id="webhook-details">
-                    <p class="text-sm/6 razorpay-price-label">
-                        Enter the Webhook URL and Webhook secret of the server
-                        from where you're calling OPH API
-                    </p>
-                    <div
-                        class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
-                    >
-                        <input
-                            type="url"
-                            name="webhook_url"
-                            placeholder="https://"
-                            value="https://"
-                            pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
-                            class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
-                            title="Must be valid URL"
-                        />
-                        <p class="validator-hint">Must be valid URL</p>
-                        <input
-                            type="text"
-                            name="webhook_secret"
-                            placeholder="64-character hexadecimal string"
-                            pattern="^[a-fA-F0-9]{64}$"
-                            minlength="64"
-                            maxlength="64"
-                            class="input validator w-full rounded-sm max-w-96 prose lg:prose-xl"
-                            title="Must be a 64-character hexadecimal string (32 bytes)"
-                        />
-                        <p class="validator-hint">
-                            Must be a 64-character hexadecimal string (32 bytes)
-                            <br />Example: Use `openssl rand -hex 32` to generate
-                        </p>
-                    </div>
-                </div>
+
+                <div id="webhook-details"></div>
             </div>
 
             <div class="flex justify-center-safe">

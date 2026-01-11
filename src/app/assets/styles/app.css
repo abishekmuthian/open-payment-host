@@ -1675,6 +1675,42 @@
       }
     }
   }
+  .swap {
+    @layer daisyui.l1.l2.l3 {
+      position: relative;
+      display: inline-grid;
+      cursor: pointer;
+      place-content: center;
+      vertical-align: middle;
+      webkit-user-select: none;
+      user-select: none;
+      input {
+        appearance: none;
+        border: none;
+      }
+      > * {
+        grid-column-start: 1;
+        grid-row-start: 1;
+        @media (prefers-reduced-motion: no-preference) {
+          transition-property: transform, rotate, opacity;
+          transition-duration: 0.2s;
+          transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+        }
+      }
+      .swap-on, .swap-indeterminate, input:indeterminate ~ .swap-on {
+        opacity: 0%;
+      }
+      input:is(:checked, :indeterminate) {
+        & ~ .swap-off {
+          opacity: 0%;
+        }
+      }
+      input:checked ~ .swap-on, input:indeterminate ~ .swap-indeterminate {
+        opacity: 100%;
+        backface-visibility: visible;
+      }
+    }
+  }
   .sr-only {
     position: absolute;
     width: 1px;
@@ -2425,6 +2461,9 @@
   }
   .col-12 {
     grid-column: 12;
+  }
+  .col-span-full {
+    grid-column: 1 / -1;
   }
   .hero {
     @layer daisyui.l1.l2.l3 {
@@ -3317,10 +3356,6 @@
       height: var(--size);
     }
   }
-  .size-6 {
-    width: calc(var(--spacing) * 6);
-    height: calc(var(--spacing) * 6);
-  }
   .h-6 {
     height: calc(var(--spacing) * 6);
   }
@@ -3478,6 +3513,9 @@
   .justify-items-center-safe {
     justify-items: safe center;
   }
+  .gap-3 {
+    gap: calc(var(--spacing) * 3);
+  }
   .gap-4 {
     gap: calc(var(--spacing) * 4);
   }
@@ -3543,14 +3581,6 @@
   .border-0 {
     border-style: var(--tw-border-style);
     border-width: 0px;
-  }
-  .badge-ghost {
-    @layer daisyui.l1.l2 {
-      border-color: var(--color-base-200);
-      background-color: var(--color-base-200);
-      color: var(--color-base-content);
-      background-image: none;
-    }
   }
   .badge-outline {
     @layer daisyui.l1.l2 {
@@ -3843,12 +3873,6 @@
       --size: calc(var(--size-field, 0.25rem) * 8);
     }
   }
-  .badge-neutral {
-    @layer daisyui.l1.l2 {
-      --badge-color: var(--color-neutral);
-      --badge-fg: var(--color-neutral-content);
-    }
-  }
   .btn-info {
     @layer daisyui.l1.l2.l3 {
       --btn-color: var(--color-info);
@@ -3865,12 +3889,6 @@
     @layer daisyui.l1.l2.l3 {
       --btn-color: var(--color-primary);
       --btn-fg: var(--color-primary-content);
-    }
-  }
-  .btn-secondary {
-    @layer daisyui.l1.l2.l3 {
-      --btn-color: var(--color-secondary);
-      --btn-fg: var(--color-secondary-content);
     }
   }
   .btn-success {

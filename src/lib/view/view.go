@@ -87,6 +87,7 @@ func DefaultHelpers() parser.FuncMap {
 	funcs["mod"] = helpers.Mod
 	funcs["odd"] = helpers.Odd
 	funcs["add"] = helpers.Add
+	funcs["add64"] = helpers.Add64
 	funcs["subtract"] = helpers.Subtract
 	funcs["int64"] = helpers.Int64
 

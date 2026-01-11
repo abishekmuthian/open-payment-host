@@ -1,24 +1,12 @@
-{{ $pg := "razorpay" }}
-{{ if eq .schedule "onetime" }}
-<p class="text-sm/6 razorpay-price-label">
-  Multi Country Pricing: Select Country, enter Amount e.g. 500 for INR 500 (inclusive of Tax),
-  and enter Currency e.g. INR.
+{{ $pg := "square" }}
+<p class="text-sm/6">
+  Multi Country Pricing: Select Country and enter Amount in lowest
+  denomination e.g. 5000 for $5, Currency in ISO 4217 format e.g USD.
   It's recommended to set price for 'Any Country (Default)'.
 </p>
-{{ else if eq .schedule "monthly" }}
-<p class="text-sm/6 razorpay-price-label">
-  Multi Country Pricing: Select Country, enter Plan ID.
-  It's recommended to set price for 'Any Country (Default)'.
-</p>
-{{ else if eq .schedule "yearly" }}
-<p class="text-sm/6 razorpay-price-label">
-  Multi Country Pricing: Select Country, enter Plan ID.
-  It's recommended to set price for 'Any Country (Default)'.
-</p>
-{{ end }}
 
 <div
-  id="razorpay_price_field"
+  id="square_price_field"
   class="space-y-3"
   _="
   on every change in .country-select set currentCountry to the target's value
@@ -28,7 +16,7 @@
   "
 >
   {{ $fieldIndex := .fieldIndex}}
-  {{ range $countryCode, $values := .razorpayPrices }}
+  {{ range $countryCode, $values := .squarePrices }}
   <div
     id="price_fields_{{ $fieldIndex }}"
     class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
@@ -50,7 +38,6 @@
       {{ end }}
     </select>
 
-    {{ if eq $.schedule "onetime"}}
     <input
       type="number"
       name="{{ $pg }}_amount_{{ $fieldIndex }}"
@@ -76,31 +63,13 @@
       _="on click or input
         if value of #{{ $pg }}_country_{{ $fieldIndex }} is equal to 'Select Country'
           focus() the #{{ $pg }}_country_{{ $fieldIndex }}
-          then call Swal.fire({text:'Select a country first', theme:'auto'})
+          then call Swal.fire({text:'Select a country first',   theme:'auto'})
         else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
           focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
-          then call Swal.fire({text:'Set a amount first', theme:'auto'})
+          then call Swal.fire({text:'Set a amount first',   theme:'auto'})
         end
       "
     />
-    {{ end }}
-
-    {{ if or (eq $.schedule "monthly") (eq $.schedule "yearly") }}
-    <input
-      type="text"
-      name="{{ $pg }}_plan_id_{{ $fieldIndex }}"
-      id="{{ $pg }}_plan_id_{{ $fieldIndex }}"
-      value="{{ $values.plan_id }}"
-      class="input rounded-sm w-full max-w-96 prose lg:prose-xl"
-      required
-      _="on click or input
-        if value of #{{ $pg }}_country_{{ $fieldIndex }} is equal to 'Select Country'
-          focus() the #{{ $pg }}_country_{{ $fieldIndex }}
-          then call Swal.fire({text:'Select a country first',   theme:'auto'})
-        end
-      "
-    />
-    {{ end }}
 
     {{ if gt $fieldIndex 0}}
     <div class="flex">
@@ -114,18 +83,17 @@
     </div>
     {{ end }}
   </div>
-
-  {{ if lt $fieldIndex (subtract (len $.razorpayPrices) 1)}}
+  {{ if lt $fieldIndex (subtract (len $.squarePrices) 1)}}
   {{ $fieldIndex = add $fieldIndex 1}}
   {{ end }}
   {{ end }}
 
-  <div id="price-field-buttons-{{ $pg }}" class="flex">
+  <div id="{{ $pg }}-price-field-buttons-{{ $pg }}" class="flex">
     <button
       id="price_add_country_{{ $fieldIndex }}"
       class="btn"
       hx-get="/products/create/price/{{ $fieldIndex }}/{{ $pg }}/{{ $.schedule }}"
-      hx-target="#price-field-buttons-{{ $pg }}"
+      hx-target="#{{ $pg }}-price-field-buttons-{{ $pg }}"
       hx-swap="outerHTML"
     >
       Add Country
