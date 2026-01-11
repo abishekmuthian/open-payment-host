@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.5](https://badgen.net/static/version/0.3.5/blue)
+![Version 0.3.6](https://badgen.net/static/version/0.3.6/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
