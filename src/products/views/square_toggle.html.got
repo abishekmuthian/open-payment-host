@@ -1,0 +1,18 @@
+<p class="text-sm/6">
+    Multi Country Pricing: Select Country and enter Amount
+    in lowest denomination e.g. 5000 for $5, Currency in ISO
+    4217 format e.g USD. It's recommended to set price for 'Any Country (Default)'.
+</p>
+
+<div
+    id="square_price_field"
+    class="space-y-3"
+    _="
+    on every change in .country-select set currentCountry to the target's value
+    set sameCountries to <.country-select option:checked[value='${currentCountry}']/>
+    if the length of sameCountries is greater than 1 call Swal.fire({text:'This country has already been selected, choose another country or delete this country',   theme:'auto'})
+    set the selectedIndex of the target to 0 end
+    "
+>
+    {{ template "products/views/square_price.html.got" .}}
+</div>

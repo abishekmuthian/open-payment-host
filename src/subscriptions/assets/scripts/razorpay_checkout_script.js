@@ -6,9 +6,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Extracting the product ID from the current URL
   const urlParams = new URLSearchParams(window.location.search);
-  const productId = decodeURIComponent(urlParams.get("product_id"));
-  const customId = decodeURIComponent(urlParams.get("custom_id"));
-  const redirectURI = decodeURIComponent(urlParams.get("redirect_uri"));
+  const productId = urlParams.get("product_id") || "";
+  const customId = urlParams.get("custom_id") || "";
+  const redirectURI = urlParams.get("redirect_uri") || "";
 
   document.getElementById("rzp-button1").onclick = function (e) {
     // Check if phone field exists (for Indian users only)
@@ -111,20 +111,28 @@ document.addEventListener("DOMContentLoaded", async function () {
           console.log(response.razorpay_payment_id);
           console.log(response.razorpay_order_id);
           console.log(response.razorpay_signature);
-          window.location =
+
+          // Build success URL with proper parameter handling
+          let successURL =
             window.location.origin +
             "/subscriptions/success?razorpay_payment_id=" +
-            `${response.razorpay_payment_id}` +
+            encodeURIComponent(response.razorpay_payment_id) +
             "&razorpay_order_id=" +
-            `${response.razorpay_order_id}` +
+            encodeURIComponent(response.razorpay_order_id) +
             "&razorpay_signature=" +
-            `${response.razorpay_signature}` +
+            encodeURIComponent(response.razorpay_signature) +
             "&product_id=" +
-            `${productId}` +
-            "&redirect_uri=" +
-            `${redirectURI}` +
-            "&custom_id=" +
-            `${customId}`;
+            encodeURIComponent(productId);
+
+          // Only add redirect_uri and custom_id if they are not empty
+          if (redirectURI && redirectURI !== "") {
+            successURL += "&redirect_uri=" + encodeURIComponent(redirectURI);
+          }
+          if (customId && customId !== "") {
+            successURL += "&custom_id=" + encodeURIComponent(customId);
+          }
+
+          window.location = successURL;
         },
         prefill: {
           name: document.querySelector(".razorpay-input-name").value,
@@ -132,7 +140,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           contact: phoneField ? phoneField.value : "",
         },
         notes: {
-          custom_id: customId !== "null" ? customId : "",
+          custom_id: customId || "",
           product_id: productId,
           name: document.querySelector(".razorpay-input-name").value,
           email: document.querySelector(".razorpay-input-email").value,

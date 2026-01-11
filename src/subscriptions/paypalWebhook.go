@@ -97,9 +97,8 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 			if err != nil {
 				log.Info(log.V{"Paypal Webhook": "Cannot find the subscription using resource ID"})
 			}
-		}
-
-		if subscription == nil {
+		} else if subscription == nil {
+			// Only try to find by Capture ID if Captures array has elements
 			subscription, err = FindPayment(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures[0].ID)
 			if err != nil {
 				log.Info(log.V{"Webhook, error finding paypal order in db using Capture Id": err})
@@ -115,10 +114,15 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 				return err
 			}
 
-			subscription, err = FindPayment(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures[0].ID)
-			if err != nil {
-				log.Info(log.V{"Webhook, error finding paypal order in db using Capture Id for updating it": err})
+			// Try to find the created subscription
+			if len(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures) > 0 {
+				subscription, err = FindPayment(paypalEventCheckout.Resource.PurchaseUnits[0].Payments.Captures[0].ID)
+				if err != nil {
+					log.Info(log.V{"Webhook, error finding paypal order in db using Capture Id for updating it": err})
+				}
+			}
 
+			if subscription == nil || err != nil {
 				subscription, err = FindPayment(paypalEventCheckout.Resource.ID)
 
 				if err != nil {
@@ -133,6 +137,23 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 				log.Error(log.V{"Webhook, error finding product in db": err})
 				return err
 			} else {
+				// Update counters based on product schedule for CHECKOUT.ORDER.APPROVED events
+				if product != nil {
+					productParams := make(map[string]string)
+					if product.Schedule == "onetime" {
+						product.TotalOnetimePayments += 1
+						productParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
+					} else {
+						// Monthly or yearly subscription
+						product.TotalSubscribers += 1
+						productParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
+					}
+					err = product.Update(productParams)
+					if err != nil {
+						log.Error(log.V{"Paypal webhook, Error updating product counters for CHECKOUT.ORDER.APPROVED": err})
+					}
+				}
+
 				// If mailchimp list id and mailchimp token is available add to the mailchimp list
 				if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
 					// Add to the mailchimp list
@@ -555,14 +576,20 @@ func recordPaypalSubscription(paypalEventSubscription PaypalEventSubscription, s
 	if err == nil {
 		log.Info(log.V{"Webhook, Paypal order added to db, ID: ": dbId})
 
-		// Update total subscribers for the product
+		// Update counters based on product schedule
 		if product != nil {
-			product.TotalSubscribers += 1
 			transactionParams := make(map[string]string)
-			transactionParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10) // Use FormatInt instead of Itoa
+			if product.Schedule == "onetime" {
+				product.TotalOnetimePayments += 1
+				transactionParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
+			} else {
+				// Monthly or yearly subscription
+				product.TotalSubscribers += 1
+				transactionParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
+			}
 			err = product.Update(transactionParams)
 			if err != nil {
-				log.Error(log.V{"Paypal webhook, Error updating total subscribers for product": err})
+				log.Error(log.V{"Paypal webhook, Error updating product counters": err})
 				return err
 			}
 		}
@@ -587,7 +614,8 @@ func updatePaypalSubscription(paypalEventSubscription PaypalEventSubscription, s
 			return err
 		} else if product != nil {
 			// Check if product status is not ACTIVE and then decrement the count
-			if subscription.PaymentStaus != "ACTIVE" {
+			// Only decrement for recurring subscriptions (not one-time payments)
+			if subscription.PaymentStaus != "ACTIVE" && product.Schedule != "onetime" {
 
 				// Decrement the total subscribers in the product
 				product.TotalSubscribers -= 1

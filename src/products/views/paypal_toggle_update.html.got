@@ -3,16 +3,19 @@
 <p class="text-sm/6 paypal-price-label">
   Multi Country Pricing: Select Country, enter Amount e.g. 5 for $5
   (exclusive of Tax), enter Tax e.g. 2 for $2 or 0 for no tax and
-  enter Currency e.g. USD
+  enter Currency e.g. USD.
+  It's recommended to set price for 'Any Country (Default)'.
 </p>
 {{ else if eq .schedule "monthly" }}
 <p class="text-sm/6 paypal-price-label">
   Multi Country Pricing: Select Country,enter Amount e.g. 5 for $5,
-  enter e.g. 5 for $5 (exclusive of Tax) and enter the Paypal Plan ID
+  enter e.g. 5 for $5 (exclusive of Tax) and enter the Paypal Plan ID.
+  It's recommended to set price for 'Any Country (Default)'.
 </p>
 {{ else if eq .schedule "yearly" }}
 <p class="text-sm/6 paypal-price-label">
-  Multi Country Pricing: Select Country, enter Amount e.g. 60 for $60 (exclusive of Tax) and enter the Paypal Plan ID
+  Multi Country Pricing: Select Country, enter Amount e.g. 60 for $60 (exclusive of Tax) and enter the Paypal Plan ID.
+  It's recommended to set price for 'Any Country (Default)'.
 </p>
 {{ end }}
 

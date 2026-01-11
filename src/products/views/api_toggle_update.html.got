@@ -1,0 +1,31 @@
+<p class="text-sm/6 razorpay-price-label">
+  Enter the Webhook URL and Webhook secret of the server from where
+  you're calling OPH API
+</p>
+<div class="join join-vertical sm:join-horizontal space-y-2 space-x-2">
+  <input
+    type="url"
+    name="webhook_url"
+    placeholder="https://"
+    value="{{ .story.WebhookURL }}"
+    pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
+    class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
+    title="Must be valid URL"
+    required
+  />
+  <p class="validator-hint">Must be valid URL</p>
+  <input
+    type="text"
+    name="webhook_secret"
+    placeholder="Minimum 8 characters"
+    value="{{ .story.WebhookSecret }}"
+    minlength="8"
+    class="input validator w-full rounded-sm max-w-96 prose lg:prose-xl"
+    title="Must be at least 8 characters"
+    required
+  />
+  <p class="validator-hint">
+    Must be at least 8 characters. For security, consider using numerals, uppercase letters, and special characters.
+    <br />Example: Use `openssl rand -hex 32` to generate a strong secret
+  </p>
+</div>

@@ -26,3 +26,38 @@ type EventSubscriptionModel struct {
 		} `json:"object"`
 	} `json:"data"`
 }
+
+type EventPaymentModel struct {
+	MerchantID string    `json:"merchant_id"`
+	Type       string    `json:"type"`
+	EventID    string    `json:"event_id"`
+	CreatedAt  time.Time `json:"created_at"`
+	Data       struct {
+		Type   string `json:"type"`
+		ID     string `json:"id"`
+		Object struct {
+			Payment struct {
+				ID                 string `json:"id"`
+				CreatedAt          string `json:"created_at"`
+				UpdatedAt          string `json:"updated_at"`
+				AmountMoney        struct {
+					Amount   int64  `json:"amount"`
+					Currency string `json:"currency"`
+				} `json:"amount_money"`
+				TotalMoney         struct {
+					Amount   int64  `json:"amount"`
+					Currency string `json:"currency"`
+				} `json:"total_money"`
+				Status             string `json:"status"`
+				SourceType         string `json:"source_type"`
+				CustomerID         string `json:"customer_id"`
+				LocationID         string `json:"location_id"`
+				OrderID            string `json:"order_id"`
+				ReferenceID        string `json:"reference_id"`
+				ReceiptNumber      string `json:"receipt_number"`
+				ReceiptURL         string `json:"receipt_url"`
+				VersionToken       string `json:"version_token"`
+			} `json:"payment"`
+		} `json:"object"`
+	} `json:"data"`
+}

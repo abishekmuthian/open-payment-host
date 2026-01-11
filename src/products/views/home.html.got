@@ -10,6 +10,7 @@
 
 <div class="mt-8">
   <div
+    id="products-container"
     class="grid grid-cols-1
   {{ if ge (len .products) 2 }}
      sm:grid-cols-2
@@ -35,13 +36,17 @@
   </div>
 </div>
 
-{{ if gt .productsCount 3 }}
-<div class="mt-5 flex justify-center">
-  {{ if gt .page 0}}
-  <li class="btn mr-5"><a href="?page={{subtract .page 1 }}">Back</a></li>
-  {{ end }}
-  {{ if eq (len .products) 3 }}
-  <li class="btn"><a href="?page={{add .page 1 }}">Show More</a></li>
-  {{ end }}
+{{/* HTMX Infinite Scroll - Load More button */}}
+{{ if lt .itemsShown .productsCount }}
+<div id="load-more-container" class="mt-8 flex justify-center">
+  <button
+    id="load-more-btn"
+    hx-get="/?page={{ add .page 1 }}"
+    hx-target="#products-container"
+    hx-swap="beforeend"
+    class="btn"
+  >
+    Load More
+  </button>
 </div>
 {{ end }}

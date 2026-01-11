@@ -27,7 +27,7 @@ func AllowedParams() []string {
 
 // AllowedParamsAdmin returns the cols editable by admins
 func AllowedParamsAdmin() []string {
-	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "webhook_url", "webhook_secret"}
+	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "total_onetime_payments", "webhook_url", "webhook_secret"}
 }
 
 // NewWithColumns creates a new story instance and fills it with data from the database cols provided.
@@ -60,6 +60,7 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	// FIXME: - Need not load subscribers all the time, create separate function
 	story.Subscribers = resource.ValidateInt64Array(cols["subscribers"])
 	story.TotalSubscribers = resource.ValidateInt(cols["total_subscribers"])
+	story.TotalOnetimePayments = resource.ValidateInt(cols["total_onetime_payments"])
 	story.MailchimpAudienceID = resource.ValidateString(cols["mailchimp_audience_id"])
 	story.StripePrice = resource.ValidateMap(cols["stripe_price"])
 	story.SquarePrice = resource.ValidateNestedMap(cols["square_price"])
@@ -120,6 +121,17 @@ func Find(id int64) (*Story, error) {
 func FindPaypalPlanId(planId string) (*Story, error) {
 	q := Query().Limit(1)
 	q.Where(`paypal_price LIKE ?`, "%"+planId+"%")
+	result, err := FindAll(q)
+	if result == nil || err != nil {
+		return nil, err
+	}
+	return result[0], nil
+}
+
+// FindSquarePlanId fetches a single story record from the database by square plan id
+func FindSquarePlanId(planId string) (*Story, error) {
+	q := Query().Limit(1)
+	q.Where(`square_subscription_plan_Id LIKE ?`, "%"+planId+"%")
 	result, err := FindAll(q)
 	if result == nil || err != nil {
 		return nil, err
