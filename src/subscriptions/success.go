@@ -83,7 +83,7 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 
 		if razorpayOrderCompleted {
 			log.Info(log.V{"Razorpay order completed": razorpayOrderId})
-			if redirectURI != "null" && customId != "null" { // Because the request is from JavaScript
+			if redirectURI != "" && redirectURI != "null" && customId != "" && customId != "null" { // Because the request is from JavaScript
 				params := map[string]string{
 					"custom_id": customId,
 					"order_id":  razorpayOrderId,

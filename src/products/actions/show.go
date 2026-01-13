@@ -192,7 +192,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
 					scheduleLabel := "Monthly"
 					if story.Schedule == "yearly" {
-						scheduleLabel = "Yearly"
+						scheduleLabel = "Year"
 					}
 					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+scheduleLabel)
 					view.AddKey("type", "subscription")
@@ -219,7 +219,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
 					scheduleLabel := "Monthly"
 					if story.Schedule == "yearly" {
-						scheduleLabel = "Yearly"
+						scheduleLabel = "Year"
 					}
 					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+scheduleLabel)
 					view.AddKey("type", "subscription")
@@ -292,7 +292,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 
 							scheduleLabel := "Monthly"
 							if story.Schedule == "yearly" {
-								scheduleLabel = "Yearly"
+								scheduleLabel = "Year"
 							}
 							view.AddKey("price", strconv.FormatFloat(razorpayAmount.(float64)/100, 'g', 5, 64)+" "+razorpayCurrency.(string)+"/"+scheduleLabel)
 						} else {
