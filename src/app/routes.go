@@ -79,6 +79,7 @@ func SetupRoutes() *mux.Mux {
 	router.Get("/subscriptions/razorpay", subscriptions.HandleRazorpayShow)
 	router.Post("/subscriptions/subscribe", subscriptions.HandleCreateSubscription)
 	router.Get("/subscriptions/success", subscriptions.HandlePaymentSuccess)
+	router.Get("/subscriptions/stripe-success", subscriptions.HandleStripeSuccess)
 	router.Get("/subscriptions/cancel", subscriptionactions.HandlePaymentCancel)
 	router.Post("/subscriptions/stripe-webhook", subscriptions.HandleWebhook)
 	router.Post("/subscriptions/square-webhook", subscriptions.HandleSquareWebhook)

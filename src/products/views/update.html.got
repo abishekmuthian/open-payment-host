@@ -128,6 +128,24 @@
         />
       </div>
 
+      <div class="flex flex-col space-y-3">
+        <label class="block text-sm/6 font-medium">
+          <span class="label-text text-xl">Listmonk List ID</span>
+        </label>
+        <p class="text-sm/6">
+          Optional Listmonk List ID to add subscribers
+        </p>
+        <input
+          type="number"
+          name="listmonk_list_id"
+          id="listmonk_list_id"
+          placeholder="1"
+          min="1"
+          class="input w-full max-w-lg prose lg:prose-xl"
+          value="{{ if gt .story.ListmonkListID 0 }}{{ .story.ListmonkListID }}{{ end }}"
+        />
+      </div>
+
       <hr />
       <div class="flex flex-col space-y-3">
         <label class="block text-sm/6 font-medium">

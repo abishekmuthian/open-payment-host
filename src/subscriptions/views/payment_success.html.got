@@ -3,9 +3,25 @@
      <h1 class="text-4xl font-medium">Payment successful</h1>
      <br>
      <div class="prose lg:prose-xl">
+        {{ if .downloadUrl }}
+        Your payment was successful! Your download will start automatically.
+        {{ else }}
         Your payment was successful! You will receive details about your subscription over the email.
+        {{ end }}
      </div>
      <br>
-     <a class="btn" type="submit" href="/">Home</a>
+     <div class="flex gap-4">
+         {{ if .downloadUrl }}
+         <a class="btn" href="{{ .downloadUrl }}">Download File</a>
+         {{ end }}
+         <a class="btn" href="/">Home</a>
+     </div>
     </div>
 </div>
+
+{{ if .downloadUrl }}
+<div class="hidden" _="on load
+  wait 500ms
+  set window.location.href to @data-url
+" data-url="{{ .downloadUrl }}"></div>
+{{ end }}

@@ -48,16 +48,19 @@ type Story struct {
 	InsightsUpdatedTime     time.Time
 
 	// Subscription
-	Flair                 string
-	Subscribers           []int64
-	TotalSubscribers      int64
-	TotalOnetimePayments  int64
+	Flair                string
+	Subscribers          []int64
+	TotalSubscribers     int64
+	TotalOnetimePayments int64
 
 	// Stripe
 	StripePrice map[string]string
 
 	// Mailchimp
 	MailchimpAudienceID string
+
+	// Listmonk
+	ListmonkListID int64
 
 	//Square
 	SquarePrice              map[string]map[string]interface{}

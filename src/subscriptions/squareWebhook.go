@@ -76,7 +76,7 @@ func HandleSquareWebhook(w http.ResponseWriter, r *http.Request) error {
 			}
 
 			if payment == nil {
-				payment := New()
+				payment = New()
 				err = recordSquarePaymentTransaction(eventPayment, payment)
 				if err != nil {
 					log.Error(log.V{"Webhook, error recording payment transaction": err})
@@ -84,6 +84,26 @@ func HandleSquareWebhook(w http.ResponseWriter, r *http.Request) error {
 				}
 			} else {
 				log.Info(log.V{"Webhook payment already present in the DB": payment.ID})
+			}
+
+			productID := payment.ProductId
+			if productID == 0 && eventPayment.Data.Object.Payment.ReferenceID != "" {
+				_, parseErr := fmt.Sscanf(eventPayment.Data.Object.Payment.ReferenceID, "Product Id: %d", &productID)
+				if parseErr != nil {
+					log.Error(log.V{"Square webhook, Error finding completed payment product ID for Listmonk": parseErr})
+				}
+			}
+			if productID > 0 {
+				product, productErr := products.Find(productID)
+				if productErr != nil {
+					log.Error(log.V{"Square webhook, Error finding completed payment product for Listmonk": productErr})
+				} else {
+					addSquareSubscriberToListmonk(
+						product.ListmonkListID,
+						eventPayment.Data.Object.Payment.BuyerEmailAddress,
+						eventPayment.Data.Object.Payment.CustomerID,
+					)
+				}
 			}
 		}
 		return nil
@@ -136,6 +156,19 @@ func HandleSquareWebhook(w http.ResponseWriter, r *http.Request) error {
 						log.Error(log.V{"Square webhook, Error updating total subscribers for product": err})
 					}
 				}
+			}
+		}
+
+		if eventSubscription.Data.Object.Subscription.Status == "ACTIVE" {
+			product, err := products.FindSquarePlanId(eventSubscription.Data.Object.Subscription.PlanID)
+			if err != nil {
+				log.Error(log.V{"Square webhook, Error finding active subscription product for Listmonk": err})
+			} else if product != nil {
+				addSquareSubscriberToListmonk(
+					product.ListmonkListID,
+					"",
+					eventSubscription.Data.Object.Subscription.CustomerID,
+				)
 			}
 		}
 		return nil

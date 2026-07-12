@@ -76,7 +76,7 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 
 		if subscription == nil {
 			newSubscription := New()
-			err := recordRazorpayCheckoutOrder(razorpayEventOrderPaid, newSubscription)
+			err = recordRazorpayCheckoutOrder(razorpayEventOrderPaid, newSubscription)
 
 			if err != nil {
 				log.Error(log.V{"Webhook, error recording razorpay order in db": err})
@@ -123,6 +123,7 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 				}
 				go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
 			}
+			addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
 
 			// Send webhook notification only once
 			if product.WebhookURL != "" && product.WebhookSecret != "" {
@@ -146,6 +147,12 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 			}
 		} else {
 			log.Info(log.V{"Webhook, razorpay order already exists in db, Order ID": subscription.ID})
+			product, productErr := products.Find(subscription.ProductId)
+			if productErr != nil {
+				log.Error(log.V{"Razorpay webhook, Error finding existing order product for Listmonk": productErr})
+			} else {
+				addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
+			}
 		}
 	case "subscription.authenticated":
 		log.Info(log.V{"Razorpay webhook event": "Subscription Authenticated"})
@@ -171,7 +178,7 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 
 		if subscription == nil {
 			newSubscription := New()
-			err := recordRazorpaySubscription(razorpayEventSubscriptionCompleted, newSubscription)
+			err = recordRazorpaySubscription(razorpayEventSubscriptionCompleted, newSubscription)
 
 			if err != nil {
 				log.Error(log.V{"Webhook, error recording razorpay subscription in db": err})
@@ -199,6 +206,7 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 					}
 					go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
 				}
+				addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
 
 				if product.WebhookURL != "" && product.WebhookSecret != "" {
 					params := map[string]interface{}{

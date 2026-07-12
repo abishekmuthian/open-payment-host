@@ -81,7 +81,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 			customer, err := customer.Get(event.Data.Object.Customer, nil)
 			if err == nil {
 				event.Data.Object.BillingDetails.Name = customer.Name
-				err := recordSubscriptionPaymentTransaction(event, subscription)
+				err = recordSubscriptionPaymentTransaction(event, subscription)
 				if err != nil {
 					log.Error(log.V{"Webhook, error recording subscription transaction": err})
 				} else {
@@ -121,6 +121,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
 								}
 								go mailchimp.AddToAudience(audience, story.MailchimpAudienceID, mailchimp.GetMD5Hash(event.Data.Object.CustomerDetails.Email), config.Get("mailchimp_token"))
 							}
+							addSubscriberToListmonk(story.ListmonkListID, event.Data.Object.CustomerDetails.Email, event.Data.Object.BillingDetails.Name)
 						} else {
 							log.Error(log.V{"Webhook, Error finding product in the webhook for adding to mailchimp": err})
 						}
