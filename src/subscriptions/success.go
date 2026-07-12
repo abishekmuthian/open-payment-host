@@ -48,6 +48,23 @@ func buildRedirectURL(baseURL string, params map[string]string) string {
 	return url
 }
 
+// renderPaymentSuccessWithDownload renders the payment success page, optionally
+// triggering a file download via a presigned URL. When downloadUrl is non-empty,
+// the template auto-triggers the download after rendering so the user sees the
+// "Payment successful" page rather than the billing details page they came from.
+func renderPaymentSuccessWithDownload(w http.ResponseWriter, r *http.Request, downloadUrl string) error {
+	currentUser := session.CurrentUser(w, r)
+	view := view.NewRenderer(w, r)
+	view.AddKey("currentUser", currentUser)
+	view.AddKey("name", config.Get("name"))
+	view.AddKey("year", time.Now().Year())
+	if downloadUrl != "" {
+		view.AddKey("downloadUrl", downloadUrl)
+	}
+	view.Template("subscriptions/views/payment_success.html.got")
+	return view.Render()
+}
+
 // HandlePaymentSuccess handles the success routine of the payment
 func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 
@@ -83,7 +100,20 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 
 		if razorpayOrderCompleted {
 			log.Info(log.V{"Razorpay order completed": razorpayOrderId})
-			if redirectURI != "" && redirectURI != "null" && customId != "" && customId != "null" { // Because the request is from JavaScript
+
+			product, err := products.Find(productId)
+			if err != nil {
+				return server.InternalError(err)
+			}
+		if product.S3Bucket != "" && product.S3Key != "" {
+			downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
+			if err == nil {
+				return renderPaymentSuccessWithDownload(w, r, downloadUrl)
+			}
+			log.Error(log.V{"Razorpay success, Error generating download url": err})
+		}
+
+		if redirectURI != "" && redirectURI != "null" && customId != "" && customId != "null" { // Because the request is from JavaScript
 				params := map[string]string{
 					"custom_id": customId,
 					"order_id":  razorpayOrderId,
@@ -105,14 +135,21 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 		if razorpayOrderCompleted {
 			log.Info(log.V{"Razorpay subscription completed": razorpayOrderId})
 
-			// Send webhook if available
 			product, err := products.Find(productId)
 			if err != nil {
 				log.Error(log.V{"Success, Error finding product": err})
 				return server.InternalError(err)
 			}
+		if product.S3Bucket != "" && product.S3Key != "" {
+			downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
+			if err == nil {
+				return renderPaymentSuccessWithDownload(w, r, downloadUrl)
+			}
+			log.Error(log.V{"Razorpay success, Error generating download url": err})
+		}
 
-			if product.WebhookURL != "" && product.WebhookSecret != "" {
+		// Send webhook if available
+		if product.WebhookURL != "" && product.WebhookSecret != "" {
 				params := map[string]interface{}{
 					"subscription_id": razorpaySubscriptionId,
 					"custom_id":       customId,
@@ -177,7 +214,7 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 			downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
 
 			if err == nil {
-				return server.RedirectExternal(w, r, downloadUrl)
+				return renderPaymentSuccessWithDownload(w, r, downloadUrl)
 			}
 		}
 
@@ -226,13 +263,5 @@ func HandlePaymentSuccess(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Render the template
-	view := view.NewRenderer(w, r)
-	view.AddKey("currentUser", currentUser)
-	// Set the name and year
-	view.AddKey("name", config.Get("name"))
-	view.AddKey("year", time.Now().Year())
-
-	view.Template("subscriptions/views/payment_success.html.got")
-
-	return view.Render()
+	return renderPaymentSuccessWithDownload(w, r, "")
 }

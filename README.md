@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.6](https://badgen.net/static/version/0.3.6/blue)
+![Version 0.3.8](https://badgen.net/static/version/0.3.8/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
@@ -60,9 +60,9 @@ Clicking the above image would open the video in YouTube. -->
 - Customers can buy without logging in, Increases conversion.
 - Multi-country pricing, Price changes automatically according to the user's location resulting in better conversion.
 - Light and Dark theme.
-- Mailchimp support, Customers are automatically added to a mailchimp list; Useful for sending newsletters.
+- Listmonk, Mailchimp support, Customers are automatically added to a audience list; Useful for sending newsletters.
 - File attachment support(images) for the product posts.
-- S3 support for delivering digital files via automatic pre-signed URL.
+- S3 and Cloudflare R2 support for delivering digital files via automatic pre-signed URL.
 - Subscriber count for the products.
 - Automatic SSL and other security features for production.
 - Automatic payment gateway router based on country<sup>new</sup>
@@ -232,6 +232,8 @@ User configurable values are included in the table below.
 | square_domain                         | Square API domain                                                                               | Dev: https://connect.squareupsandbox.com/v2, Prod: https://connect.squareup.com/v2  |
 | s3_access_key                         | S3 compatible access key                                                                        | Dev: NA,Prod: NA                                                                    |
 | s3_secret_key                         | S3 compatible secret key                                                                        | Dev: NA, Prod: NA                                                                   |
+| s3_endpoint                           | S3 compatible endpoint. Leave empty for AWS S3. For Cloudflare R2 set `https://<account_id>.r2.cloudflarestorage.com` | Dev: NA, Prod: NA                                                      |
+| s3_region                             | Region for signing. Defaults to `us-east-1` when empty. Use `auto` for R2.                      | Dev: NA, Prod: NA                                                                   |
 | stripe                                | Enable the stripe payment gateway, When enabled all other stripe credentials are mandatory.     | Dev/Prod : yes, no                                                                  |
 | stripe_key                            | Stripe developer key.                                                                           | Dev: pk*test*..., Prod: pk*live*...\*\*\*\*                                         |
 | stripe_secret                         | Stripe developer secret key.                                                                    | Dev: sk*test*..., Prod: sk*live*...                                                 |
@@ -240,6 +242,9 @@ User configurable values are included in the table below.
 | stripe_callback_domain                | Root URL for callback after Stripe event.                                                       | Dev: [Use tunnel like ngrok], Prod: [Use root_url]                                  |
 | subscription_client_country           | Test country for testing multi-country pricing.                                                 | Dev: US, IN, FR etc. Prod: NA                                                       |
 | mailchimp_token                       | Mailchimp API Key.                                                                              | e.g. ...-us12                                                                       |
+| listmonk_URL                          | Base URL of the Listmonk instance used to add purchasers to product-specific lists.             | e.g. https://listmonk.example.com                                                   |
+| listmonk_API_token                    | Listmonk API credentials in `api_key:token` format.                                              | e.g. oph:secret-token                                                               |
+| listmonk_preconfirm_subscriptions     | Preconfirm Listmonk subscriptions. Set to `no` or `false` to use double opt-in lists.            | Default: true; true values: true, yes, 1, on                                        |
 | turnstile_secret_key                  | Cloudflare turnstile secret key for captcha.                                                    | Dev: 1x00000000000000000000AA, Prod: 0x...                                          |
 | turnstile_site_key                    | Cloudflare turnstile key for captcha.                                                           | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...                               |
 | paypal                                | Enable the paypal payment gateway, When enabled all other paypal credentials are mandatory.     | Dev/Prod : yes,no                                                                   |

@@ -14,10 +14,27 @@ import (
 // GeneratePresignedUrl generates the url for download from the S3
 func GeneratePresignedUrl(s3bucket string, s3key string) (string, error) {
 
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String("us-east-1"),
+	// Region defaults to us-east-1 (AWS S3 default) when unset
+	region := config.Get("s3_region")
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	awsConfig := &aws.Config{
+		Region:      aws.String(region),
 		Credentials: credentials.NewStaticCredentials(config.Get("s3_access_key"), config.Get("s3_secret_key"), ""),
-	})
+	}
+
+	// When a custom endpoint is set (e.g. Cloudflare R2), point the SDK at it
+	// and use path-style addressing, which is the safer default for
+	// S3-compatible stores. When empty, the SDK falls back to AWS S3.
+	endpoint := config.Get("s3_endpoint")
+	if endpoint != "" {
+		awsConfig.Endpoint = aws.String(endpoint)
+		awsConfig.S3ForcePathStyle = aws.Bool(true)
+	}
+
+	sess, err := session.NewSession(awsConfig)
 
 	// Create S3 service client
 	svc := s3.New(sess)

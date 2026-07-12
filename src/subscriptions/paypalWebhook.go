@@ -107,7 +107,7 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 
 		if subscription == nil {
 			subscription := New()
-			err := recordPaypalCheckoutOrder(paypalEventCheckout, subscription)
+			err = recordPaypalCheckoutOrder(paypalEventCheckout, subscription)
 
 			if err != nil {
 				log.Error(log.V{"Webhook, error recording paypal order in db": err})
@@ -164,6 +164,7 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 					}
 					go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
 				}
+				addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
 			}
 
 			if product.WebhookURL != "" && product.WebhookSecret != "" {
@@ -250,7 +251,7 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 
 		if subscription == nil {
 			subscription := New()
-			err := recordPaypalSubscription(paypalEventSubscription, *subscription)
+			err = recordPaypalSubscription(paypalEventSubscription, *subscription)
 
 			if err != nil {
 				log.Error(log.V{"Webhook, error recording paypal order in db": err})
@@ -278,6 +279,7 @@ func HandlePaypalWebhook(w http.ResponseWriter, r *http.Request) error {
 						}
 						go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
 					}
+					addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
 					if product.WebhookURL != "" && product.WebhookSecret != "" {
 						params := map[string]interface{}{
 							"subscription_id": subscription.SubscriptionId,
