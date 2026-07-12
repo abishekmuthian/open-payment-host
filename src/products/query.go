@@ -27,7 +27,7 @@ func AllowedParams() []string {
 
 // AllowedParamsAdmin returns the cols editable by admins
 func AllowedParamsAdmin() []string {
-	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "total_onetime_payments", "webhook_url", "webhook_secret"}
+	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "listmonk_list_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "total_onetime_payments", "webhook_url", "webhook_secret"}
 }
 
 // NewWithColumns creates a new story instance and fills it with data from the database cols provided.
@@ -62,6 +62,7 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	story.TotalSubscribers = resource.ValidateInt(cols["total_subscribers"])
 	story.TotalOnetimePayments = resource.ValidateInt(cols["total_onetime_payments"])
 	story.MailchimpAudienceID = resource.ValidateString(cols["mailchimp_audience_id"])
+	story.ListmonkListID = resource.ValidateInt(cols["listmonk_list_id"])
 	story.StripePrice = resource.ValidateMap(cols["stripe_price"])
 	story.SquarePrice = resource.ValidateNestedMap(cols["square_price"])
 	story.Schedule = resource.ValidateString(cols["schedule"])

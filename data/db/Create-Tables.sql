@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS products (
     shared boolean,
     stripe_price text,
     mailchimp_audience_id text,
+    listmonk_list_id integer DEFAULT 0,
     square_price text,
     schedule text,
     square_subscription_plan_Id text,

@@ -258,6 +258,9 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 		accepted = products.AllowedParamsAdmin()
 	}
 	storyParams := story.ValidateParams(params.Map(), accepted)
+	if listID, ok := storyParams["listmonk_list_id"]; ok && listID == "" {
+		storyParams["listmonk_list_id"] = "0"
+	}
 
 	// Featured Image
 	for _, fh := range params.Files {

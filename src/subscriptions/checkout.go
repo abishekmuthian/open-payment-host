@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
-	s3 "github.com/abishekmuthian/open-payment-host/src/lib/s3"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
@@ -48,26 +47,7 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 
 	var successURL *string
 
-	productID, err := strconv.ParseInt(req.Product, 10, 64)
-
-	if err == nil {
-		product, err := products.Find(productID)
-
-		if err == nil {
-
-			if product.S3Bucket != "" && product.S3Key != "" {
-				downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
-
-				if err == nil {
-					return server.RedirectExternal(w, r, downloadUrl)
-				}
-				successURL = stripe.String(downloadUrl)
-			} else {
-				successURL = stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/success?session_id={CHECKOUT_SESSION_ID}")
-			}
-
-		}
-	}
+	successURL = stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/stripe-success?session_id={CHECKOUT_SESSION_ID}")
 
 	// Needed when using stripe JS
 	/*	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

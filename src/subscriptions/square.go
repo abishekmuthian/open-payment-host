@@ -77,6 +77,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 	amount := params.GetInt("amount")
 	currency := params.Get("currency")
 	productId := params.GetInt("productId")
+	email := params.Get("email")
 
 	// Generate a new Version 4 UUID
 	u, err := uuid.NewRandom()
@@ -95,6 +96,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		SourceID          string      `json:"source_id"`
 		VerificationToken string      `json:"verification_token"`
 		ReferenceID       string      `json:"reference_id,omitempty"`
+		BuyerEmailAddress string      `json:"buyer_email_address,omitempty"`
 	}
 
 	data := Payload{
@@ -106,6 +108,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		SourceID:          paymentToken,
 		VerificationToken: verificationToken,
 		ReferenceID:       fmt.Sprintf("Product Id: %d", productId),
+		BuyerEmailAddress: email,
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
@@ -169,7 +172,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 				downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
 
 				if err == nil {
-					return server.RedirectExternal(w, r, downloadUrl)
+					return renderPaymentSuccessWithDownload(w, r, downloadUrl)
 				}
 			}
 
@@ -271,7 +274,7 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 			downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
 
 			if err == nil {
-				return server.RedirectExternal(w, r, downloadUrl)
+				return renderPaymentSuccessWithDownload(w, r, downloadUrl)
 			}
 		}
 
