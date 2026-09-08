@@ -47,7 +47,7 @@
       required
       _="on click or input
         if value of #{{ $pg }}_country_{{ $fieldIndex }} is equal to 'Select Country'
-          focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+          call #{{ $pg }}_country_{{ $fieldIndex }}.focus()
           then call Swal.fire({text:'Select a country first',   theme:'auto'})
         end
       "

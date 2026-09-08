@@ -3,8 +3,8 @@
 {{ end }}
 
 {{ if .loadTrixScript }}
-<link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
-<script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js"></script>
+{{ style "trix" }}
+{{ script "trix" }}
 {{ end }}
 
 
@@ -25,11 +25,11 @@
 {{ end }}
 
 {{ if .loadHypermedia }}
-<script src="https://unpkg.com/htmx.org@2.0.4" type="text/javascript"></script>
-<script src="https://unpkg.com/hyperscript.org@0.9.14" type="text/javascript"></script>
+{{ script "htmx" }}
+{{ script "hyperscript" }}
 {{ end }}
 
 {{ if .loadSweetAlert }}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" type="text/javascript"></script>
+{{ script "sweetalert2" }}
 {{ end }}
 
