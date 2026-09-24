@@ -1,282 +1,220 @@
 package subscriptions
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"strconv"
-
+	"errors"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
-	"github.com/abishekmuthian/open-payment-host/src/products"
+	"net/http"
+	"net/url"
 )
 
-// HandleSquareWebhook receives the webhook POST request from the Square
+func isFromSquare(signature string, body []byte) bool {
+	key := config.Get("square_signature_key")
+	notification := config.Get("square_notification_url")
+	if key == "" || notification == "" || signature == "" {
+		return false
+	}
+	h := hmac.New(sha256.New, []byte(key))
+	h.Write([]byte(notification))
+	h.Write(body)
+	actual, err := base64.StdEncoding.DecodeString(signature)
+	return err == nil && hmac.Equal(actual, h.Sum(nil))
+}
 func HandleSquareWebhook(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "POST" {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return nil
-	}
-
-	// Check if the event is from Square
-	signature := r.Header.Get("x-square-hmacsha256-signature")
-
-	b, err := io.ReadAll(r.Body)
+	body, err := readWebhookBody(w, r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Error(log.V{"ioutil.ReadAll: %v": err})
-		return err
-	}
-
-	if isFromSquare(signature, b) {
-		// Signature is valid. Return 200 OK.
-		w.WriteHeader(200)
-		log.Info(log.V{"Request body: ": string(b)})
-	} else {
-		// Signature is invalid. Return 403 Forbidden.
-		w.WriteHeader(403)
-		log.Error(log.V{"Square Webhook": "Invalid signature"})
 		return nil
 	}
-
-	// First, detect event type by checking for "payment" or "subscription" in the type field
-	var baseEvent struct {
+	if !isFromSquare(r.Header.Get("x-square-hmacsha256-signature"), body) {
+		http.Error(w, "Invalid signature", 403)
+		return nil
+	}
+	var e struct {
+		ID   string `json:"event_id"`
 		Type string `json:"type"`
+		Data struct {
+			Object struct {
+				Payment struct {
+					ID          string `json:"id"`
+					ReferenceID string `json:"reference_id"`
+					Status      string `json:"status"`
+				} `json:"payment"`
+				Invoice struct {
+					ID             string `json:"id"`
+					SubscriptionID string `json:"subscription_id"`
+				} `json:"invoice"`
+				Subscription struct {
+					ID     string `json:"id"`
+					Status string `json:"status"`
+				} `json:"subscription"`
+				Refund struct {
+					ID          string `json:"id"`
+					PaymentID   string `json:"payment_id"`
+					Status      string `json:"status"`
+					AmountMoney struct {
+						Amount   int64  `json:"amount"`
+						Currency string `json:"currency"`
+					} `json:"amount_money"`
+				} `json:"refund"`
+			} `json:"object"`
+		} `json:"data"`
 	}
-	err = json.Unmarshal(b, &baseEvent)
-	if err != nil {
-		log.Error(log.V{"Square Event Type JSON Unmarshall": err})
-		return err
-	}
-
-	log.Info(log.V{"Square Event Type": baseEvent.Type})
-
-	// Handle payment events (payment.created, payment.updated)
-	if baseEvent.Type == "payment.created" || baseEvent.Type == "payment.updated" {
-		var eventPayment EventPaymentModel
-		err = json.Unmarshal(b, &eventPayment)
-		if err != nil {
-			log.Error(log.V{"Square Payment Event JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Square Payment Event parsed": eventPayment})
-
-		// Only process COMPLETED payments
-		if eventPayment.Data.Object.Payment.Status == "COMPLETED" {
-			var payment *Subscription
-			payment, err = FindPayment(eventPayment.Data.Object.Payment.ID)
-			if err != nil {
-				log.Info(log.V{"Webhook, error finding payment using Payment Id": err})
-			}
-
-			if payment == nil {
-				payment = New()
-				err = recordSquarePaymentTransaction(eventPayment, payment)
-				if err != nil {
-					log.Error(log.V{"Webhook, error recording payment transaction": err})
-					return err
-				}
-			} else {
-				log.Info(log.V{"Webhook payment already present in the DB": payment.ID})
-			}
-
-			productID := payment.ProductId
-			if productID == 0 && eventPayment.Data.Object.Payment.ReferenceID != "" {
-				_, parseErr := fmt.Sscanf(eventPayment.Data.Object.Payment.ReferenceID, "Product Id: %d", &productID)
-				if parseErr != nil {
-					log.Error(log.V{"Square webhook, Error finding completed payment product ID for Listmonk": parseErr})
-				}
-			}
-			if productID > 0 {
-				product, productErr := products.Find(productID)
-				if productErr != nil {
-					log.Error(log.V{"Square webhook, Error finding completed payment product for Listmonk": productErr})
-				} else {
-					addSquareSubscriberToListmonk(
-						product.ListmonkListID,
-						eventPayment.Data.Object.Payment.BuyerEmailAddress,
-						eventPayment.Data.Object.Payment.CustomerID,
-					)
-				}
-			}
-		}
+	if err = json.Unmarshal(body, &e); err != nil {
+		http.Error(w, "Invalid event", 400)
 		return nil
-	} else {
-		// Handle subscription events (subscription.created, subscription.updated)
-		var eventSubscription EventSubscriptionModel
-		err = json.Unmarshal(b, &eventSubscription)
-		if err != nil {
-			log.Error(log.V{"Square Subscription Event JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Square Subscription Event parsed": eventSubscription})
-
-		var subscription *Subscription
-		subscription, err = FindSubscription(eventSubscription.Data.Object.Subscription.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding subscription using Subscription Id": err})
-		}
-
-		if subscription == nil {
-			subscription := New()
-			err = recordSquareSubscriptionPaymentTransaction(eventSubscription, subscription)
+	}
+	err = processPaymentEvent("square", e.ID, func() error {
+		o := e.Data.Object
+		switch e.Type {
+		case "payment.created", "payment.updated":
+			if o.Payment.Status != "COMPLETED" || o.Payment.ReferenceID == "" {
+				return nil
+			}
+			a, err := FindAttempt(o.Payment.ReferenceID)
 			if err != nil {
-				log.Error(log.V{"Webhook, error recording subscription transaction": err})
 				return err
 			}
-		} else if eventSubscription.Data.Object.Subscription.Status != "ACTIVE" {
-
-			// Update the subscription in the database
-			transactionParams := make(map[string]string)
-			transactionParams["payment_status"] = eventSubscription.Data.Object.Subscription.Status
-			err = subscription.Update(transactionParams)
-
-			if err == nil {
-				log.Info(log.V{"Webhook transaction updated to db, Subscription ID": subscription.ID})
-			}
-
-			// Decrement subscriber count only for recurring subscriptions (not one-time payments)
-			if err == nil && subscription.ProductId > 0 {
-				product, err := products.Find(subscription.ProductId)
-				if err != nil {
-					log.Error(log.V{"Square webhook, Error finding product": err})
-				} else if product != nil && product.Schedule != "onetime" {
-					product.TotalSubscribers -= 1
-					productParams := make(map[string]string)
-					productParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
-					err = product.Update(productParams)
-					if err != nil {
-						log.Error(log.V{"Square webhook, Error updating total subscribers for product": err})
-					}
-				}
-			}
-		}
-
-		if eventSubscription.Data.Object.Subscription.Status == "ACTIVE" {
-			product, err := products.FindSquarePlanId(eventSubscription.Data.Object.Subscription.PlanID)
+			f, err := fetchSquarePaymentFacts(a, o.Payment.ID)
 			if err != nil {
-				log.Error(log.V{"Square webhook, Error finding active subscription product for Listmonk": err})
-			} else if product != nil {
-				addSquareSubscriberToListmonk(
-					product.ListmonkListID,
-					"",
-					eventSubscription.Data.Object.Subscription.CustomerID,
-				)
+				return err
 			}
+			_, err = verifyAndFulfill(a, f)
+			return err
+		case "invoice.payment_made":
+			if o.Invoice.SubscriptionID == "" {
+				return nil
+			}
+			a, err := FindAttemptByProviderSubscription("square", o.Invoice.SubscriptionID)
+			if err != nil {
+				return err
+			}
+			f, err := fetchSquareInvoiceFacts(a, o.Invoice.ID)
+			if err != nil {
+				return err
+			}
+			_, err = verifyAndFulfill(a, f)
+			return err
+		case "subscription.updated":
+			switch o.Subscription.Status {
+			case "CANCELED":
+				return applySubscriptionStatus("square", o.Subscription.ID, "cancelled")
+			case "DEACTIVATED":
+				return applySubscriptionStatus("square", o.Subscription.ID, "expired")
+			case "PAUSED":
+				return applySubscriptionStatus("square", o.Subscription.ID, "paused")
+			}
+		case "refund.created", "refund.updated":
+			f := o.Refund
+			if f.Status != "COMPLETED" {
+				return nil
+			}
+			return applyRefund("square", f.PaymentID, f.ID, f.AmountMoney.Amount, f.AmountMoney.Currency)
 		}
 		return nil
+	})
+	return webhookResult(w, err)
+}
+func fetchSquarePaymentFacts(a *PaymentAttempt, id string) (ProviderFacts, error) {
+	var result Charge
+	if err := providerJSON("square", http.MethodGet, "/payments/"+url.PathEscape(id), nil, &result); err != nil {
+		return ProviderFacts{}, err
 	}
+	p := result.Payment
+	if a.Gateway != "square" || a.Schedule != "onetime" || p.ID != id || p.ReferenceID != a.Id || p.Status != "COMPLETED" {
+		return ProviderFacts{}, errors.New("invalid Square payment")
+	}
+	if err := a.SetProviderIds("", p.ID, ""); err != nil {
+		return ProviderFacts{}, err
+	}
+	return ProviderFacts{Gateway: "square", PaymentId: p.ID, Amount: int64(p.AmountMoney.Amount), Currency: p.AmountMoney.Currency, Paid: true, Email: p.BuyerEmailAddress}, nil
+}
+func fetchSquareInvoiceFacts(a *PaymentAttempt, id string) (ProviderFacts, error) {
+	var result struct {
+		Invoice struct {
+			ID               string `json:"id"`
+			Status           string `json:"status"`
+			SubscriptionID   string `json:"subscription_id"`
+			OrderID          string `json:"order_id"`
+			PrimaryRecipient struct {
+				Email string `json:"email_address"`
+			} `json:"primary_recipient"`
+		} `json:"invoice"`
+	}
+	if err := providerJSON("square", http.MethodGet, "/invoices/"+url.PathEscape(id), nil, &result); err != nil {
+		return ProviderFacts{}, err
+	}
+	invoice := result.Invoice
+	if invoice.ID != id || invoice.SubscriptionID != a.ProviderSubscriptionId || invoice.Status != "PAID" || invoice.OrderID == "" {
+		return ProviderFacts{}, errPaymentPending
+	}
+	var sub SubscriptionModel
+	if err := providerJSON("square", http.MethodGet, "/subscriptions/"+url.PathEscape(a.ProviderSubscriptionId), nil, &sub); err != nil {
+		return ProviderFacts{}, err
+	}
+	if sub.Subscription.ID != a.ProviderSubscriptionId || sub.Subscription.PlanID != a.PriceId {
+		return ProviderFacts{}, errors.New("subscription plan mismatch")
+	}
+	var order struct {
+		Order struct {
+			ID      string `json:"id"`
+			State   string `json:"state"`
+			Tenders []struct {
+				PaymentID string `json:"payment_id"`
+			} `json:"tenders"`
+		} `json:"order"`
+	}
+	if err := providerJSON("square", http.MethodGet, "/orders/"+url.PathEscape(invoice.OrderID), nil, &order); err != nil {
+		return ProviderFacts{}, err
+	}
+	if order.Order.ID != invoice.OrderID || order.Order.State != "COMPLETED" || len(order.Order.Tenders) != 1 {
+		return ProviderFacts{}, errors.New("unsupported or unpaid subscription invoice")
+	}
+	paymentID := order.Order.Tenders[0].PaymentID
+	if paymentID == "" {
+		return ProviderFacts{}, errors.New("invoice has no payment")
+	}
+	var payment Charge
+	if err := providerJSON("square", http.MethodGet, "/payments/"+url.PathEscape(paymentID), nil, &payment); err != nil {
+		return ProviderFacts{}, err
+	}
+	p := payment.Payment
+	if p.ID != paymentID || p.OrderID != invoice.OrderID || p.Status != "COMPLETED" {
+		return ProviderFacts{}, errors.New("invoice payment mismatch")
+	}
+	return ProviderFacts{Gateway: "square", PaymentId: p.ID, SubscriptionId: a.ProviderSubscriptionId, PriceId: a.PriceId, Amount: int64(p.AmountMoney.Amount), Currency: p.AmountMoney.Currency, Paid: true, Email: invoice.PrimaryRecipient.Email}, nil
 }
 
-// recordSquarePaymentTransaction adds one-time payment transaction to database from Square Webhook
-func recordSquarePaymentTransaction(eventPayment EventPaymentModel, payment *Subscription) error {
-	// Params not validated using ValidateParams as user did not create these?
-	transactionParams := make(map[string]string)
-	transactionParams["pg"] = "square"
-	transactionParams["txn_id"] = eventPayment.Data.Object.Payment.ID
-	transactionParams["payment_date"] = eventPayment.Data.Object.Payment.CreatedAt
-	transactionParams["receipt_id"] = eventPayment.Data.Object.Payment.ReceiptNumber
-	transactionParams["mc_gross"] = strconv.FormatInt(eventPayment.Data.Object.Payment.AmountMoney.Amount, 10)
-	transactionParams["payment_gross"] = strconv.FormatInt(eventPayment.Data.Object.Payment.TotalMoney.Amount, 10)
-	transactionParams["mc_currency"] = eventPayment.Data.Object.Payment.AmountMoney.Currency
-	transactionParams["payer_id"] = eventPayment.Data.Object.Payment.CustomerID
-	transactionParams["txn_type"] = eventPayment.Data.Type
-	transactionParams["payment_status"] = eventPayment.Data.Object.Payment.Status
-
-	// Extract product ID from ReferenceID (format: "Product Id: 123")
-	var productId int64
-	if eventPayment.Data.Object.Payment.ReferenceID != "" {
-		// Parse the reference ID to extract product ID
-		_, err := fmt.Sscanf(eventPayment.Data.Object.Payment.ReferenceID, "Product Id: %d", &productId)
-		if err == nil && productId > 0 {
-			transactionParams["item_number"] = strconv.FormatInt(productId, 10)
-		}
+func validateSquarePlan(id, schedule string, amount int64, currency string) error {
+	var result struct {
+		Object struct {
+			ID   string `json:"id"`
+			Plan struct {
+				Phases []struct {
+					Cadence string `json:"cadence"`
+					Price   struct {
+						Amount   int64  `json:"amount"`
+						Currency string `json:"currency"`
+					} `json:"recurring_price_money"`
+				} `json:"phases"`
+			} `json:"subscription_plan_data"`
+		} `json:"object"`
 	}
-
-	dbId, err := payment.Create(transactionParams)
-
-	if err == nil {
-		log.Info(log.V{"Webhook payment transaction added to db, ID: ": dbId})
-
-		// Update counters based on product schedule
-		if productId > 0 {
-			product, err := products.Find(productId)
-			if err != nil {
-				log.Error(log.V{"Square webhook, Error finding product by ID": err})
-			} else if product != nil {
-				productParams := make(map[string]string)
-				// One-time payments always increment TotalOnetimePayments
-				product.TotalOnetimePayments += 1
-				productParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
-				err = product.Update(productParams)
-				if err != nil {
-					log.Error(log.V{"Square webhook, Error updating product counters": err})
-				}
-			}
-		}
+	if err := providerJSON("square", http.MethodGet, "/catalog/object/"+url.PathEscape(id), nil, &result); err != nil {
+		return err
 	}
-
-	return err
-}
-
-// isFromSquare generates a signature from the url and body and compares it to the Square signature header.
-func isFromSquare(signature string, body []byte) bool {
-	payload := new(bytes.Buffer)
-	_ = json.Compact(payload, body)
-
-	appended := append([]byte(config.Get("square_notification_url")), payload.Bytes()...)
-	key := []byte(config.Get("square_signature_key"))
-	hash := hmac.New(sha256.New, key)
-	hash.Write(appended)
-
-	return signature == base64.StdEncoding.EncodeToString(hash.Sum(nil))
-}
-
-// recordSquareSubscriptionPaymentTransaction adds the transaction to database from Square Webhook
-func recordSquareSubscriptionPaymentTransaction(eventSubscription EventSubscriptionModel, subscription *Subscription) error {
-	// Params not validated using ValidateParams as user did not create these?
-	transactionParams := make(map[string]string)
-	transactionParams["pg"] = "square"
-	transactionParams["txn_id"] = eventSubscription.Data.Object.Subscription.PlanID
-	transactionParams["payment_date"] = eventSubscription.Data.Object.Subscription.CreatedDate
-	transactionParams["payer_id"] = eventSubscription.Data.Object.Subscription.CustomerID
-	transactionParams["txn_type"] = eventSubscription.Data.Type
-	transactionParams["payment_status"] = eventSubscription.Data.Object.Subscription.Status
-	transactionParams["subscr_id"] = eventSubscription.Data.Object.Subscription.ID
-
-	dbId, err := subscription.Create(transactionParams)
-
-	if err == nil {
-		log.Info(log.V{"Webhook transaction added to db, ID: ": dbId})
-
-		// Update counters based on product schedule
-		// Find product by Square plan ID
-		product, err := products.FindSquarePlanId(eventSubscription.Data.Object.Subscription.PlanID)
-		if err != nil {
-			log.Error(log.V{"Square webhook, Error finding product by plan ID": err})
-		} else if product != nil {
-			productParams := make(map[string]string)
-			if product.Schedule == "onetime" {
-				product.TotalOnetimePayments += 1
-				productParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
-			} else {
-				// Monthly or yearly subscription
-				product.TotalSubscribers += 1
-				productParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
-			}
-			err = product.Update(productParams)
-			if err != nil {
-				log.Error(log.V{"Square webhook, Error updating product counters": err})
-			}
-		}
+	cadence := "MONTHLY"
+	if schedule == "yearly" {
+		cadence = "ANNUAL"
 	}
-
-	return err
+	if result.Object.ID != id || len(result.Object.Plan.Phases) != 1 {
+		return errors.New("unsupported Square plan")
+	}
+	p := result.Object.Plan.Phases[0]
+	if p.Cadence != cadence || p.Price.Amount != amount || !currencyEqual(p.Price.Currency, currency) {
+		return errors.New("Square plan price or cadence mismatch")
+	}
+	return nil
 }

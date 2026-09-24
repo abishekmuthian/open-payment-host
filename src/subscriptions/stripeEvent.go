@@ -61,6 +61,7 @@ type MetaData struct {
 	UserName  string `json:"user_name"`
 	Plan      string `json:"plan"`
 	ProductID string `json:"product_id"`
+	AttemptID string `json:"attempt_id"`
 }
 
 type TotalDetails struct {

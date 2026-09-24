@@ -392,21 +392,21 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 
 		err = json.Unmarshal([]byte(storyParams["square_price"]), &squarePrice)
 
-		if err == nil && !reflect.DeepEqual(story.SquarePrice, squarePrice) {
+		if err == nil && (!reflect.DeepEqual(story.SquarePrice, squarePrice) || story.Schedule != storyParams["schedule"]) {
 			if len(squarePrice) != 0 {
+				catalogMap := make(map[string]string)
 				for clientCountry, data := range squarePrice {
 					amount := data["amount"]
 					currency := data["currency"]
-					catalogId, error := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string))
+					catalogId, planErr := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string), storyParams["schedule"])
 
-					if err != nil {
-						log.Error(log.V{"Error creating subscription plan ": error})
+					if planErr != nil {
+						log.Error(log.V{"Error creating subscription plan ": planErr})
 						continue
 					}
 					log.Info(log.V{"CountryCode is ": clientCountry, "Catalog ID is ": catalogId})
 
 					if catalogId != "" && clientCountry != "" {
-						catalogMap := make(map[string]string)
 
 						catalogMap[clientCountry] = catalogId
 

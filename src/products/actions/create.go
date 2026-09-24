@@ -415,19 +415,19 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 		// Creating subscription plan for Square
 		if err == nil {
 			if len(squarePrice) != 0 {
+				catalogMap := make(map[string]string)
 				for clientCountry, data := range squarePrice {
 					amount := data["amount"]
 					currency := data["currency"]
-					catalogId, error := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string))
+					catalogId, planErr := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string), storyParams["schedule"])
 
-					if err != nil {
-						log.Error(log.V{"Error creating subscription plan ": error})
+					if planErr != nil {
+						log.Error(log.V{"Error creating subscription plan ": planErr})
 						continue
 					}
 					log.Info(log.V{"CountryCode is ": clientCountry, "Catalog ID is ": catalogId})
 
 					if catalogId != "" && clientCountry != "" {
-						catalogMap := make(map[string]string)
 
 						catalogMap[clientCountry] = catalogId
 
@@ -472,7 +472,7 @@ func CountHashTag(name string) int {
 }
 
 // CreateSubscriptionPlan creates a subscription plan for square
-func CreateSubscriptionPlan(productId int64, amount int64, currency string) (string, error) {
+func CreateSubscriptionPlan(productId int64, amount int64, currency string, schedule string) (string, error) {
 
 	type RecurringPriceMoney struct {
 		Amount   int64  `json:"amount"`
@@ -515,7 +515,7 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 				Name: fmt.Sprintf("Subscription for %s", product.Name),
 				Phases: []Phases{
 					Phases{
-						Cadence: "MONTHLY",
+						Cadence: squarePlanCadence(schedule),
 						RecurringPriceMoney: RecurringPriceMoney{
 							Amount:   amount,
 							Currency: currency,
@@ -576,4 +576,11 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 	log.Info(log.V{"Square Payment parsed": catalog})
 
 	return catalog.CatalogObject.ID, err
+}
+
+func squarePlanCadence(schedule string) string {
+	if schedule == "yearly" {
+		return "ANNUAL"
+	}
+	return "MONTHLY"
 }

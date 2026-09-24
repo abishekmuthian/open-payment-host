@@ -86,10 +86,11 @@ type Items struct {
 	Upc         Upc        `json:"upc,omitzero"`
 }
 type PurchaseUnits struct {
-	CustomID  string  `json:"custom_id,omitempty"`
-	InvoiceID string  `json:"invoice_id,omitempty"`
-	Amount    Amount  `json:"amount,omitempty"`
-	Items     []Items `json:"items,omitempty"`
+	ReferenceID string  `json:"reference_id,omitempty"`
+	CustomID    string  `json:"custom_id,omitempty"`
+	InvoiceID   string  `json:"invoice_id,omitempty"`
+	Amount      Amount  `json:"amount,omitempty"`
+	Items       []Items `json:"items,omitempty"`
 }
 
 type Card struct {

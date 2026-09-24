@@ -22,7 +22,11 @@ type PayPalOrderDetailsResult struct {
 	} `json:"payment_source,omitempty"`
 	PurchaseUnits []struct {
 		ReferenceID string `json:"reference_id,omitempty"`
-		Amount      struct {
+		Items       []struct {
+			Sku      string `json:"sku"`
+			Quantity string `json:"quantity"`
+		} `json:"items"`
+		Amount struct {
 			CurrencyCode string `json:"currency_code,omitempty"`
 			Value        string `json:"value,omitempty"`
 			Breakdown    struct {

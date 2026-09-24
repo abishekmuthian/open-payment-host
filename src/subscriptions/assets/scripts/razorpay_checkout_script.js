@@ -108,31 +108,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         // image: "https://example.com/your_logo",
         order_id: orderID(), //This is a sample Order ID. Pass the `id` obtained in the response of Step 1
         handler: function (response) {
-          console.log(response.razorpay_payment_id);
-          console.log(response.razorpay_order_id);
-          console.log(response.razorpay_signature);
 
-          // Build success URL with proper parameter handling
-          let successURL =
-            window.location.origin +
-            "/subscriptions/success?razorpay_payment_id=" +
-            encodeURIComponent(response.razorpay_payment_id) +
-            "&razorpay_order_id=" +
-            encodeURIComponent(response.razorpay_order_id) +
-            "&razorpay_signature=" +
-            encodeURIComponent(response.razorpay_signature) +
-            "&product_id=" +
-            encodeURIComponent(productId);
-
-          // Only add redirect_uri and custom_id if they are not empty
-          if (redirectURI && redirectURI !== "") {
-            successURL += "&redirect_uri=" + encodeURIComponent(redirectURI);
-          }
-          if (customId && customId !== "") {
-            successURL += "&custom_id=" + encodeURIComponent(customId);
-          }
-
-          window.location = successURL;
+          window.location = "/subscriptions/success?" + new URLSearchParams(response);
         },
         prefill: {
           name: document.querySelector(".razorpay-input-name").value,

@@ -5,603 +5,307 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
+	"github.com/abishekmuthian/open-payment-host/src/lib/session"
+	"github.com/abishekmuthian/open-payment-host/src/lib/view"
+	"github.com/abishekmuthian/open-payment-host/src/products"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
-	"github.com/abishekmuthian/open-payment-host/src/lib/session"
-	"github.com/abishekmuthian/open-payment-host/src/lib/view"
-	"github.com/abishekmuthian/open-payment-host/src/products"
-	"github.com/google/uuid"
 )
 
+func checkoutCountry(r *http.Request) string {
+	if !config.Production() {
+		return config.Get("subscription_client_country")
+	}
+	return r.Header.Get("CF-IPCountry")
+}
+func paypalConfiguredPrice(p *products.Story, country string) (map[string]interface{}, string, error) {
+	field := "amount"
+	if p.Schedule != "onetime" {
+		field = "plan_id"
+	}
+	price := p.PaypalPrice[country]
+	if price == nil || price[field] == nil {
+		country = "DF"
+		price = p.PaypalPrice[country]
+	}
+	if price == nil || price[field] == nil {
+		return nil, "", errors.New("PayPal price not configured")
+	}
+	return price, country, nil
+}
 func HandlePaypalShow(w http.ResponseWriter, r *http.Request) error {
-	// Fetch the  params
+	paymentResponseHeaders(w)
 	params, err := mux.Params(r)
 	if err != nil {
-		return server.InternalError(err)
+		return server.BadRequestError(err)
 	}
-
-	// Get current user
-	currentUser := session.CurrentUser(w, r)
-
-	productId := params.GetInt("product_id")
-
-	product, err := products.Find(productId)
+	p, err := products.Find(params.GetInt("product_id"))
 	if err != nil {
-		// Handle the error appropriately
-		log.Error(log.V{"Error finding product with ID": productId, "error": err})
-		return server.InternalError(err)
+		return server.NotFoundError(err)
 	}
-
-	// Get the country from IP
-	clientCountry := r.Header.Get("CF-IPCountry")
-	if !config.Production() {
-		// There will be no CF request header in the development/test
-		clientCountry = config.Get("subscription_client_country")
+	redirect, err := ValidateRedirectURI(p, params.Get("redirect_uri"))
+	if err != nil {
+		return server.BadRequestError(err)
 	}
-
-	log.Info(log.V{"Subscription, Client Country": clientCountry})
-
-	amount := product.PaypalPrice[clientCountry]["amount"]
-	currency := product.PaypalPrice[clientCountry]["currency"]
-
-	// If there is no amount for the client country then get the amount for default country
-
-	if amount == nil || currency == nil {
-		clientCountry = "DF"
-		amount = product.PaypalPrice[clientCountry]["amount"]
-		currency = product.PaypalPrice[clientCountry]["currency"]
+	price, country, err := paypalConfiguredPrice(p, checkoutCountry(r))
+	if err != nil {
+		return server.BadRequestError(err)
 	}
-
-	// Render the template
-	view := view.NewRenderer(w, r)
-
-	view.AddKey("currentUser", currentUser)
-
-	switch product.Schedule {
-	case "onetime":
-		view.AddKey("price", fmt.Sprintf("%d %s/One Time", amount, currency))
-		// Load the Paypal script
-		view.AddKey("loadPaypalOneTimeScript", true)
-
-		view.AddKey("meta_payment_script_type", "checkout")
-	case "monthly", "yearly":
-		planId := product.PaypalPrice[clientCountry]["plan_id"]
-
-		// Add paypal plan id
-		view.AddKey("meta_plan_id", planId) // TODO: Retrieve the plan id from the product
-
-		// Display appropriate label based on schedule
-		scheduleLabel := "Monthly"
-		if product.Schedule == "yearly" {
-			scheduleLabel = "Yearly"
+	var amount int64
+	var currency, planID string
+	if p.Schedule == "onetime" {
+		currency, _ = price["currency"].(string)
+		amount, err = configuredMinor(price["amount"], currency, false)
+		if err != nil {
+			return server.BadRequestError(err)
 		}
-		view.AddKey("price", fmt.Sprintf("%d %s/%s", amount, currency, scheduleLabel))
-		view.AddKey("meta_payment_script_type", "subscription")
-		view.AddKey("loadPaypalSubscriptionScript", true)
+		if tax := price["tax"]; tax != nil {
+			taxMinor, err := configuredMinor(tax, currency, false)
+			if err != nil {
+				return server.BadRequestError(err)
+			}
+			if taxMinor < 0 || amount > int64(^uint64(0)>>1)-taxMinor {
+				return server.BadRequestError(errors.New("invalid total"))
+			}
+			amount += taxMinor
+		}
+	} else {
+		planID, _ = price["plan_id"].(string)
+		amount, currency, err = fetchPaypalPlanPrice(planID, p.Schedule)
+		if err != nil {
+			return server.BadRequestError(err)
+		}
 	}
-
-	view.AddKey("currency", currency)
-
+	a, err := newAttempt(p.ID, "paypal", p.Schedule, country, amount, currency, planID, params.Get("custom_id"), redirect)
+	if err != nil {
+		return server.InternalError(err)
+	}
+	setAttemptCookie(w, r, a)
+	v := view.NewRenderer(w, r)
+	v.AddKey("currentUser", session.CurrentUser(w, r))
+	v.AddKey("story", p)
+	v.AddKey("name", config.Get("name"))
+	v.AddKey("year", time.Now().Year())
+	v.AddKey("clientId", config.Get("paypal_client_id"))
+	v.AddKey("currency", currency)
+	v.AddKey("loadSweetAlert", true)
+	v.AddKey("meta_product_id", p.ID)
+	v.AddKey("meta_product_amount", minorDecimal(amount, currency))
+	v.AddKey("price", formatMinorUnits(amount, currency))
+	if p.Schedule == "onetime" {
+		v.AddKey("loadPaypalOneTimeScript", true)
+		v.AddKey("meta_payment_script_type", "checkout")
+	} else {
+		v.AddKey("loadPaypalSubscriptionScript", true)
+		v.AddKey("meta_payment_script_type", "subscription")
+	}
 	if !config.Production() {
-		view.AddKey("sandbox", true)
-		view.AddKey("country", clientCountry)
+		v.AddKey("sandbox", true)
+		v.AddKey("country", checkoutCountry(r))
 	}
-	view.AddKey("story", product)
-
-	view.AddKey("loadSweetAlert", true)
-	view.AddKey("meta_product_id", productId)
-	view.AddKey("meta_product_amount", amount)
-
-	// Add paypal client id
-	view.AddKey("clientId", config.Get("paypal_client_id")) // Use this for Paypal subscription
-	// view.AddKey("clientId", "BAA_37xNWO-_TYQABs_za4T-tDHEKnjtnx0H-pmTIVu4ByQ8IKQdYLGZ-frvwVTcVK6G7z6Bzkg0Zyr-f8")
-
-	// Set the name and year
-	view.AddKey("name", config.Get("name"))
-	view.AddKey("year", time.Now().Year())
-	return view.Render()
+	return v.Render()
 }
-
-// HandlePaypalCreateOrder creates order and returns order id.
-// It responds to /subscriptions/paypal/orders
+func paypalAttempt(r *http.Request, recurring bool) (*PaymentAttempt, error) {
+	parts := strings.Split(attemptCookie(r), ".")
+	if len(parts) != 2 {
+		return nil, errors.New("missing checkout capability")
+	}
+	a, err := FindAttempt(parts[0])
+	if err != nil {
+		return nil, err
+	}
+	if !bindAttemptToRequest(r, a) || a.Gateway != "paypal" || (a.Schedule != "onetime") != recurring || a.Status != "pending" {
+		return nil, errors.New("invalid checkout capability")
+	}
+	return a, nil
+}
 func HandlePaypalCreateOrder(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
-	if err != nil {
+	if err := session.CheckAuthenticity(w, r); err != nil {
 		return err
 	}
-
-	params, err := mux.Params(r)
+	a, err := paypalAttempt(r, false)
 	if err != nil {
+		return server.NotAuthorizedError(err)
+	}
+	p, err := products.Find(a.ProductId)
+	if err != nil {
+		return server.NotFoundError(err)
+	}
+	if a.ProviderOrderId != "" {
+		return paymentJSON(w, map[string]string{"id": a.ProviderOrderId})
+	}
+	// The single fixed-price item includes the frozen configured tax total.
+	data := map[string]interface{}{"intent": "CAPTURE", "purchase_units": []interface{}{map[string]interface{}{
+		"reference_id": a.Id, "custom_id": a.CustomId,
+		"amount": map[string]interface{}{"currency_code": a.Currency, "value": minorDecimal(a.Amount, a.Currency), "breakdown": map[string]interface{}{"item_total": map[string]string{"currency_code": a.Currency, "value": minorDecimal(a.Amount, a.Currency)}}},
+		"items":  []interface{}{map[string]interface{}{"name": p.Name, "sku": formatInt(a.ProductId), "quantity": "1", "unit_amount": map[string]string{"currency_code": a.Currency, "value": minorDecimal(a.Amount, a.Currency)}}},
+	}}}
+	var result PaypalCreateOrderResult
+	if err := providerJSON("paypal", http.MethodPost, "/v2/checkout/orders", data, &result, a.Id); err != nil {
 		return server.InternalError(err)
 	}
-
-	productId := params.GetInt("product_id")
-	customId := params.Get("custom_id")
-
-	log.Info(log.V{"Creating order for product": productId})
-
-	// Get the country from IP
-	clientCountry := r.Header.Get("CF-IPCountry")
-	if !config.Production() {
-		// There will be no CF request header in the development/test
-		clientCountry = config.Get("subscription_client_country")
+	if result.ID == "" {
+		return server.InternalError(errors.New("missing provider order id"))
 	}
-
-	log.Info(log.V{"Subscription, Client Country": clientCountry})
-
-	product, err := products.Find(productId)
-	if err != nil {
-		// Handle the error appropriately
-		log.Error(log.V{"Error finding product with ID": productId, "error": err})
+	if err := a.SetProviderIds(result.ID, "", ""); err != nil {
 		return server.InternalError(err)
 	}
-
-	amount := product.PaypalPrice[clientCountry]["amount"]
-	currency := product.PaypalPrice[clientCountry]["currency"]
-	tax := product.PaypalPrice[clientCountry]["tax"]
-
-	// If there is no amount for the client country then get the amount for default country
-
-	if amount == nil || currency == nil || tax == nil {
-		amount = product.PaypalPrice["DF"]["amount"]
-		currency = product.PaypalPrice["DF"]["currency"]
-		tax = product.PaypalPrice["DF"]["tax"]
-	}
-
-	data := PaypalCreateOrder{
-		Intent: "CAPTURE",
-		PurchaseUnits: []PurchaseUnits{
-			{
-				CustomID: customId,
-				Amount: Amount{
-					CurrencyCode: currency.(string),
-					Value:        fmt.Sprintf("%.2f", float64(amount.(float64))+float64(tax.(float64))),
-					Breakdown: Breakdown{
-						ItemTotal: ItemTotal{
-							CurrencyCode: currency.(string),
-							Value:        fmt.Sprintf("%.2f", amount),
-						},
-						TaxTotal: TaxTotal{
-							CurrencyCode: currency.(string),
-							Value:        fmt.Sprintf("%.2f", tax),
-						},
-					},
-				},
-				Items: []Items{
-					{
-						Name:        product.Name,
-						Description: product.Description,
-						Quantity:    1,
-						Sku:         fmt.Sprintf("%d", product.ID),
-						UnitAmount: UnitAmount{
-							CurrencyCode: currency.(string),
-							Value:        fmt.Sprintf("%.2f", amount),
-						},
-					},
-				},
-			},
-		},
-	}
-
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		log.Error(log.V{"Error marshalling data": err})
-	}
-	body := bytes.NewReader(payloadBytes)
-
-	req, err := http.NewRequest(http.MethodPost, config.Get("paypal_api_domain")+"/v2/checkout/orders", body)
-	if err != nil {
-		log.Error(log.V{"Error sending request to create paypal order": err})
-		return server.InternalError(err)
-	}
-
-	// Generate a new Version 4 UUID
-	u, err := uuid.NewRandom()
-
-	if err != nil {
-		log.Error(log.V{"Error generating UUID": err})
-		return server.InternalError(err)
-	}
-
-	accessToken, err := GetPaypalAuthorizationToken()
-
-	if err != nil {
-		log.Error(log.V{"Error getting access token": err})
-		return server.InternalError(err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Paypal-Request-Id", u.String())
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("prefer", "return=minimal")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error(log.V{"Error sending request for creating paypal order": err})
-
-	}
-	defer resp.Body.Close()
-
-	var paypalCreateOrderResult PaypalCreateOrderResult
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(log.V{"Paypal error reading order create response body": err})
-		return server.InternalError(err)
-	}
-
-	err = json.Unmarshal(b, &paypalCreateOrderResult)
-
-	if err != nil {
-		log.Error(log.V{"Paypal error unmarshaling order create response": err})
-		return server.InternalError(err)
-	}
-
-	// return the order ID in paypalCreateOrderResult as JSON
-	return json.NewEncoder(w).Encode(paypalCreateOrderResult)
+	return paymentJSON(w, result)
 }
-
-// HandlePaypalCaptureOrder creates order and returns order id.
-// It responds to /subscriptions/paypal/orders/{id}/capture
+func HandlePaypalCreateSubscription(w http.ResponseWriter, r *http.Request) error {
+	if err := session.CheckAuthenticity(w, r); err != nil {
+		return err
+	}
+	a, err := paypalAttempt(r, true)
+	if err != nil {
+		return server.NotAuthorizedError(err)
+	}
+	if a.ProviderSubscriptionId != "" {
+		return paymentJSON(w, map[string]string{"id": a.ProviderSubscriptionId})
+	}
+	var result struct {
+		ID string `json:"id"`
+	}
+	if err := providerJSON("paypal", http.MethodPost, "/v1/billing/subscriptions", map[string]string{"plan_id": a.PriceId, "custom_id": a.Id, "quantity": "1"}, &result, a.Id); err != nil {
+		return server.InternalError(err)
+	}
+	if result.ID == "" {
+		return server.InternalError(errors.New("missing provider subscription id"))
+	}
+	if err := a.SetProviderIds("", "", result.ID); err != nil {
+		return server.InternalError(err)
+	}
+	return paymentJSON(w, result)
+}
 func HandlePaypalCaptureOrder(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
-	if err != nil {
+	if err := session.CheckAuthenticity(w, r); err != nil {
 		return err
 	}
-
+	a, err := paypalAttempt(r, false)
+	if err != nil {
+		return server.NotAuthorizedError(err)
+	}
 	params, err := mux.Params(r)
 	if err != nil {
+		return server.BadRequestError(err)
+	}
+	if a.ProviderOrderId == "" || params.Get("id") != a.ProviderOrderId {
+		return server.NotAuthorizedError(errors.New("order mismatch"))
+	}
+	var result PaypalCaptureOrderResult
+	if err := providerJSON("paypal", http.MethodPost, "/v2/checkout/orders/"+url.PathEscape(a.ProviderOrderId)+"/capture", map[string]interface{}{}, &result, a.Id+"-capture"); err != nil {
 		return server.InternalError(err)
 	}
-
-	orderId := params.Get("id")
-
-	// This request doesn't require payload
-	data := map[string]interface{}{}
-
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		log.Error(log.V{"Error marshalling data": err})
-	}
-	body := bytes.NewReader(payloadBytes)
-
-	req, err := http.NewRequest(http.MethodPost, config.Get("paypal_api_domain")+"/v2/checkout/orders/"+orderId+"/capture", body)
-	if err != nil {
-		// handle err
-		log.Error(log.V{"Error sending paypal order capture request": err})
-	}
-
-	// Generate a new Version 4 UUID
-	u, err := uuid.NewRandom()
-
-	if err != nil {
-		log.Error(log.V{"Error generating UUID": err})
-		return server.InternalError(err)
-	}
-
-	accessToken, err := GetPaypalAuthorizationToken()
-
-	if err != nil {
-		log.Error(log.V{"Error getting access token": err})
-		return server.InternalError(err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Paypal-Request-Id", u.String())
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("prefer", "return=minimal")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error(log.V{"Error sending request for capturing paypal order": err})
-
-	}
-	defer resp.Body.Close()
-
-	var paypalCaptureOrderResult PaypalCaptureOrderResult
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(log.V{"Paypal error reading order capture response body": err})
-		return server.InternalError(err)
-	}
-
-	err = json.Unmarshal(b, &paypalCaptureOrderResult)
-
-	if err != nil {
-		log.Error(log.V{"Paypal error unmarshaling order capture response": err})
-		return server.InternalError(err)
-	}
-
-	// return the order ID in paypalCreateOrderResult as JSON
-	return json.NewEncoder(w).Encode(paypalCaptureOrderResult)
+	return paymentJSON(w, result)
 }
-
-// GetPaypalAuthorizationToken fetches the bearer access token and returns it
+func paymentJSON(w http.ResponseWriter, v interface{}) error {
+	paymentResponseHeaders(w)
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(v)
+}
 func GetPaypalAuthorizationToken() (string, error) {
-
-	type Token struct {
-		Scope       string `json:"scope"`
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		AppID       string `json:"app_id"`
-		ExpiresIn   int    `json:"expires_in"`
-		Nonce       string `json:"nonce"`
-	}
-	params := url.Values{}
-	params.Add("grant_type", `client_credentials`)
-	body := strings.NewReader(params.Encode())
-
-	req, err := http.NewRequest(http.MethodPost, config.Get("paypal_api_domain")+"/v1/oauth2/token", body)
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(config.Get("paypal_api_domain"), "/")+"/v1/oauth2/token", bytes.NewBufferString("grant_type=client_credentials"))
 	if err != nil {
-		// handle err
-		log.Error(log.V{"Error creating request for Paypal authorization": err})
+		return "", err
 	}
 	req.SetBasicAuth(config.Get("paypal_client_id"), config.Get("paypal_client_secret"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := paymentHTTPClient.Do(req)
 	if err != nil {
-		log.Error(log.V{"Error creating Paypal authorization": err})
-	}
-	defer resp.Body.Close()
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(log.V{"Paypal authorization error": err})
 		return "", err
 	}
-
-	var token Token
-
-	err = json.Unmarshal(b, &token)
-
-	if err != nil {
-		log.Error(log.V{"Paypal authorization unmarshalling error": err})
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("PayPal authorization HTTP %d", resp.StatusCode)
+	}
+	var result struct {
+		Token string `json:"access_token"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
 		return "", err
 	}
-
-	return token.AccessToken, nil
+	if result.Token == "" {
+		return "", errors.New("missing PayPal access token")
+	}
+	return result.Token, nil
 }
-
-// IsPaypalOrderValid checks if the give paypal order id is valid and was updated with last 1 hour
-func IsPayPalOrderValid(orderId string) (bool, error) {
-	// This request doesn't require payload
-	data := map[string]interface{}{}
-
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		log.Error(log.V{"Error marshalling data": err})
+func fetchPaypalPlanPrice(id, schedule string) (int64, string, error) {
+	var p struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+		Cycles []struct {
+			Tenure    string `json:"tenure_type"`
+			Frequency struct {
+				Unit  string `json:"interval_unit"`
+				Count int    `json:"interval_count"`
+			} `json:"frequency"`
+			Pricing struct {
+				Price struct {
+					Value    string `json:"value"`
+					Currency string `json:"currency_code"`
+				} `json:"fixed_price"`
+			} `json:"pricing_scheme"`
+		} `json:"billing_cycles"`
+		Preferences struct {
+			Setup struct {
+				Value string `json:"value"`
+			} `json:"setup_fee"`
+		} `json:"payment_preferences"`
+		Taxes struct {
+			Percentage string `json:"percentage"`
+			Inclusive  bool   `json:"inclusive"`
+		} `json:"taxes"`
 	}
-	body := bytes.NewReader(payloadBytes)
-
-	req, err := http.NewRequest(http.MethodGet, config.Get("paypal_api_domain")+"/v2/checkout/orders/"+orderId, body)
-	if err != nil {
-		// handle err
-		log.Error(log.V{"Error sending paypal order detail request": err})
+	if err := providerJSON("paypal", http.MethodGet, "/v1/billing/plans/"+url.PathEscape(id), nil, &p); err != nil {
+		return 0, "", err
 	}
-
-	// Generate a new Version 4 UUID
-	u, err := uuid.NewRandom()
-
-	if err != nil {
-		log.Error(log.V{"Error generating UUID": err})
-		return false, err
+	if p.ID != id || p.Status != "ACTIVE" || len(p.Cycles) != 1 || p.Cycles[0].Tenure != "REGULAR" {
+		return 0, "", errors.New("only a single fixed-price regular PayPal cycle is supported")
 	}
-
-	accessToken, err := GetPaypalAuthorizationToken()
-
-	if err != nil {
-		log.Error(log.V{"Error getting access token": err})
-		return false, err
+	c := p.Cycles[0]
+	unit := "MONTH"
+	if schedule == "yearly" {
+		unit = "YEAR"
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Paypal-Request-Id", u.String())
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("prefer", "return=minimal")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error(log.V{"Error sending request for paypal order detail": err})
-
+	if c.Frequency.Unit != unit || c.Frequency.Count != 1 {
+		return 0, "", errors.New("PayPal schedule mismatch")
 	}
-	defer resp.Body.Close()
-
-	var payPalOrderDetailsResult PayPalOrderDetailsResult
-
-	b, err := io.ReadAll(resp.Body)
+	amount, err := majorValueToMinor(c.Pricing.Price.Value, c.Pricing.Price.Currency)
 	if err != nil {
-		log.Error(log.V{"Paypal error reading order detail response body": err})
-		return false, err
+		return 0, "", err
 	}
-
-	err = json.Unmarshal(b, &payPalOrderDetailsResult)
-
-	if err != nil {
-		log.Error(log.V{"Paypal error unmarshaling order detail response": err})
-		return false, err
-	}
-
-	if payPalOrderDetailsResult.PurchaseUnits[0].Payments.Captures[0].Status == "COMPLETED" {
-		// Check if UpdatedTime is within past 1 hour
-		if payPalOrderDetailsResult.UpdateTime.Before(time.Now().Add(-1 * time.Hour)) {
-			return false, errors.New("transaction is older than 1 hour")
+	if p.Preferences.Setup.Value != "" {
+		setup, err := majorValueToMinor(p.Preferences.Setup.Value, c.Pricing.Price.Currency)
+		if err != nil || setup != 0 {
+			return 0, "", errors.New("PayPal setup fees require a separate payment policy")
 		}
-		return true, nil
 	}
-
-	return false, err
+	if !p.Taxes.Inclusive && p.Taxes.Percentage != "" {
+		amount, err = addPercentage(amount, p.Taxes.Percentage)
+	}
+	return amount, c.Pricing.Price.Currency, err
 }
-
-func IsPaypalSubscriptionValid(transactionId string) (bool, error) {
-	accessToken, err := GetPaypalAuthorizationToken()
-
-	if err != nil {
-		log.Error(log.V{"Error getting access token": err})
-		return false, err
+func addPercentage(amount int64, pct string) (int64, error) {
+	p, ok := new(big.Rat).SetString(pct)
+	if !ok || p.Sign() < 0 {
+		return 0, errors.New("invalid tax")
 	}
-	transaction, err := GetPaypalSubscriptionTransaction(transactionId, accessToken)
-
-	if err != nil {
-		log.Error(log.V{"Error finding subscription transaction": err})
-		return false, err
+	tax := new(big.Rat).Mul(big.NewRat(amount, 100), p)
+	tax.Add(tax, big.NewRat(1, 2))
+	total := new(big.Int).Quo(tax.Num(), tax.Denom())
+	total.Add(total, big.NewInt(amount))
+	if !total.IsInt64() {
+		return 0, errors.New("tax total overflow")
 	}
-
-	if len(transaction.Transactions) > 0 {
-		if transaction.Transactions[0].Status == "COMPLETED" {
-			// Check if UpdatedTime is within past 1 hour
-			if transaction.Transactions[0].Time.Before(time.Now().Add(-1 * time.Hour)) {
-				return false, errors.New("transaction is older than 1 hour")
-			}
-			return true, nil
-		}
-	} else {
-		return false, errors.New("no transaction found")
-	}
-
-	return false, err
+	return total.Int64(), nil
 }
-
-// GetPaypalOrderTransaction fetches the paypal transaction details given the transaction id and access token
-// Requires at least 3 hours for the transaction to appear in paypal's database
-func GetPaypalOrderTransaction(transactionId string, accessToken string) (PaypalEventOrderTransaction, error) {
-
-	currentTime := time.Now().UTC()
-	startDate := currentTime.Add(-48 * time.Hour).Format("2006-01-02T15:04:05+0000")
-	endDate := currentTime.Format("2006-01-02T15:04:05+0000")
-
-	// URL encode startDate and endDate
-	startDateEncoded := url.QueryEscape(startDate)
-	endDateEncoded := url.QueryEscape(endDate)
-
-	// transactionFields := "transaction_info,payer_info,cart_info"
-	transactionFields := "all"
-
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/reporting/transactions?start_date=%s&end_date=%s&transaction_id=%s&fields=%s", config.Get("paypal_api_domain"), startDateEncoded, endDateEncoded, transactionId, transactionFields), nil)
-	if err != nil {
-		log.Error(log.V{"Error creating request for getting transaction": err})
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error(log.V{"Error sending request for getting transaction": err})
-	}
-	defer resp.Body.Close()
-
-	var transaction PaypalEventOrderTransaction
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(log.V{"Paypal transaction search error": err})
-		return transaction, err
-	}
-
-	err = json.Unmarshal(b, &transaction)
-
-	if err != nil {
-		log.Error(log.V{"Paypal transaction search unmarshaling error": err})
-		return transaction, err
-	}
-
-	return transaction, nil
-}
-
-// GetPaypalSubscriptionTransaction fetches the paypal transaction details given the transaction id and access token
-func GetPaypalSubscriptionTransaction(transactionId string, accessToken string) (PaypalSubscriptionTransaction, error) {
-
-	currentTime := time.Now().UTC()
-	startDate := currentTime.Add(-48 * time.Hour).Format("2006-01-02T15:04:05Z")
-	endDate := currentTime.Format("2006-01-02T15:04:05Z")
-
-	// URL encode startDate and endDate
-	startDateEncoded := url.QueryEscape(startDate)
-	endDateEncoded := url.QueryEscape(endDate)
-
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/billing/subscriptions/%s/transactions?start_time=%s&end_time=%s", config.Get("paypal_api_domain"), transactionId, startDateEncoded, endDateEncoded), nil)
-	if err != nil {
-		log.Error(log.V{"Error creating request for getting subscription transaction": err})
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error(log.V{"Error sending request for getting subscription transaction": err})
-	}
-	defer resp.Body.Close()
-
-	var transaction PaypalSubscriptionTransaction
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(log.V{"Paypal subscription transaction search error": err})
-		return transaction, err
-	}
-
-	err = json.Unmarshal(b, &transaction)
-
-	if err != nil {
-		log.Error(log.V{"Paypal subscription transaction search unmarshaling error": err})
-		return transaction, err
-	}
-
-	return transaction, nil
-}
-
-func CancelPaypalSubscription(subscriptionId string) error {
-
-	accessToken, err := GetPaypalAuthorizationToken()
-
-	if err != nil {
-		log.Error(log.V{"Error getting access token": err})
-		return server.InternalError(err)
-	}
-	type Payload struct {
-		Reason string `json:"reason"`
-	}
-
-	data := Payload{
-		Reason: "User requested cancellation",
-	}
-
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		log.Error(log.V{"Paypal, Error marshalling payload": err})
-	}
-
-	body := bytes.NewReader(payloadBytes)
-
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v1/billing/subscriptions/%s/cancel", config.Get("paypal_api_domain"), subscriptionId), body)
-	if err != nil {
-		log.Error(log.V{"Error creating request for getting subscription cancellation": err})
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Error(log.V{"Error sending request for subscription cancellation": err})
-	}
-	defer resp.Body.Close()
-
-	// Check  if the response code is 204 No Content
-	if resp.StatusCode == http.StatusNoContent {
-		return nil
-	} else {
-		return fmt.Errorf("failed to cancel subscription, status code: %d", resp.StatusCode)
-	}
+func CancelPaypalSubscription(id string) error {
+	return providerJSON("paypal", http.MethodPost, "/v1/billing/subscriptions/"+url.PathEscape(id)+"/cancel", map[string]string{"reason": "User requested cancellation"}, nil)
 }

@@ -6,8 +6,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Extracting the product ID from the current URL
   const urlParams = new URLSearchParams(window.location.search);
   const productId = decodeURIComponent(urlParams.get("product_id"));
-  const customId = decodeURIComponent(urlParams.get("custom_id"));
-  const redirectURI = decodeURIComponent(urlParams.get("redirect_uri"));
+  const customId = (urlParams.get("custom_id") || "");
+  const redirectURI = (urlParams.get("redirect_uri") || "");
   paypal
     .Buttons({
       style: {
@@ -35,7 +35,9 @@ document.addEventListener("DOMContentLoaded", async function () {
               "&product_id=" +
               productID() +
               "&custom_id=" +
-              customId,
+              encodeURIComponent(customId) +
+              "&redirect_uri=" +
+              encodeURIComponent(redirectURI),
           });
 
           const orderData = await response.json();
@@ -77,16 +79,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             `Paypal Transaction ${transaction.status}: ${transaction.id}`
           );
           if (transaction.status === "COMPLETED") {
-            window.location =
-              window.location.origin +
-              "/subscriptions/success?paypal_orderid=" +
-              `${orderData.id}` +
-              "&product_id=" +
-              `${productId}` +
-              "&redirect_uri=" +
-              `${redirectURI}` +
-              "&custom_id=" +
-              `${customId}`;
+            window.location = "/subscriptions/success?" + new URLSearchParams({paypal_orderid: orderData.id});
           } else {
             const errorMessage = "Paypal order was not captured";
             throw new Error(errorMessage);

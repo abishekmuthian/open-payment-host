@@ -336,7 +336,9 @@ You can call Open Payment Host for just payments from another website. Once paym
 #### URL Parameters
 `custom_id` : custom id e.g. user id.
 
-`redirect_uri` : redirect URI e.g. success page.
+`redirect_uri` : success page on an allowed origin. The product webhook's origin is allowed automatically; HTTP is accepted only in development mode. Configure additional origins in the product's API settings. Checkout freezes this URI and `custom_id`. Success requests cannot override them.
+
+Successful redirects retain `custom_id` and `order_id` (one-time) or `subscription_id` (recurring). A configured downloadable file takes priority over the redirect.
 
 #### Webhook Callback Request
 
@@ -352,7 +354,8 @@ You can call Open Payment Host for just payments from another website. Once paym
 {
     "subscription_id": "xxxx",
     "custom_id": "xxxx",
-    "status": "active"
+    "status": "active",
+    "cancellation_token": "xxxx"
 }
 ```
 #### Request Parameters
@@ -361,21 +364,25 @@ You can call Open Payment Host for just payments from another website. Once paym
 
 `custom_id` : e.g. user id to identify the user and enable subscription features.
 
-`status` : `active` when the subscription is created and `cancelled` when the subscription is cancelled.
+`status` : `active` only after the first payment is confirmed; `cancelled` after the provider confirms cancellation. An ACTIVE subscription without a completed initial payment remains pending.
+
+`cancellation_token` : single-use capability included with an active subscription. Store it securely in your database with the corresponding `subscription_id`; it is required to request cancellation. Do not expose it in logs or client-side code.
+
+Bodies retain the existing fields and `email`. One-time events contain `order_id` instead of `subscription_id`. Subscription activation includes `cancellation_token`; other event types omit it.
+
+The content type is `application/json`. Additional headers are `X-OPH-Event-ID`, `X-OPH-Event-Type`, and `X-OPH-Timestamp`. Verify `X-OPH-Signature` as HMAC-SHA256 over the exact received body, then deduplicate by event ID. Failed deliveries are retried with the same ID and body; acknowledging an already processed ID must not repeat your own fulfillment.
 
 #### Cancel Subscription
 
-To cancel the subscription, make a `GET` request.
+Send the stored `subscription_id` and `cancellation_token` as URL-encoded query parameters when directing the subscriber to the cancellation confirmation page:
 
-`https://<your-oph-domain>/subscriptions/cancel?subscription_id=<subscription_id>&redirect_uri=<your-application-domain>&custom_id=<custom-id>`
+`https://<your-oph-domain>/subscriptions/cancel?subscription_id=<subscription-id>&cancellation_token=<cancellation-token>`
 
-#### URL Parameters
+GET displays confirmation and makes no provider call. The confirmation form submits a POST with the subscription-bound, single-use token and a CSRF token. The redirect comes from the original checkout; request parameters cannot change it.
 
-`subscription_id` : subscription id of the payment.
+Legacy links containing only `subscription_id` and `custom_id` cannot authorize cancellation. An authenticated administrator can POST `subscription_id` and `authenticity_token` to `/subscriptions/cancellation-link` to generate a replacement link for an existing subscription. Keep the returned URL private. If a cancellation request times out, reconcile its state with the provider before issuing another link.
 
-`redirect_uri` : redirect URI e.g. cancellation success page.
-
-`custom_id` : custom id e.g. user id.
+Stripe, Square, and Razorpay request cancellation at the provider's period boundary; PayPal uses its cancellation API. A successful request does not immediately emit a cancelled event; the provider's status webhook determines when it becomes effective.
 
 #### Webhook Callback Request
 
@@ -408,6 +415,8 @@ The request body is JSON with the following parameters:
 
 `email` : Email address (may be empty for cancellations).
 
+
+See [payment security rollout and validation](SECURITY_ADVISORY_IMPLEMENTATION.md) before deploying this release.
 
 ## Developer
 

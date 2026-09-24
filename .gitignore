@@ -25,3 +25,6 @@ build-docker-image.sh
 CLAUDE.md
 AGENTS.md
 *.log
+*PLAN.md
+
+SECURITY_ADVISORY_IMPLEMENTATION.md

@@ -1,5 +1,22 @@
 <article class="narrow story">
     <h1>{{.title}}</h1>
-    <br/>
     <p>{{.message}}</p>
+    {{ if .attemptId }}
+    <div data-status-url="/subscriptions/payment-status?attempt_id={{ .attemptId }}"
+      _="on load
+        repeat 120 times
+          wait 3s
+          fetch my @data-status-url as json
+          if result.status is 'completed'
+            set window.location.href to result.success_url
+            exit
+          end
+          if result.status is not 'pending'
+            set my textContent to 'Payment could not be completed. Please contact support.'
+            exit
+          end
+        end
+        set my textContent to 'Still awaiting payment confirmation. Please reload this page later.'
+      ">Waiting for confirmation…</div>
+    {{ end }}
 </article>

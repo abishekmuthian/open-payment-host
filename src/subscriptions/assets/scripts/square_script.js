@@ -77,10 +77,10 @@ async function verifyBuyer(payments, token) {
   addressLines.push(urlParams.get("addressLine1"));
   addressLines.push(urlParams.get("addressLine2"));
 
-  const intent = urlParams.get("intent");
+  const intent = document.getElementById("payment-form").dataset.schedule === "onetime" ? "CHARGE" : "STORE";
 
   const verificationDetails = {
-    amount: urlParams.get("amount"),
+    amount: document.getElementById("payment-form").dataset.amount,
     billingContact: {
       addressLines: addressLines,
       givenName: urlParams.get("givenName"),
@@ -90,7 +90,7 @@ async function verifyBuyer(payments, token) {
       state: urlParams.get("state"),
       postalCode: urlParams.get("postalcode"),
     },
-    currencyCode: urlParams.get("currency"),
+    currencyCode: document.getElementById("payment-form").dataset.currency,
     intent: intent,
   };
 
@@ -132,7 +132,7 @@ async function createPayment(token, verificationToken) {
 
   var url = "/subscriptions/square";
 
-  if (urlParams.get("type") == "subscription") {
+  if (document.getElementById("payment-form").dataset.schedule !== "onetime") {
     url = "/subscriptions/subscribe";
   }
 

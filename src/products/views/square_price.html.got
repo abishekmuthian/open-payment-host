@@ -19,7 +19,10 @@
     type="number"
     name="{{ $pg }}_amount_{{ $fieldIndex }}"
     id="{{ $pg }}_amount_{{ $fieldIndex }}"
-    placeholder="5000"
+    placeholder="Amount in minor units (5000 = USD 50)"
+    aria-label="Amount in currency minor units"
+    min="1"
+    step="1"
     class="input w-full rounded-sm max-w-42 prose lg:prose-xl"
     required
     _="on click or input

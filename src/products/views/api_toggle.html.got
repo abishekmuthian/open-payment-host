@@ -30,3 +30,16 @@
         <br />Example: Use `openssl rand -hex 32` to generate a strong secret
     </p>
 </div>
+
+<div class="flex flex-col space-y-3">
+    <label class="block text-sm/6 font-medium">
+        <span class="label-text text-xl">Additional Allowed Redirect Origins</span>
+    </label>
+    <p class="text-sm/6">Optional additional redirect origins, one per line</p>
+    <textarea
+        name="allowed_redirect_origins"
+        rows="3"
+        placeholder="http://localhost:3000"
+        class="textarea w-full max-w-lg rounded-sm prose lg:prose-xl"
+    ></textarea>
+</div>

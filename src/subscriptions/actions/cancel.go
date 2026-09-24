@@ -2,108 +2,51 @@ package actions
 
 import (
 	"errors"
-	"net/http"
-	"time"
-
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
-	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
+	"net/http"
+	"time"
 )
 
-// HandlePaymentCancel handles the success routine of the payment
 func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
-
-	// Authorise
-	currentUser := session.CurrentUser(w, r)
-
-	// Fetch the  params
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
 	params, err := mux.Params(r)
 	if err != nil {
-		return server.InternalError(err)
+		return server.BadRequestError(err)
 	}
-
-	// Get the subscription ID from the request
-	subscriptionId := params.Get("subscription_id")
-	log.Info(log.V{"Subscription ID: ": subscriptionId})
-
-	redirectURI := params.Get("redirect_uri")
-	customId := params.Get("custom_id")
-
-	// Find the subscription in the database
-	subscription, err := subscriptions.FindSubscription(subscriptionId)
-
-	if err != nil || subscription == nil {
-		log.Error(log.V{"Error finding subscription": err})
-		return server.InternalError(err)
+	a, err := subscriptions.FindCancellationAttempt(params.Get("subscription_id"))
+	cancellationToken := params.Get("cancellation_token")
+	if err != nil || !a.CancellationTokenValid(cancellationToken) {
+		return server.NotAuthorizedError(errors.New("a valid unused cancellation link is required"))
 	}
-
-	// Validate custom_id matches the subscription's UserId
-	// Compare as strings since UserId is now TEXT in database
-	if customId != "" && customId != subscription.UserId {
-		log.Error(log.V{"Invalid custom_id for the subscription - Expected": subscription.UserId, "Got": customId})
-		return server.InternalError(errors.New("Invalid custom_id for the subscription"))
-	}
-
-	pg := subscription.PaymentGateway
-	log.Info(log.V{"Payment Gateway: ": pg})
-	switch pg {
-	case "paypal":
-		// Handle PayPal subscription cancellation
-		err := subscriptions.CancelPaypalSubscription(subscriptionId)
-		if err != nil {
-			log.Error(log.V{"Error cancelling PayPal subscription": err})
+	if r.Method == http.MethodPost {
+		if err := session.CheckAuthenticity(w, r); err != nil {
+			return err
+		}
+		if err := subscriptions.CancelAttempt(a, cancellationToken); err != nil {
 			return server.InternalError(err)
 		}
-	case "razorpay":
-		// Handle Razorpay subscription cancellation
-		err := subscriptions.CancelRazorpaySubscription(subscriptionId)
-		if err != nil {
-			log.Error(log.V{"Error cancelling Razorpay subscription": err})
-			return server.InternalError(err)
+		if a.RedirectURI != "" {
+			return server.RedirectExternal(w, r, subscriptions.BuildRedirectURL(a.RedirectURI, map[string]string{"custom_id": a.CustomId, "subscription_id": a.ProviderSubscriptionId}))
 		}
-
-	default:
-		log.Error(log.V{"Error unknown payment gateway": err})
+	} else if r.Method != http.MethodGet {
+		return server.BadRequestError(errors.New("method not allowed"))
 	}
-
-	product, err := products.Find(subscription.ProductId)
-
-	if err != nil {
-		log.Error(log.V{"Error finding product": err})
+	v := view.NewRenderer(w, r)
+	v.AddKey("currentUser", session.CurrentUser(w, r))
+	v.AddKey("name", config.Get("name"))
+	v.AddKey("year", time.Now().Year())
+	if r.Method == http.MethodGet {
+		v.AddKey("subscription_id", a.ProviderSubscriptionId)
+		v.AddKey("cancellation_token", cancellationToken)
+		v.Template("subscriptions/views/payment_cancel_confirm.html.got")
 	} else {
-		if product.WebhookURL != "" && product.WebhookSecret != "" {
-			params := map[string]interface{}{
-				"subscription_id": subscriptionId,
-				"custom_id":       subscription.UserId,
-				"status":          "cancelled",
-				"email":           "",
-			}
-
-			go func() {
-				err := subscriptions.SendWebhook(product.WebhookURL, product.WebhookSecret, params)
-				if err != nil {
-					log.Error(log.V{"Cancel, Error sending webhook to product's URL": err})
-				} else {
-					log.Info(log.V{"msg": "Successfully sent webhook to product's URL"})
-				}
-			}()
-		}
-		return server.RedirectExternal(w, r, redirectURI)
+		v.Template("subscriptions/views/payment_cancel.html.got")
 	}
-
-	// Render the template
-	view := view.NewRenderer(w, r)
-	view.AddKey("currentUser", currentUser)
-	// Set the name and year
-	view.AddKey("name", config.Get("name"))
-	view.AddKey("year", time.Now().Year())
-
-	view.Template("subscriptions/views/payment_cancel.html.got")
-
-	return view.Render()
+	return v.Render()
 }

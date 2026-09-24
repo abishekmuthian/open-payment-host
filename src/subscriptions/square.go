@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
-	s3 "github.com/abishekmuthian/open-payment-host/src/lib/s3"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
@@ -21,8 +19,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// HandleSquareShow shows the web sdk payment page for the Square by responding to the GET request /subscription/square
+// HandleSquareShow shows the web sdk payment page for the Square by responding to the GET request /subscriptions/square
 func HandleSquareShow(w http.ResponseWriter, r *http.Request) error {
+	paymentResponseHeaders(w)
 	// Fetch the  params
 	params, err := mux.Params(r)
 	if err != nil {
@@ -32,19 +31,52 @@ func HandleSquareShow(w http.ResponseWriter, r *http.Request) error {
 	// Get current user
 	currentUser := session.CurrentUser(w, r)
 
-	amount := params.GetInt("amount")
-	currency := params.Get("currency")
+	productId := params.GetInt("productId")
 	paymentType := params.Get("type")
+
+	// Resolve the display price from the product configuration server-side.
+	// Square amounts are minor units and are charged exactly as configured.
+	product, productErr := products.Find(productId)
+	if productErr != nil {
+		return server.NotFoundError(productErr)
+	}
+	var priceLabel, verificationAmount, verificationCurrency string
+	if productErr == nil {
+		displayCountry := r.Header.Get("CF-IPCountry")
+		if !config.Production() {
+			displayCountry = config.Get("subscription_client_country")
+		}
+		amount := product.SquarePrice[displayCountry]
+		if amount == nil {
+			amount = product.SquarePrice["DF"]
+		}
+		if amount != nil && amount["amount"] != nil && amount["currency"] != nil {
+			currency := amount["currency"].(string)
+			minorAmount, err := configuredMinor(amount["amount"], currency, true)
+			if err != nil {
+				return server.BadRequestError(err)
+			}
+			verificationAmount = minorDecimal(minorAmount, currency)
+			verificationCurrency = currency
+			priceLabel = formatMinorUnits(minorAmount, currency)
+			if paymentType == "onetime" {
+				priceLabel = priceLabel + "/One Time"
+			} else if paymentType == "subscription" {
+				priceLabel = priceLabel + "/" + squareScheduleLabel(product.Schedule)
+			}
+		}
+	}
 
 	// Render the template
 	view := view.NewRenderer(w, r)
 
 	view.AddKey("currentUser", currentUser)
+	view.AddKey("verificationAmount", verificationAmount)
+	view.AddKey("verificationCurrency", verificationCurrency)
+	view.AddKey("paymentSchedule", product.Schedule)
 
-	if paymentType == "onetime" {
-		view.AddKey("price", fmt.Sprintf("%d %s/One Time", amount/1000, currency))
-	} else if paymentType == "subscription" {
-		view.AddKey("price", fmt.Sprintf("%d %s/Monthly", amount/1000, currency))
+	if priceLabel != "" {
+		view.AddKey("price", priceLabel)
 	}
 
 	view.AddKey("meta_app_id", config.Get("square_app_id"))
@@ -59,7 +91,19 @@ func HandleSquareShow(w http.ResponseWriter, r *http.Request) error {
 	return view.Render()
 }
 
-// HandleSquare receives the POST request from the square web sdk at /subscriptions/square
+// squareScheduleLabel returns the display label for a Square subscription cadence
+func squareScheduleLabel(schedule string) string {
+	if schedule == "yearly" {
+		return "Yearly"
+	}
+	return "Monthly"
+}
+
+// HandleSquare receives the POST request from the square web sdk at /subscriptions/square.
+// The amount and currency are resolved from the product's configured country
+// price on the server - posted amount and currency values are ignored. The
+// attempt id is stored in reference_id and the returned completed Payment is
+// validated for amount, currency and reference before fulfillment.
 func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 	// Check the authenticity token
 	err := session.CheckAuthenticity(w, r)
@@ -74,10 +118,46 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 
 	paymentToken := params.Get("paymentToken")
 	verificationToken := params.Get("verificationToken")
-	amount := params.GetInt("amount")
-	currency := params.Get("currency")
 	productId := params.GetInt("productId")
 	email := params.Get("email")
+
+	// Resolve the product and its configured price for the client country
+	product, err := products.Find(productId)
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	clientCountry := r.Header.Get("CF-IPCountry")
+	if !config.Production() {
+		clientCountry = config.Get("subscription_client_country")
+	}
+
+	price := product.SquarePrice[clientCountry]
+	if price == nil || price["amount"] == nil || price["currency"] == nil {
+		clientCountry = "DF"
+		price = product.SquarePrice[clientCountry]
+	}
+
+	if price == nil || price["amount"] == nil || price["currency"] == nil {
+		return server.Redirect(w, r, "/subscriptions/failure?errorDetail=No+price+configured+for+your+region")
+	}
+
+	if product.Schedule != "onetime" {
+		return server.BadRequestError(errors.New("product is not a one-time purchase"))
+	}
+	// Square amounts are already minor units and are charged exactly as configured
+	amountMinor, err := configuredMinor(price["amount"], price["currency"].(string), true)
+	if err != nil {
+		return server.BadRequestError(err)
+	}
+	currency := price["currency"].(string)
+
+	// Create the immutable payment attempt from the server-side configuration
+	attempt, err := newAttempt(productId, "square", "onetime", clientCountry, amountMinor, currency, "", "", "")
+	if err != nil {
+		log.Error(log.V{"Square payment, error creating payment attempt": err})
+		return server.InternalError(err)
+	}
 
 	// Generate a new Version 4 UUID
 	u, err := uuid.NewRandom()
@@ -102,12 +182,12 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 	data := Payload{
 		IdempotencyKey: u.String(),
 		AmountMoney: AmountMoney{
-			Amount:   amount,
+			Amount:   amountMinor,
 			Currency: currency,
 		},
 		SourceID:          paymentToken,
 		VerificationToken: verificationToken,
-		ReferenceID:       fmt.Sprintf("Product Id: %d", productId),
+		ReferenceID:       attempt.Id,
 		BuyerEmailAddress: email,
 	}
 	payloadBytes, err := json.Marshal(data)
@@ -124,7 +204,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 	req.Header.Set("Authorization", "Bearer "+config.Get("square_access_token"))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := paymentHTTPClient.Do(req)
 	if err != nil {
 		return server.InternalError(err)
 	}
@@ -148,7 +228,7 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 
 		log.Info(log.V{"Square Payment parsed": error})
 
-		return server.Redirect(w, r, "/subscriptions/failure?errorDetail="+strings.Replace(error.Errors[0].Detail, ":", "", -1))
+		return server.Redirect(w, r, "/subscriptions/failure?errorDetail="+strings.Replace(squareErrorDetail(error), ":", "", -1))
 	}
 
 	var charge Charge
@@ -159,35 +239,65 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		log.Error(log.V{"Square Payment JSON Unmarshall": err})
 	}
 
-	log.Info(log.V{"Square Payment parsed": charge})
+	log.Info(log.V{"Square Payment parsed": charge.Payment.ID, "status": charge.Payment.Status})
 
-	if charge.Payment.Status == "COMPLETED" {
-		log.Info(log.V{"Square Payment Status": "COMPLETED"})
-
-		product, err := products.Find(productId)
-
-		if err == nil {
-			if product.S3Bucket != "" && product.S3Key != "" {
-
-				downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
-
-				if err == nil {
-					return renderPaymentSuccessWithDownload(w, r, downloadUrl)
-				}
-			}
-
-			return server.Redirect(w, r, "/subscriptions/success")
-
-		}
-
-	} else {
+	// Validate the returned completed Payment: status, amount, currency and reference
+	if charge.Payment.Status != "COMPLETED" {
+		log.Error(log.V{"Square Payment not completed": charge.Payment.Status})
 		return server.Redirect(w, r, "/subscriptions/failure?errorDetail="+"Payment failed try again later.")
 	}
 
-	return err
+	if charge.Payment.ReferenceID != attempt.Id {
+		log.Error(log.V{"Square Payment reference mismatch": charge.Payment.ReferenceID})
+		return server.Redirect(w, r, "/subscriptions/failure?errorDetail=Payment+verification+failed")
+	}
+
+	if int64(charge.Payment.AmountMoney.Amount) != amountMinor || charge.Payment.AmountMoney.Currency != currency {
+		log.Error(log.V{"Square Payment amount mismatch": charge.Payment.AmountMoney.Amount, "expected": amountMinor})
+		return server.Redirect(w, r, "/subscriptions/failure?errorDetail=Payment+verification+failed")
+	}
+
+	if err := attempt.SetProviderIds("", charge.Payment.ID, ""); err != nil {
+		return server.InternalError(err)
+	}
+	facts := ProviderFacts{
+		Gateway:   "square",
+		PaymentId: charge.Payment.ID,
+		Amount:    int64(charge.Payment.AmountMoney.Amount),
+		Currency:  charge.Payment.AmountMoney.Currency,
+		Paid:      true,
+		Email:     charge.Payment.BuyerEmailAddress,
+	}
+
+	// Bind the attempt to this browser before fulfillment
+	setAttemptCookie(w, r, attempt)
+
+	_, err = verifyAndFulfill(attempt, facts)
+	if err != nil {
+		log.Error(log.V{"Square payment, fulfillment rejected": err})
+		return server.Redirect(w, r, "/subscriptions/failure?errorDetail=Payment+verification+failed")
+	}
+
+	// Exchange the completion token for a cookie and go to the clean success URL
+	completionToken, err := generateToken(32)
+	if err != nil {
+		return server.InternalError(err)
+	}
+	attempt.CompletionTokenHash = hashToken(completionToken)
+	if err := attempt.Save(); err != nil {
+		log.Error(log.V{"Square payment, error saving completion token": err})
+		return server.InternalError(err)
+	}
+	setCompletionCookie(w, r, completionToken)
+
+	return server.Redirect(w, r, "/subscriptions/success?attempt_id="+attempt.Id)
 }
 
-// HandleCreateSubscription creates a subscription for the customer on POST request to /subscriptions/subscribe
+// HandleCreateSubscription creates a subscription for the customer on POST request to /subscriptions/subscribe.
+// The returned subscription id is stored in the attempt which stays pending
+// until invoice.payment_made or a fetched completed Payment proves the first
+// invoice was paid - an ACTIVE Square subscription alone does not authorize
+// fulfillment.
 func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 	// Check the authenticity token
 	err := session.CheckAuthenticity(w, r)
@@ -202,8 +312,6 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 
 	paymentToken := params.Get("paymentToken")
 	verificationToken := params.Get("verificationToken")
-	amount := params.GetInt("amount")
-	currency := params.Get("currency")
 	productId := params.GetInt("productId")
 	addressLine1 := params.Get("addressLine1")
 	addressLine2 := params.Get("addressLine2")
@@ -214,7 +322,50 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 	state := params.Get("state")
 	postalCode := params.Get("postalcode")
 
-	customerId, err := CreateCustomer(paymentToken, verificationToken, amount, currency, productId, addressLine1, addressLine2, givenName, email, country, city, state, postalCode)
+	// Resolve the product and its configured price on the server
+	product, err := products.Find(productId)
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	clientCountry := r.Header.Get("CF-IPCountry")
+	if !config.Production() {
+		clientCountry = config.Get("subscription_client_country")
+	}
+
+	squarePrice := product.SquarePrice[clientCountry]
+	if squarePrice == nil || squarePrice["amount"] == nil {
+		clientCountry = "DF"
+		squarePrice = product.SquarePrice[clientCountry]
+	}
+
+	if product.Schedule != "monthly" && product.Schedule != "yearly" {
+		return server.BadRequestError(errors.New("product is not a subscription"))
+	}
+	if squarePrice == nil || squarePrice["amount"] == nil || squarePrice["currency"] == nil {
+		return server.BadRequestError(errors.New("missing Square price"))
+	}
+	expectedCurrency, _ := squarePrice["currency"].(string)
+	expectedAmount, err := configuredMinor(squarePrice["amount"], expectedCurrency, true)
+	if err != nil {
+		return server.BadRequestError(err)
+	}
+	catalogId := product.SquareSubscriptionPlanId[clientCountry]
+	if catalogId == "" {
+		return server.BadRequestError(errors.New("missing matching Square plan"))
+	}
+	if err := validateSquarePlan(catalogId, product.Schedule, expectedAmount, expectedCurrency); err != nil {
+		return server.BadRequestError(err)
+	}
+	attempt, err := newAttempt(productId, "square", product.Schedule, clientCountry, expectedAmount, expectedCurrency, catalogId, "", "")
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	// Bind the attempt to this browser so the pending status page is authorized
+	setAttemptCookie(w, r, attempt)
+
+	customerId, err := CreateCustomer(paymentToken, verificationToken, attempt.Id, addressLine1, addressLine2, givenName, email, country, city, state, postalCode)
 
 	if err != nil {
 		return server.Redirect(w, r, "/subscriptions/failure?errorDetail="+strings.Replace(err.Error(), ":", "", -1))
@@ -222,7 +373,7 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 
 	log.Info(log.V{"Customer ID is: ": customerId})
 
-	cardId, err := CreateCard(paymentToken, verificationToken, amount, currency, productId, addressLine1, addressLine2, givenName, email, country, city, state, postalCode, customerId)
+	cardId, err := CreateCard(paymentToken, verificationToken, attempt.Id, addressLine1, addressLine2, givenName, email, country, city, state, postalCode, customerId)
 
 	if err != nil {
 		return server.Redirect(w, r, "/subscriptions/failure?errorDetail="+strings.Replace(err.Error(), ":", "", -1))
@@ -230,62 +381,28 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 
 	log.Info(log.V{"Card ID is: ": cardId})
 
-	product, err := products.Find(productId)
-
-	if err != nil {
-		return server.InternalError(err)
-	}
-
-	// Get the country from IP
-	clientCountry := r.Header.Get("CF-IPCountry")
-	log.Info(log.V{"Subscription, Client Country": clientCountry})
-	if !config.Production() {
-		// There will be no CF request header in the development/test
-		clientCountry = config.Get("subscription_client_country")
-	}
-
-	catalogId := product.SquareSubscriptionPlanId[clientCountry]
-
-	log.Info(log.V{"Catalog ID is: ": catalogId})
-
-	if catalogId == "" {
-
-		if len(product.SquareSubscriptionPlanId) > 0 {
-			// Iterate to find any available catalogId
-			for _, catalogId = range product.SquareSubscriptionPlanId {
-				log.Info(log.V{"Catalog ID is: ": catalogId})
-			}
-		}
-
-		if catalogId == "" {
-			return server.Redirect(w, r, "/subscriptions/failure?errorDetail=No subscription plan available for your region.")
-		}
-	}
-
 	subscriptionId, err := CreateSubscription(config.Get("square_location_id"), catalogId, customerId, cardId)
 
 	if err != nil {
 		return server.Redirect(w, r, "/subscriptions/failure?errorDetail="+strings.Replace(err.Error(), ":", "", -1))
-	} else {
-		log.Info(log.V{"Subscription Id is: ": subscriptionId})
-
-		if product.S3Bucket != "" && product.S3Key != "" {
-
-			downloadUrl, err := s3.GeneratePresignedUrl(product.S3Bucket, product.S3Key)
-
-			if err == nil {
-				return renderPaymentSuccessWithDownload(w, r, downloadUrl)
-			}
-		}
-
-		return server.Redirect(w, r, "/subscriptions/success")
 	}
 
-	return err
+	log.Info(log.V{"Subscription Id is: ": subscriptionId})
+
+	// Store the subscription id in the attempt which remains pending until
+	// the first invoice is paid
+	if err := attempt.SetProviderIds("", "", subscriptionId); err != nil {
+		log.Error(log.V{"Square subscription, error storing subscription id in attempt": err})
+		return server.InternalError(err)
+	}
+
+	// No fulfillment here: the attempt stays pending until the Square webhook
+	// proves the initial invoice was paid
+	return server.Redirect(w, r, "/subscriptions/success?attempt_id="+attempt.Id)
 }
 
-// CreateCustomer creates a customer
-func CreateCustomer(paymentToken string, verificationToken string, amount int64, currency string, productId int64,
+// CreateCustomer creates a customer with the attempt id as reference
+func CreateCustomer(paymentToken string, verificationToken string, attemptId string,
 	addressLine1 string, addressLine2 string, givenName string, email string,
 	country string, city string, state string, postalCode string) (string, error) {
 
@@ -316,7 +433,7 @@ func CreateCustomer(paymentToken string, verificationToken string, amount int64,
 			PostalCode:                   postalCode,
 			Country:                      country,
 		},
-		ReferenceID: fmt.Sprintf("Product Id: %d", productId),
+		ReferenceID: attemptId,
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
@@ -332,7 +449,7 @@ func CreateCustomer(paymentToken string, verificationToken string, amount int64,
 	req.Header.Set("Authorization", "Bearer "+config.Get("square_access_token"))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := paymentHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -355,7 +472,7 @@ func CreateCustomer(paymentToken string, verificationToken string, amount int64,
 
 		log.Info(log.V{"Square Payment parsed": error})
 
-		return "", errors.New(error.Errors[0].Detail)
+		return "", errors.New(squareErrorDetail(error))
 	}
 
 	var customer CustomerModel
@@ -366,13 +483,13 @@ func CreateCustomer(paymentToken string, verificationToken string, amount int64,
 		log.Error(log.V{"Square Payment JSON Unmarshall": err})
 	}
 
-	log.Info(log.V{"Square Payment parsed": customer})
+	log.Info(log.V{"Square customer created": customer.Customer.ID})
 
 	return customer.Customer.ID, err
 }
 
 // CreateCard creates a card with the customer
-func CreateCard(paymentToken string, verificationToken string, amount int64, currency string, productId int64,
+func CreateCard(paymentToken string, verificationToken string, attemptId string,
 	addressLine1 string, addressLine2 string, givenName string, email string,
 	country string, city string, state string, postalCode string, customerId string) (string, error) {
 
@@ -423,7 +540,7 @@ func CreateCard(paymentToken string, verificationToken string, amount int64, cur
 				},
 				CardholderName: givenName,
 				CustomerID:     customerId,
-				ReferenceID:    fmt.Sprintf("Product Id: %d", productId),
+				ReferenceID:    attemptId,
 			},
 		}
 	} else {
@@ -443,7 +560,7 @@ func CreateCard(paymentToken string, verificationToken string, amount int64, cur
 				},
 				CardholderName: givenName,
 				CustomerID:     customerId,
-				ReferenceID:    fmt.Sprintf("Product Id: %d", productId),
+				ReferenceID:    attemptId,
 			},
 		}
 	}
@@ -462,7 +579,7 @@ func CreateCard(paymentToken string, verificationToken string, amount int64, cur
 	req.Header.Set("Authorization", "Bearer "+config.Get("square_access_token"))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := paymentHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -485,7 +602,7 @@ func CreateCard(paymentToken string, verificationToken string, amount int64, cur
 
 		log.Info(log.V{"Square Payment parsed": error})
 
-		return "", errors.New(error.Errors[0].Detail)
+		return "", errors.New(squareErrorDetail(error))
 	}
 
 	var card CardModel
@@ -496,12 +613,13 @@ func CreateCard(paymentToken string, verificationToken string, amount int64, cur
 		log.Error(log.V{"Square Payment JSON Unmarshall": err})
 	}
 
-	log.Info(log.V{"Square Payment parsed": card})
+	log.Info(log.V{"Square card created": card.Card.ID})
 
 	return card.Card.ID, err
 }
 
-// CreateSubscription creates a subscription for the user
+// CreateSubscription creates a subscription for the user. Yearly products use
+// the ANNUAL cadence, other recurring products use MONTHLY as before.
 func CreateSubscription(locationId string, planId string, customerId string, cardId string) (string, error) {
 
 	type Payload struct {
@@ -540,7 +658,7 @@ func CreateSubscription(locationId string, planId string, customerId string, car
 	req.Header.Set("Authorization", "Bearer "+config.Get("square_access_token"))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := paymentHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -563,7 +681,7 @@ func CreateSubscription(locationId string, planId string, customerId string, car
 
 		log.Info(log.V{"Square Payment parsed": error})
 
-		return "", errors.New(error.Errors[0].Detail)
+		return "", errors.New(squareErrorDetail(error))
 	}
 
 	var subscription SubscriptionModel
@@ -574,11 +692,18 @@ func CreateSubscription(locationId string, planId string, customerId string, car
 		log.Error(log.V{"Square Payment JSON Unmarshall": err})
 	}
 
-	log.Info(log.V{"Square Payment parsed": subscription})
+	log.Info(log.V{"Square subscription created": subscription.Subscription.ID, "status": subscription.Subscription.Status})
 
 	if subscription.Subscription.Status != "ACTIVE" {
 		return "", errors.New("Creating subscription failed,")
 	}
 
 	return subscription.Subscription.ID, err
+}
+
+func squareErrorDetail(e ErrorModel) string {
+	if len(e.Errors) == 0 {
+		return "Square request failed"
+	}
+	return e.Errors[0].Detail
 }

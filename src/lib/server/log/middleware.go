@@ -71,7 +71,7 @@ func Middleware(h http.HandlerFunc) http.HandlerFunc {
 		Log(Values{
 			MessageKey: "<- Request",
 			"method":   r.Method,
-			URLKey:     r.RequestURI,
+			URLKey:     loggedRequestURL(r),
 			"len":      r.ContentLength,
 			IPKey:      r.RemoteAddr,
 			TraceKey:   requestID.String(),
@@ -83,10 +83,18 @@ func Middleware(h http.HandlerFunc) http.HandlerFunc {
 
 		Time(start, Values{
 			MessageKey: "-> Response",
-			URLKey:     r.RequestURI,
+			URLKey:     loggedRequestURL(r),
 			TraceKey:   requestID.String(),
 			LevelKey:   level,
 		})
 	}
 
+}
+
+// Payment URLs may contain cancellation capabilities and provider signatures.
+func loggedRequestURL(r *http.Request) string {
+	if strings.HasPrefix(r.URL.Path, "/subscriptions/") {
+		return r.URL.Path
+	}
+	return r.RequestURI
 }

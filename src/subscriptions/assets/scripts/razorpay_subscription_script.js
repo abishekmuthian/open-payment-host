@@ -7,8 +7,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Extracting the product ID from the current URL
   const urlParams = new URLSearchParams(window.location.search);
   const productId = decodeURIComponent(urlParams.get("product_id"));
-  const customId = decodeURIComponent(urlParams.get("custom_id"));
-  const redirectURI = decodeURIComponent(urlParams.get("redirect_uri"));
+  const customId = (urlParams.get("custom_id") || "");
+  const redirectURI = (urlParams.get("redirect_uri") || "");
 
   document.getElementById("rzp-button1").onclick = function (e) {
     // Check if phone field exists (for Indian users only)
@@ -106,23 +106,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         // description: "Test Transaction",
         // image: "https://example.com/your_logo",
         handler: function (response) {
-          console.log(response.razorpay_payment_id);
-          console.log(response.razorpay_subscription_id);
-          console.log(response.razorpay_signature);
-          window.location =
-            window.location.origin +
-            "/subscriptions/success?razorpay_payment_id=" +
-            `${response.razorpay_payment_id}` +
-            "&razorpay_subscription_id=" +
-            `${response.razorpay_subscription_id}` +
-            "&razorpay_signature=" +
-            `${response.razorpay_signature}` +
-            "&product_id=" +
-            `${productId}` +
-            "&redirect_uri=" +
-            `${redirectURI}` +
-            "&custom_id=" +
-            `${customId}`;
+          window.location = "/subscriptions/success?" + new URLSearchParams(response);
         },
         prefill: {
           name: document.querySelector(".razorpay-input-name").value,

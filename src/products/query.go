@@ -27,7 +27,7 @@ func AllowedParams() []string {
 
 // AllowedParamsAdmin returns the cols editable by admins
 func AllowedParamsAdmin() []string {
-	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "listmonk_list_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "total_onetime_payments", "webhook_url", "webhook_secret"}
+	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "listmonk_list_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "total_onetime_payments", "webhook_url", "webhook_secret", "allowed_redirect_origins"}
 }
 
 // NewWithColumns creates a new story instance and fills it with data from the database cols provided.
@@ -71,6 +71,7 @@ func NewWithColumns(cols map[string]interface{}) *Story {
 	story.RazorpayPrice = resource.ValidateNestedMap(cols["razorpay_price"])
 	story.WebhookURL = resource.ValidateString(cols["webhook_url"])
 	story.WebhookSecret = resource.ValidateString(cols["webhook_secret"])
+	story.AllowedRedirectOrigins = resource.ValidateString(cols["allowed_redirect_origins"])
 
 	//Flair
 	// FIXME - Create and join the flair column

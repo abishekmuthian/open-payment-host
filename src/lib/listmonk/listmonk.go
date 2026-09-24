@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -98,7 +99,7 @@ func findSubscriberByEmail(baseURL string, apiToken string, email string) (*Subs
 	}
 	query := "subscribers.email = '" + strings.ReplaceAll(email, "'", "''") + "'"
 
-	resp, err := resty.New().R().
+	resp, err := resty.New().SetTimeout(30*time.Second).R().
 		SetHeader("Authorization", authHeader).
 		SetResult(&result).
 		SetQueryParam("page", "1").
@@ -125,7 +126,7 @@ func createSubscriber(baseURL string, apiToken string, payload subscriberPayload
 		return nil, err
 	}
 
-	resp, err := resty.New().R().
+	resp, err := resty.New().SetTimeout(30*time.Second).R().
 		SetHeader("Content-Type", "application/json; charset=utf-8").
 		SetHeader("Authorization", authHeader).
 		SetBody(payload).
@@ -148,7 +149,7 @@ func patchSubscriber(baseURL string, apiToken string, subscriberID int, payload 
 		return nil, err
 	}
 
-	resp, err := resty.New().R().
+	resp, err := resty.New().SetTimeout(30*time.Second).R().
 		SetHeader("Content-Type", "application/json; charset=utf-8").
 		SetHeader("Authorization", authHeader).
 		SetBody(payload).
@@ -178,4 +179,36 @@ func appendListID(lists []SubscriberList, listID int) []int {
 	}
 
 	return ids
+}
+
+// RemoveSubscriberFromList preserves memberships unrelated to this product.
+func RemoveSubscriberFromList(baseURL, apiToken, email string, listID int) error {
+	subscriber, err := findSubscriberByEmail(baseURL, apiToken, email)
+	if err != nil || subscriber == nil {
+		return err
+	}
+	lists := make([]int, 0, len(subscriber.Lists))
+	found := false
+	for _, list := range subscriber.Lists {
+		if list.ID == listID {
+			found = true
+		} else {
+			lists = append(lists, list.ID)
+		}
+	}
+	if !found {
+		return nil
+	}
+	auth, err := authorizationHeader(apiToken)
+	if err != nil {
+		return err
+	}
+	resp, err := resty.New().SetTimeout(30*time.Second).R().SetHeader("Authorization", auth).SetBody(map[string]interface{}{"lists": lists}).Patch(fmt.Sprintf("%s/api/subscribers/%d", strings.TrimRight(baseURL, "/"), subscriber.ID))
+	if err != nil {
+		return err
+	}
+	if resp.IsError() {
+		return fmt.Errorf("listmonk update returned %s", resp.Status())
+	}
+	return nil
 }
