@@ -220,7 +220,12 @@ func applySubscriptionStatus(gateway, subscriptionID, status string) error {
 				return err
 			}
 		}
-		if _, err := tx.Exec("UPDATE payment_attempts SET status=?,counted=0 WHERE id=?", status, a.Id); err != nil {
+		if status == AttemptStatusCancelled {
+			now := query.TimeString(time.Now().UTC())
+			if _, err := tx.Exec("UPDATE payment_attempts SET status=?,counted=0,cancelled_at=?,updated_at=? WHERE id=?", status, now, now, a.Id); err != nil {
+				return err
+			}
+		} else if _, err := tx.Exec("UPDATE payment_attempts SET status=?,counted=0 WHERE id=?", status, a.Id); err != nil {
 			return err
 		}
 		if _, err := tx.Exec("UPDATE subscriptions SET payment_status=? WHERE pg=? AND subscr_id=?", strings.ToUpper(status), gateway, subscriptionID); err != nil {
@@ -278,6 +283,12 @@ func applyLegacyStatus(gateway, id, status string) error {
 		}
 		if _, err = tx.Exec("UPDATE subscriptions SET payment_status=? WHERE pg=? AND subscr_id=?", strings.ToUpper(status), gateway, id); err != nil {
 			return err
+		}
+		if status == AttemptStatusCancelled {
+			now := query.TimeString(time.Now().UTC())
+			if _, err = tx.Exec("UPDATE payment_attempts SET cancelled_at=?,updated_at=? WHERE id=?", now, now, a.Id); err != nil {
+				return err
+			}
 		}
 		return enqueuePaymentEffect(tx, a, ProviderFacts{Email: stored.CustomerEmail}, "subscription."+status, status)
 	})

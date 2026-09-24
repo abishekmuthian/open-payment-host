@@ -7,6 +7,7 @@
   <input type="hidden" name="authenticity_token" value="{{.authenticity_token}}" />
   <input type="hidden" name="subscription_id" value="{{.subscription_id}}" />
   <input type="hidden" name="cancellation_token" value="{{.cancellation_token}}" />
+  <input type="hidden" name="redirect_uri" value="{{.redirect_uri}}" />
   <button type="submit" class="btn btn-error">Yes, cancel my subscription</button>
   <a class="btn" href="/">No, take me back</a>
 </form>

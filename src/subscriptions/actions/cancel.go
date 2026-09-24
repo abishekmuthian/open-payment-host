@@ -7,6 +7,7 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
+	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"net/http"
 	"time"
@@ -24,6 +25,17 @@ func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 	if err != nil || !a.CancellationTokenValid(cancellationToken) {
 		return server.NotAuthorizedError(errors.New("a valid unused cancellation link is required"))
 	}
+	redirectURI := params.Get("redirect_uri")
+	if redirectURI != "" {
+		p, err := products.Find(a.ProductId)
+		if err != nil {
+			return server.NotFoundError(err)
+		}
+		redirectURI, err = subscriptions.ValidateRedirectURI(p, redirectURI)
+		if err != nil {
+			return server.BadRequestError(err)
+		}
+	}
 	if r.Method == http.MethodPost {
 		if err := session.CheckAuthenticity(w, r); err != nil {
 			return err
@@ -31,8 +43,8 @@ func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 		if err := subscriptions.CancelAttempt(a, cancellationToken); err != nil {
 			return server.InternalError(err)
 		}
-		if a.RedirectURI != "" {
-			return server.RedirectExternal(w, r, subscriptions.BuildRedirectURL(a.RedirectURI, map[string]string{"custom_id": a.CustomId, "subscription_id": a.ProviderSubscriptionId}))
+		if redirectURI != "" {
+			return server.RedirectExternal(w, r, subscriptions.BuildRedirectURL(redirectURI, map[string]string{"custom_id": a.CustomId, "subscription_id": a.ProviderSubscriptionId}))
 		}
 	} else if r.Method != http.MethodGet {
 		return server.BadRequestError(errors.New("method not allowed"))
@@ -44,6 +56,7 @@ func HandlePaymentCancel(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == http.MethodGet {
 		v.AddKey("subscription_id", a.ProviderSubscriptionId)
 		v.AddKey("cancellation_token", cancellationToken)
+		v.AddKey("redirect_uri", redirectURI)
 		v.Template("subscriptions/views/payment_cancel_confirm.html.got")
 	} else {
 		v.Template("subscriptions/views/payment_cancel.html.got")
