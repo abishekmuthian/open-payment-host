@@ -53,11 +53,21 @@ func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
 	err = processPaymentEvent("razorpay", r.Header.Get("X-Razorpay-Event-Id"), func() error {
 		switch e.Event {
 		case "order.paid":
-			a, err := FindAttemptByProviderOrder("razorpay", e.Payload.Order.Entity.ID)
+			orderID := e.Payload.Order.Entity.ID
+			payment := e.Payload.Payment.Entity
+			if payment.InvoiceID != "" {
+				if orderID == "" || payment.ID == "" || payment.OrderID == "" || payment.OrderID != orderID {
+					return errors.New("invalid invoice-backed Razorpay order event")
+				}
+				// Razorpay also emits order.paid for subscription invoices. The
+				// subscription.charged event performs the recurring payment proof.
+				return nil
+			}
+			a, err := FindAttemptByProviderOrder("razorpay", orderID)
 			if err != nil {
 				return err
 			}
-			f, err := fetchRazorpayPaymentFacts(a.ProviderOrderId, e.Payload.Payment.Entity.ID)
+			f, err := fetchRazorpayPaymentFacts(a.ProviderOrderId, payment.ID)
 			if err != nil {
 				return err
 			}

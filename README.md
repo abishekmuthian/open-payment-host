@@ -269,25 +269,25 @@ Set the webhook to `root_url/subscriptions/stripe-webhook` where the root_url is
 Set the following events to send:
 
 1. `checkout.session.completed`
-2. `payment_method.attached`
-3. `invoice.paid`
-4. `invoice.payment_failed`
-5. `customer.subscription.deleted`
+2. `invoice.paid`
+3. `invoice.payment_failed`
+4. `customer.subscription.deleted`
+5. `charge.refunded`
 
 ### Square Webhook Setup
 
 Webhook needs to be setup at [Square](https://developer.squareup.com) Developer's section for receiving subscription details post payment.
 
-Set the webhook to `root_url/subscriptions/square-webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
+Set the webhook to `root_url/subscriptions/square-webhook` where the root_url is defined in the configuration above. The URL configured in Square must exactly match `square_notification_url`, including its scheme, hostname, path, and trailing slash, because Square includes the notification URL when calculating webhook signatures. To test the webhooks in the local environment, use a tunnel like [ngrok](https://ngrok.com/).
 
 Set the following events to send:
 
-1. `subscription.created `
-2. `subscription.updated `
-3. `payment.create`
-4. `payment.updated`
+1. `payment.updated`
+2. `invoice.payment_made`
+3. `refund.updated`
+4. `subscription.updated`
 
-### Paypal Webhook Setup 
+### PayPal Webhook Setup
 
 Webhook needs to be setup at [Paypal](https://developer.paypal.com) Developer's section for receiving subscription details post payment.
 
@@ -295,15 +295,14 @@ Set the webhook to `root_url/subscriptions/paypal-webhook` where the root_url is
 
 Set the following events to send:
 
-1. `CHECKOUT.ORDER.APPROVED`
-2. `CAPTURE.REFUNDED`
-3. `BILLING.SUBSCRIPTION.ACTIVATED`
-4. `BILLING.SUBSCRIPTION.CREATED`
-5. `BILLING.SUBSCRIPTION.UPDATED`
-6. `BILLING.SUBSCRIPTION.EXPIRED`
-7. `BILLING.SUBSCRIPTION.CANCELLED`
+1. `PAYMENT.CAPTURE.COMPLETED`
+2. `PAYMENT.SALE.COMPLETED`
+3. `PAYMENT.CAPTURE.REFUNDED`
+4. `PAYMENT.SALE.REFUNDED`
+5. `BILLING.SUBSCRIPTION.ACTIVATED`
+6. `BILLING.SUBSCRIPTION.CANCELLED`
+7. `BILLING.SUBSCRIPTION.EXPIRED`
 8. `BILLING.SUBSCRIPTION.SUSPENDED`
-9. `BILLING.SUBSCRIPTION.PAYMENT.FAILED`
 
 ### Razorpay Webhook Setup
 
@@ -312,17 +311,15 @@ Webhook needs to be setup at [Razorpay](https://dashboard.razorpay.com/app/websi
 Set the webhook to `root_url/subscriptions/razorpay-webhook` where the root_url is defined in the configuration above. To test the webhooks in the local environment, Use a tunnel like [ngrok](https://ngrok.com/).
 
 Set the following events to send:
+
 1. `order.paid`
-2. `subscription.authenticated`
-3. `subscription.paused`
-4. `subscription.resumed`
-5. `subscription.activated`
-6. `subscription.pending`
-7. `subscription.halted`
-8. `subscription.charged`
-9. `subscription.cancelled`
-10. `subscription.completed`
-11. `subscription.updated`
+2. `subscription.charged`
+3. `refund.processed`
+4. `subscription.pending`
+5. `subscription.paused`
+6. `subscription.halted`
+7. `subscription.cancelled`
+8. `subscription.completed`
 
 ### API and Webhook <sup>Experimental</sup>
 > Note: API features are currently supported for Paypal and Razorpay payment gateways only. If you require support for other PG, kindly open a issue.
@@ -415,8 +412,6 @@ The request body is JSON with the following parameters:
 
 `email` : Email address (may be empty for cancellations).
 
-
-See [payment security rollout and validation](SECURITY_ADVISORY_IMPLEMENTATION.md) before deploying this release.
 
 ## Developer
 
