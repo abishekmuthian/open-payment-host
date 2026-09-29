@@ -69,3 +69,13 @@ func TestConfig(t *testing.T) {
 		t.Fatalf("config failed to get all")
 	}
 }
+
+// TestNilConfig checks that package helpers are safe before a config is loaded.
+func TestNilConfig(t *testing.T) {
+	old := Current
+	Current = nil
+	defer func() { Current = old }()
+	if Production() || Get("x") != "" || GetInt("x") != 0 || GetBool("x") {
+		t.Fatal("nil config returned values")
+	}
+}

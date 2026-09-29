@@ -165,7 +165,7 @@ func HandleBilling(w http.ResponseWriter, r *http.Request) error {
 
 			if !siteVerify.Success {
 				// Security challenge failed
-				log.Error(log.V{"Upload, Security challenge failed": siteVerify.ErrorCodes[0]})
+				log.Error(log.V{"Billing, Security challenge failed": siteVerify.ErrorCodes})
 				return server.Redirect(w, r, "/subscriptions/billing?error=security_challenge_failed_login"+fmt.Sprintf("&amount=%s&currency=%s&type=%s&productId=%s", amount, currency, paymentType, productId))
 			}
 		} else {

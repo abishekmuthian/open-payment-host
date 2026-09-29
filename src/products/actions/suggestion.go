@@ -6,11 +6,13 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
+	"github.com/abishekmuthian/open-payment-host/src/products"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -23,6 +25,12 @@ func HandleGetSuggestion(w http.ResponseWriter, r *http.Request) error {
 	err := session.CheckAuthenticity(w, r)
 	if err != nil {
 		return err
+	}
+
+	// Only users who may create products may use the product editor
+	err = can.Create(products.New(), session.CurrentUser(w, r))
+	if err != nil {
+		return server.NotAuthorizedError(err)
 	}
 
 	// Get the params
@@ -110,6 +118,7 @@ func HandleGetSuggestion(w http.ResponseWriter, r *http.Request) error {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(log.V{"Suggestion, Error getting response from paLM API": err})
+		return server.InternalError(err)
 	}
 	defer resp.Body.Close()
 

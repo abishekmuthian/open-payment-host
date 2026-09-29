@@ -1,6 +1,6 @@
 <div class="flex items-center justify-center p-12">
   <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
-    <div id="payment-form" class="mt-5">
+    <div id="payment-form" data-amount="{{ .verificationAmount }}" data-currency="{{ .verificationCurrency }}" data-schedule="{{ .paymentSchedule }}" class="mt-5">
       <label class="label">
         <span class="label-text text-xl"
           >Payment securely powered by Square, Inc.</span

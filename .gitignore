@@ -17,7 +17,6 @@ data/db/oph.db*
 package-lock.json
 package.json
 __debug_bin*
-**/*_test.go
 .cache
 fly.toml
 oph.sqbpro
@@ -25,3 +24,8 @@ build-docker-image.sh
 CLAUDE.md
 AGENTS.md
 *.log
+*PLAN.md
+
+SECURITY_ADVISORY_IMPLEMENTATION.md
+Test_Coverage.md
+MEMORY.md

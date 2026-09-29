@@ -3,11 +3,6 @@
 @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
   @layer base {
     *, ::before, ::after, ::backdrop {
-      --tw-rotate-x: rotateX(0);
-      --tw-rotate-y: rotateY(0);
-      --tw-rotate-z: rotateZ(0);
-      --tw-skew-x: skewX(0);
-      --tw-skew-y: skewY(0);
       --tw-space-y-reverse: 0;
       --tw-space-x-reverse: 0;
       --tw-border-style: solid;
@@ -82,7 +77,7 @@
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
     --radius-sm: 0.25rem;
-    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
     --default-transition-duration: 150ms;
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
@@ -281,6 +276,61 @@
             min-width: 95cqi;
             max-width: 95cqi;
           }
+        }
+      }
+    }
+  }
+  .modal {
+    @layer daisyui.l1.l2.l3 {
+      pointer-events: none;
+      visibility: hidden;
+      position: fixed;
+      inset: calc(0.25rem * 0);
+      margin: calc(0.25rem * 0);
+      display: grid;
+      height: 100%;
+      max-height: none;
+      width: 100%;
+      max-width: none;
+      align-items: center;
+      justify-items: center;
+      background-color: transparent;
+      padding: calc(0.25rem * 0);
+      color: inherit;
+      transition: visibility 0.3s allow-discrete, background-color 0.3s ease-out, opacity 0.1s ease-out;
+      overflow: clip;
+      overscroll-behavior: contain;
+      z-index: 999;
+      scrollbar-gutter: auto;
+      &::backdrop {
+        display: none;
+      }
+    }
+    @layer daisyui.l1.l2 {
+      &.modal-open, &[open], &:target, .modal-toggle:checked + & {
+        pointer-events: auto;
+        visibility: visible;
+        opacity: 100%;
+        transition: visibility 0s allow-discrete, background-color 0.3s ease-out, opacity 0.1s ease-out;
+        background-color: oklch(0% 0 0/ 0.4);
+        .modal-box {
+          translate: 0 0;
+          scale: 1;
+          opacity: 1;
+        }
+        :root:has(&) {
+          --page-has-backdrop: 1;
+          --page-overflow: hidden;
+          --page-scroll-bg: var(--page-scroll-bg-on);
+          --page-scroll-gutter: stable;
+          --page-scroll-transition: var(--page-scroll-transition-on);
+          animation: set-page-has-scroll forwards;
+          animation-timeline: scroll();
+        }
+      }
+      @starting-style {
+        &.modal-open, &[open], &:target, .modal-toggle:checked + & {
+          opacity: 0%;
         }
       }
     }
@@ -1226,6 +1276,122 @@
       }
     }
   }
+  .input\! {
+    @layer daisyui.l1.l2.l3 {
+      cursor: text !important;
+      border: var(--border) solid #0000 !important;
+      position: relative !important;
+      display: inline-flex !important;
+      flex-shrink: 1 !important;
+      appearance: none !important;
+      align-items: center !important;
+      gap: calc(0.25rem * 2) !important;
+      background-color: var(--color-base-100) !important;
+      padding-inline: calc(0.25rem * 3) !important;
+      vertical-align: middle !important;
+      white-space: nowrap !important;
+      width: clamp(3rem, 20rem, 100%) !important;
+      height: var(--size) !important;
+      font-size: max(var(--font-size, 0.875rem), 0.875rem) !important;
+      touch-action: manipulation !important;
+      border-start-start-radius: var(--join-ss, var(--radius-field)) !important;
+      border-start-end-radius: var(--join-se, var(--radius-field)) !important;
+      border-end-start-radius: var(--join-es, var(--radius-field)) !important;
+      border-end-end-radius: var(--join-ee, var(--radius-field)) !important;
+      border-color: var(--input-color) !important;
+      box-shadow: 0 1px color-mix(in oklab, var(--input-color) calc(var(--depth) * 10%), #0000) inset, 0 -1px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset !important;
+      --size: calc(var(--size-field, 0.25rem) * 10) !important;
+      --input-color: color-mix(in srgb, var(--color-base-content) 20%, #0000) !important;
+      @supports (color: color-mix(in lab, red, red)) {
+        --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000) !important;
+      }
+      &:where(input) {
+        display: inline-flex !important;
+      }
+      :where(input) {
+        display: inline-flex !important;
+        height: 100% !important;
+        width: 100% !important;
+        appearance: none !important;
+        background-color: transparent !important;
+        border: none !important;
+        &:focus, &:focus-within {
+          --tw-outline-style: none !important;
+          outline-style: none !important;
+          @media (forced-colors: active) {
+            outline: 2px solid transparent !important;
+            outline-offset: 2px !important;
+          }
+        }
+      }
+      :where(input[type="url"]), :where(input[type="email"]) {
+        direction: ltr !important;
+      }
+      :where(input[type="date"]) {
+        display: inline-flex !important;
+      }
+      &:focus, &:focus-within {
+        --input-color: var(--color-base-content) !important;
+        box-shadow: 0 1px color-mix(in oklab, var(--input-color) calc(var(--depth) * 10%), #0000) !important;
+        outline: 2px solid var(--input-color) !important;
+        outline-offset: 2px !important;
+        isolation: isolate !important;
+      }
+      @media (pointer: coarse) {
+        @supports (-webkit-touch-callout: none) {
+          &:focus, &:focus-within {
+            --font-size: 1rem !important;
+          }
+        }
+      }
+      &:has(> input[disabled]), &:is(:disabled, [disabled]), fieldset:disabled & {
+        cursor: not-allowed !important;
+        border-color: var(--color-base-200) !important;
+        background-color: var(--color-base-200) !important;
+        color: color-mix(in srgb, var(--color-base-content) 40%, transparent) !important;
+        @supports (color: color-mix(in lab, red, red)) {
+          color: color-mix(in oklab, var(--color-base-content) 40%, transparent) !important;
+        }
+        &::placeholder {
+          color: color-mix(in srgb, var(--color-base-content) 20%, transparent) !important;
+          @supports (color: color-mix(in lab, red, red)) {
+            color: color-mix(in oklab, var(--color-base-content) 20%, transparent) !important;
+          }
+        }
+        box-shadow: none !important;
+      }
+      &:has(> input[disabled]) > input[disabled] {
+        cursor: not-allowed !important;
+      }
+      &::-webkit-date-and-time-value {
+        text-align: inherit !important;
+      }
+      &[type="number"] {
+        &::-webkit-inner-spin-button {
+          margin-block: calc(0.25rem * -3) !important;
+          margin-inline-end: calc(0.25rem * -3) !important;
+        }
+      }
+      &::-webkit-calendar-picker-indicator {
+        position: absolute !important;
+        inset-inline-end: 0.75em !important;
+      }
+      &:has(> input[type="date"]) {
+        :where(input[type="date"]) {
+          display: inline-flex !important;
+          webkit-appearance: none !important;
+          appearance: none !important;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          position: absolute !important;
+          inset-inline-end: 0.75em !important;
+          width: 1em !important;
+          height: 1em !important;
+          cursor: pointer !important;
+        }
+      }
+    }
+  }
   .table {
     @layer daisyui.l1.l2.l3 {
       font-size: 0.875rem;
@@ -1489,27 +1655,6 @@
         cursor: not-allowed;
         opacity: 30%;
       }
-    }
-  }
-  .diff-resizer {
-    @layer daisyui.l1.l2.l3 {
-      position: relative;
-      isolation: isolate;
-      z-index: 2;
-      grid-column-start: 1;
-      grid-row-start: 2;
-      height: calc(0.25rem * 3);
-      width: 50cqi;
-      max-width: calc(100cqi - 1rem);
-      min-width: 1rem;
-      resize: horizontal;
-      overflow: hidden;
-      opacity: 0%;
-      transform: scaleY(5) translate(0.32rem, 50%);
-      cursor: ew-resize;
-      transform-origin: 100% 100%;
-      clip-path: inset(calc(100% - 0.75rem) 0 0 calc(100% - 0.75rem));
-      transition: min-width 0.3s ease-out, max-width 0.3s ease-out;
     }
   }
   .select {
@@ -1928,74 +2073,6 @@
       }
     }
   }
-  .rating {
-    @layer daisyui.l1.l2.l3 {
-      position: relative;
-      display: inline-flex;
-      vertical-align: middle;
-      & input {
-        border: none;
-        appearance: none;
-      }
-      :where(*) {
-        height: calc(0.25rem * 6);
-        width: calc(0.25rem * 6);
-        border-radius: 0;
-        background-color: var(--color-base-content);
-        opacity: 20%;
-        @media (prefers-reduced-motion: no-preference) {
-          animation: rating 0.25s ease-out;
-        }
-        &:is(input) {
-          cursor: pointer;
-        }
-      }
-      & .rating-hidden {
-        width: calc(0.25rem * 2);
-        background-color: transparent;
-      }
-      input[type="radio"]:checked {
-        background-image: none;
-      }
-      * {
-        &:checked, &[aria-checked="true"], &[aria-current="true"], &:has(~ *:checked, ~ *[aria-checked="true"], ~ *[aria-current="true"]) {
-          opacity: 100%;
-        }
-        &:focus-visible {
-          scale: 1.1;
-          @media (prefers-reduced-motion: no-preference) {
-            transition: scale 0.2s ease-out;
-          }
-        }
-      }
-      & *:active:focus {
-        animation: none;
-        scale: 1.1;
-      }
-    }
-    @layer daisyui.l1.l2 {
-      &.rating-xs :where(*:not(.rating-hidden)) {
-        width: calc(0.25rem * 4);
-        height: calc(0.25rem * 4);
-      }
-      &.rating-sm :where(*:not(.rating-hidden)) {
-        width: calc(0.25rem * 5);
-        height: calc(0.25rem * 5);
-      }
-      &.rating-md :where(*:not(.rating-hidden)) {
-        width: calc(0.25rem * 6);
-        height: calc(0.25rem * 6);
-      }
-      &.rating-lg :where(*:not(.rating-hidden)) {
-        width: calc(0.25rem * 7);
-        height: calc(0.25rem * 7);
-      }
-      &.rating-xl :where(*:not(.rating-hidden)) {
-        width: calc(0.25rem * 8);
-        height: calc(0.25rem * 8);
-      }
-    }
-  }
   .navbar {
     @layer daisyui.l1.l2.l3 {
       display: flex;
@@ -2111,53 +2188,6 @@
         &::-webkit-progress-value {
           border-radius: var(--radius-box);
           background-color: currentColor;
-        }
-      }
-    }
-  }
-  .progress\! {
-    @layer daisyui.l1.l2.l3 {
-      position: relative !important;
-      height: calc(0.25rem * 2) !important;
-      width: 100% !important;
-      appearance: none !important;
-      overflow: hidden !important;
-      border-radius: var(--radius-box) !important;
-      background-color: color-mix(in oklab, currentcolor 20%, transparent) !important;
-      color: var(--color-base-content) !important;
-      &:indeterminate {
-        background-image: repeating-linear-gradient( 90deg, currentColor -1%, currentColor 10%, #0000 10%, #0000 90% ) !important;
-        background-size: 200% !important;
-        background-position-x: 15% !important;
-        @media (prefers-reduced-motion: no-preference) {
-          animation: progress 5s ease-in-out infinite !important;
-        }
-        @supports (-moz-appearance: none) {
-          &::-moz-progress-bar {
-            background-color: transparent !important;
-            @media (prefers-reduced-motion: no-preference) {
-              animation: progress 5s ease-in-out infinite !important;
-              background-image: repeating-linear-gradient( 90deg, currentColor -1%, currentColor 10%, #0000 10%, #0000 90% ) !important;
-              background-size: 200% !important;
-              background-position-x: 15% !important;
-            }
-          }
-        }
-      }
-      @supports (-moz-appearance: none) {
-        &::-moz-progress-bar {
-          border-radius: var(--radius-box) !important;
-          background-color: currentcolor !important;
-        }
-      }
-      @supports (-webkit-appearance: none) {
-        &::-webkit-progress-bar {
-          border-radius: var(--radius-box) !important;
-          background-color: transparent !important;
-        }
-        &::-webkit-progress-value {
-          border-radius: var(--radius-box) !important;
-          background-color: currentColor !important;
         }
       }
     }
@@ -2430,26 +2460,6 @@
   .z-1 {
     z-index: 1;
   }
-  .tab-content {
-    @layer daisyui.l1.l2.l3 {
-      order: var(--tabcontent-order);
-      display: none;
-      border-color: transparent;
-      --tabcontent-radius-ss: var(--radius-box);
-      --tabcontent-radius-se: var(--radius-box);
-      --tabcontent-radius-es: var(--radius-box);
-      --tabcontent-radius-ee: var(--radius-box);
-      --tabcontent-order: 1;
-      width: 100%;
-      height: calc(100% - var(--tab-height) + var(--border));
-      margin: var(--tabcontent-margin);
-      border-width: var(--border);
-      border-start-start-radius: var(--tabcontent-radius-ss);
-      border-start-end-radius: var(--tabcontent-radius-se);
-      border-end-start-radius: var(--tabcontent-radius-es);
-      border-end-end-radius: var(--tabcontent-radius-ee);
-    }
-  }
   .col-0 {
     grid-column: 0;
   }
@@ -2461,9 +2471,6 @@
   }
   .col-12 {
     grid-column: 12;
-  }
-  .col-span-full {
-    grid-column: 1 / -1;
   }
   .hero {
     @layer daisyui.l1.l2.l3 {
@@ -2659,15 +2666,6 @@
         margin-inline-start: 0;
         margin-block-start: calc(var(--border, 1px) * -1);
       }
-    }
-  }
-  .join-item {
-    &:where(*:not(:first-child, :disabled, [disabled], .btn-disabled)) {
-      margin-inline-start: calc(var(--border, 1px) * -1);
-      margin-block-start: 0;
-    }
-    &:where(*:is(:disabled, [disabled], .btn-disabled)) {
-      border-width: var(--border, 1px) 0 var(--border, 1px) var(--border, 1px);
     }
   }
   .prose {
@@ -3345,6 +3343,9 @@
   .inline {
     display: inline;
   }
+  .inline-block {
+    display: inline-block;
+  }
   .table {
     display: table;
   }
@@ -3428,39 +3429,11 @@
   .flex-none {
     flex: none;
   }
-  .flex-shrink {
-    flex-shrink: 1;
-  }
   .flex-shrink-0 {
     flex-shrink: 0;
   }
-  .flex-grow {
-    flex-grow: 1;
-  }
   .flex-grow-0 {
     flex-grow: 0;
-  }
-  .border-collapse {
-    border-collapse: collapse;
-  }
-  .transform {
-    transform: var(--tw-rotate-x) var(--tw-rotate-y) var(--tw-rotate-z) var(--tw-skew-x) var(--tw-skew-y);
-  }
-  .skeleton {
-    @layer daisyui.l1.l2.l3 {
-      border-radius: var(--radius-box);
-      background-color: var(--color-base-300);
-      @media (prefers-reduced-motion: reduce) {
-        transition-duration: 15s;
-      }
-      will-change: background-position;
-      background-image: linear-gradient( 105deg, #0000 0% 40%, var(--color-base-100) 50%, #0000 60% 100% );
-      background-size: 200% auto;
-      background-position-x: -50%;
-      @media (prefers-reduced-motion: no-preference) {
-        animation: skeleton 1.8s ease-in-out infinite;
-      }
-    }
   }
   .link {
     @layer daisyui.l1.l2.l3 {
@@ -3601,9 +3574,6 @@
   }
   .bg-white {
     background-color: var(--color-white);
-  }
-  .mask-repeat {
-    mask-repeat: repeat;
   }
   .p-0 {
     padding: calc(var(--spacing) * 0);
@@ -3756,9 +3726,6 @@
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
   }
-  .text-wrap {
-    text-wrap: wrap;
-  }
   .text-base-content {
     color: var(--color-base-content);
   }
@@ -3847,6 +3814,10 @@
       }
     }
   }
+  .blur {
+    --tw-blur: blur(8px);
+    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
+  }
   .filter {
     filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
   }
@@ -3855,9 +3826,9 @@
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
-  .ease-in-out {
-    --tw-ease: var(--ease-in-out);
-    transition-timing-function: var(--ease-in-out);
+  .ease-in {
+    --tw-ease: var(--ease-in);
+    transition-timing-function: var(--ease-in);
   }
   .btn-lg {
     @layer daisyui.l1.l2 {
@@ -3871,6 +3842,12 @@
       --fontsize: 0.75rem;
       --btn-p: 0.75rem;
       --size: calc(var(--size-field, 0.25rem) * 8);
+    }
+  }
+  .btn-error {
+    @layer daisyui.l1.l2.l3 {
+      --btn-color: var(--color-error);
+      --btn-fg: var(--color-error-content);
     }
   }
   .btn-info {
@@ -4652,31 +4629,6 @@
   50% {
     background-position-x: -115%;
   }
-}
-@property --tw-rotate-x {
-  syntax: "*";
-  inherits: false;
-  initial-value: rotateX(0);
-}
-@property --tw-rotate-y {
-  syntax: "*";
-  inherits: false;
-  initial-value: rotateY(0);
-}
-@property --tw-rotate-z {
-  syntax: "*";
-  inherits: false;
-  initial-value: rotateZ(0);
-}
-@property --tw-skew-x {
-  syntax: "*";
-  inherits: false;
-  initial-value: skewX(0);
-}
-@property --tw-skew-y {
-  syntax: "*";
-  inherits: false;
-  initial-value: skewY(0);
 }
 @property --tw-space-y-reverse {
   syntax: "*";

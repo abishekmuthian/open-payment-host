@@ -11,11 +11,6 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
 )
 
-// These package level variables should be called if required to set policies before the middleware is added
-
-// ContentSecurityPolicy defaults to a strict policy disallowing iframes and scripts from any other origin save self (and Google Analytics for scripts)
-// var ContentSecurityPolicy = "frame-ancestors 'self'; connect-src 'self'; frame-src 'self' challenges.cloudflare.com; style-src 'self' 'unsafe-inline' esm.sh; script-src 'self' challenges.cloudflare.com esm.sh; img-src 'self'"
-
 // Middleware adds some headers suitable for secure sites
 func Middleware(h http.HandlerFunc) http.HandlerFunc {
 
@@ -33,11 +28,9 @@ func Middleware(h http.HandlerFunc) http.HandlerFunc {
 			r = r.WithContext(ctx)
 		}
 
-		// Before Square
-		// var ContentSecurityPolicy = fmt.Sprintf("frame-ancestors 'self'; connect-src 'self' https://pci-connect.squareupsandbox.com https://pci-connect.squareup.com; frame-src 'self' challenges.cloudflare.com https://sandbox.web.squarecdn.com; style-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com/trix@2.0.0/dist/trix.css 'nonce-%s'; script-src 'self' challenges.cloudflare.com https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js https://*.squarecdn.com https://js.squareupsandbox.com https://*.squarecdn.com https://js.squareup.com ; img-src 'self' data:", nonce)
-
-		// After Square integration
-		var ContentSecurityPolicy = fmt.Sprintf("frame-ancestors 'self'; connect-src 'self' https://*.s3.amazonaws.com https://*.r2.cloudflarestorage.com https://pci-connect.squareupsandbox.com https://pci-connect.squareup.com https://api.squareupsandbox.com https://api.squareup.com https://*.paypal.com https://*.razorpay.com; frame-src 'self' challenges.cloudflare.com https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.ndsprod.nds-sandbox-issuer.com https://*.ndsprod.nds-issuer.com https://*.paypal.com https://*.razorpay.com; style-src 'self' 'unsafe-inline' https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://unpkg.com https://cdn.jsdelivr.net https://*.paypal.com https://*.razorpay.com; script-src 'self' challenges.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.paypal.com https://*.paypalobjects.com https://*.razorpay.com 'nonce-%s'; img-src 'self' https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.paypal.com https://*.paypalobjects.com https://*.razorpay.com data: blob:", nonce)
+		// htmx, hyperscript, Trix, and SweetAlert2 are self-hosted under src/app/assets/
+		// Payment gateway SDKs (PayPal, Square, Razorpay) and Cloudflare Turnstile remain on CDN origin allowlists
+		var ContentSecurityPolicy = fmt.Sprintf("frame-ancestors 'self'; connect-src 'self' https://*.s3.amazonaws.com https://*.r2.cloudflarestorage.com https://pci-connect.squareupsandbox.com https://pci-connect.squareup.com https://api.squareupsandbox.com https://api.squareup.com https://*.paypal.com https://*.razorpay.com; frame-src 'self' challenges.cloudflare.com https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.ndsprod.nds-sandbox-issuer.com https://*.ndsprod.nds-issuer.com https://*.paypal.com https://*.razorpay.com; style-src 'self' 'unsafe-inline' https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.paypal.com https://*.razorpay.com; script-src 'self' challenges.cloudflare.com https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.paypal.com https://*.paypalobjects.com https://*.razorpay.com 'nonce-%s'; img-src 'self' https://*.squarecdn.com https://*.squareupsandbox.com https://*.squareup.com https://*.paypal.com https://*.paypalobjects.com https://*.razorpay.com data: blob:", nonce)
 
 		// Add some headers for security
 

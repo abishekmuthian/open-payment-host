@@ -5,54 +5,43 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
-
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
+	"time"
 )
 
-// SendWebhook sends a webhook to the specified URL with the given payload.
-func SendWebhook(url string, secret string, params map[string]interface{}) error {
-	// payload := fmt.Sprint(params["subscription_id"], "|", params["custom_id"], "|", params["status"])
+const (
+	EventPaymentActive         = "payment.active"
+	EventSubscriptionActive    = "subscription.active"
+	EventSubscriptionCancelled = "subscription.cancelled"
+)
 
-	// Marshal params to JSON
-	jsonParams, err := json.Marshal(params)
+var paymentHTTPClient = &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }}
+
+func sendProductWebhook(destination, secret, id, eventType, created string, body []byte) error {
+	req, err := http.NewRequest(http.MethodPost, destination, bytes.NewReader(body))
 	if err != nil {
-		// Handle error appropriately
-		log.Error(log.V{"Error marshaling params: ": err})
-	}
-
-	body := bytes.NewReader([]byte(jsonParams))
-
-	signature := GenerateSignature([]byte(jsonParams), secret)
-
-	request, err := http.NewRequest(http.MethodPost, url, body)
-	if err != nil {
-		// handle err
-		log.Error(log.V{"SendWebhook error": err})
 		return err
 	}
-
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	request.Header.Add("X-OPH-Signature", signature)
-
-	resp, err := http.DefaultClient.Do(request)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-OPH-Signature", GenerateSignature(body, secret))
+	req.Header.Set("X-OPH-Event-ID", id)
+	req.Header.Set("X-OPH-Event-Type", eventType)
+	req.Header.Set("X-OPH-Timestamp", created)
+	resp, err := paymentHTTPClient.Do(req)
 	if err != nil {
-		log.Error(log.V{"SendWebhook error": err})
-
 		return err
 	}
-
 	defer resp.Body.Close()
-
-	return err
-
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<16))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("product webhook returned HTTP %d", resp.StatusCode)
+	}
+	return nil
 }
-
-// GenerateSignature generates a signature for the given payload and secret.
 func GenerateSignature(body []byte, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write(body)
-	signature := hex.EncodeToString(h.Sum(nil))
-	return signature
+	return hex.EncodeToString(h.Sum(nil))
 }

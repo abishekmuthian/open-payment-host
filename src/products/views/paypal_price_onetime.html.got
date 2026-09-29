@@ -26,7 +26,7 @@
       if value of #{{ $pg }}_country_{{
       $fieldIndex
     }} is equal to 'Select Country'
-        focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+        call #{{ $pg }}_country_{{ $fieldIndex }}.focus()
         then call Swal.fire({text:'Select a country first',   theme:'auto'})
       end
       "
@@ -43,10 +43,10 @@
     if value of #{{ $pg }}_country_{{
       $fieldIndex
     }} is equal to 'Select Country'
-      focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+      call #{{ $pg }}_country_{{ $fieldIndex }}.focus()
       then call Swal.fire({text:'Select a country first',   theme:'auto'})
     else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
-      focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+      call #{{ $pg }}_amount_{{ $fieldIndex }}.focus()
       then call Swal.fire({text:'Set a amount first',   theme:'auto'})
     end
       "
@@ -63,13 +63,13 @@
     if value of #{{ $pg }}_country_{{
       $fieldIndex
     }} is equal to 'Select Country'
-      focus() the #{{ $pg }}_country_{{ $fieldIndex }}
+      call #{{ $pg }}_country_{{ $fieldIndex }}.focus()
       then call Swal.fire({text:'Select a country first',   theme:'auto'})
     else if value of #{{ $pg }}_amount_{{ $fieldIndex }} is empty
-      focus() the #{{ $pg }}_amount_{{ $fieldIndex }}
+      call #{{ $pg }}_amount_{{ $fieldIndex }}.focus()
       then call Swal.fire({text:'Set a amount first',   theme:'auto'})
     else if value of #{{ $pg }}_tax_{{ $fieldIndex }} is empty
-      focus() the #{{ $pg }}_tax_{{ $fieldIndex }}
+      call #{{ $pg }}_tax_{{ $fieldIndex }}.focus()
       then call Swal.fire({text:'Set a tax first',   theme:'auto'})
     end
     "

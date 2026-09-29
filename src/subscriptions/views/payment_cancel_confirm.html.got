@@ -1,0 +1,14 @@
+<div
+  class="h-screen flex flex-col space-y-10 justify-items-center items-center"
+>
+<h1 class="prose lg:prose-xl">Are you sure you want to cancel your subscription?</h1>
+<p class="prose lg:prose-lg">Cancelling will stop future renewals of your subscription. Your access continues until the end of the current billing period.</p>
+<form method="post" action="/subscriptions/cancel" class="flex gap-4">
+  <input type="hidden" name="authenticity_token" value="{{.authenticity_token}}" />
+  <input type="hidden" name="subscription_id" value="{{.subscription_id}}" />
+  <input type="hidden" name="cancellation_token" value="{{.cancellation_token}}" />
+  <input type="hidden" name="redirect_uri" value="{{.redirect_uri}}" />
+  <button type="submit" class="btn btn-error">Yes, cancel my subscription</button>
+  <a class="btn" href="/">No, take me back</a>
+</form>
+</div>

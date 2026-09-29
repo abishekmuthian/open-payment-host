@@ -99,6 +99,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         theme: "auto",
       });
     } else {
+      // Razorpay keeps its modal open for retries after a failed attempt, so the
+      // error is shown only if the buyer closes the modal without paying.
+      let lastPaymentError = null;
       var options = {
         key: razorpayKeyID(), // Enter the Key ID generated from the Dashboard
         amount: productAmount(), // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
@@ -108,31 +111,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         // image: "https://example.com/your_logo",
         order_id: orderID(), //This is a sample Order ID. Pass the `id` obtained in the response of Step 1
         handler: function (response) {
-          console.log(response.razorpay_payment_id);
-          console.log(response.razorpay_order_id);
-          console.log(response.razorpay_signature);
-
-          // Build success URL with proper parameter handling
-          let successURL =
-            window.location.origin +
-            "/subscriptions/success?razorpay_payment_id=" +
-            encodeURIComponent(response.razorpay_payment_id) +
-            "&razorpay_order_id=" +
-            encodeURIComponent(response.razorpay_order_id) +
-            "&razorpay_signature=" +
-            encodeURIComponent(response.razorpay_signature) +
-            "&product_id=" +
-            encodeURIComponent(productId);
-
-          // Only add redirect_uri and custom_id if they are not empty
-          if (redirectURI && redirectURI !== "") {
-            successURL += "&redirect_uri=" + encodeURIComponent(redirectURI);
-          }
-          if (customId && customId !== "") {
-            successURL += "&custom_id=" + encodeURIComponent(customId);
-          }
-
-          window.location = successURL;
+          lastPaymentError = null;
+          window.location = "/subscriptions/success?" + new URLSearchParams(response);
         },
         prefill: {
           name: document.querySelector(".razorpay-input-name").value,
@@ -154,6 +134,20 @@ document.addEventListener("DOMContentLoaded", async function () {
         theme: {
           color: "#3399cc",
         },
+        modal: {
+          ondismiss: function () {
+            if (lastPaymentError) {
+              Swal.fire({
+                title: "Error processing Razorpay payment!",
+                text: lastPaymentError.description,
+                icon: "error",
+                confirmButtonText: "Dismiss",
+                theme: "auto",
+              });
+              lastPaymentError = null;
+            }
+          },
+        },
       };
       var rzp1 = new Razorpay(options);
       rzp1.on("payment.failed", function (response) {
@@ -164,12 +158,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         console.log(response.error.reason);
         console.log(response.error.metadata.order_id);
         console.log(response.error.metadata.payment_id);
-        Swal.fire({
-          title: "Error processing Razorpay payment!",
-          text: response.error.description,
-          icon: "error",
-          confirmButtonText: "Dismiss",
-        });
+        lastPaymentError = response.error;
       });
 
       rzp1.open();

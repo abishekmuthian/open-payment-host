@@ -143,6 +143,8 @@ func ValidateMap(param interface{}) map[string]string {
 		switch param.(type) {
 		case string:
 			json.Unmarshal([]byte(param.(string)), &v)
+		case []byte:
+			json.Unmarshal(param.([]byte), &v)
 		}
 	}
 	return v
@@ -155,6 +157,8 @@ func ValidateNestedMap(param interface{}) map[string]map[string]interface{} {
 		switch param.(type) {
 		case string:
 			json.Unmarshal([]byte(param.(string)), &v)
+		case []byte:
+			json.Unmarshal(param.([]byte), &v)
 		}
 	}
 	return v

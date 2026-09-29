@@ -16,49 +16,28 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/stripe/stripe-go/v72"
-	stripesession "github.com/stripe/stripe-go/v72/checkout/session"
 	"github.com/stripe/stripe-go/v72/price"
 )
 
+// HandleCreateCheckoutSession creates a Stripe Checkout Session for the product.
+// The configured Price ID is derived from the product, country and schedule on
+// the server - the browser cannot pair an independent priceId with an
+// unrelated productId. The attempt id and product id are stored in Checkout
+// metadata and verified again at success and webhook time.
 func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 
 	// Set your secret key. Remember to switch to your live secret key in production.
 	// See your keys here: https://dashboard.stripe.com/account/apikeys
-	stripe.Key = config.Get("stripe_secret")
 
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return nil
 	}
 
-	var req struct {
-		Price             string `json:"priceId"`
-		AuthenticityToken string `json:"authenticityToken"`
-		Product           string `json:"productId"`
-	}
-
 	params, err := mux.Params(r)
 	if err != nil {
 		return server.InternalError(err)
 	}
-
-	req.Price = params.Get("priceId")
-	req.Product = params.Get("productId")
-
-	var successURL *string
-
-	successURL = stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/stripe-success?session_id={CHECKOUT_SESSION_ID}")
-
-	// Needed when using stripe JS
-	/*	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Error(log.V{"Checkout json.NewDecoder.Decode: %v": err})
-		if e, ok := err.(*json.SyntaxError); ok {
-			log.Error(log.V{"syntax error at byte offset %d": e.Offset})
-		}
-		log.Error(log.V{"Response %q": r.Body})
-		return nil
-	}*/
 
 	// Check token authenticity
 	err = session.CheckAuthenticity(w, r)
@@ -67,22 +46,16 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Anon users are allowed to subscribe
-	/* 	// Authorise
-	   	currentUser := session.CurrentUser(w, r)
 
-	   	subscription := subscriptions.New()
-
-	   	err = can.Create(subscription, currentUser)
-	   	if err != nil {
-	   		// FIXME: Redirection to to error page not working
-	   		return server.NotAuthorizedError(err)
-	   	} */
-
-	// See https://stripe.com/docs/api/checkout/sessions/create
-	// for additional parameters to pass.
-	// {CHECKOUT_SESSION_ID} is a string literal; do not change it!
-	// the actual Session ID is returned in the query parameter when your customer
-	// is redirected to the success page.
+	// Resolve the product from the posted product id
+	productId, err := strconv.ParseInt(params.Get("productId"), 10, 64)
+	if err != nil {
+		return server.BadRequestError(err)
+	}
+	story, err := products.Find(productId)
+	if err != nil {
+		return server.NotFoundError(err)
+	}
 
 	// Get the client country
 	clientCountry := r.Header.Get("CF-IPCountry")
@@ -92,136 +65,128 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		clientCountry = config.Get("subscription_client_country")
 	}
 
+	taxCountry := clientCountry
+
+	// Derive the configured Price ID from the product, never from the browser.
+	// A posted priceId has no authority over the charged price.
+	priceId := story.StripePrice[clientCountry]
+	if priceId == "" {
+		clientCountry = "DF"
+		priceId = story.StripePrice[clientCountry]
+	}
+
+	if priceId == "" {
+		log.Error(log.V{"Checkout, no stripe price configured for product": story.ID, "country": clientCountry})
+		return server.Redirect(w, r, "/subscriptions/failure?errorDetail=No+price+configured+for+your+region")
+	}
+
+	// Fetch the price to determine recurring vs one time and freeze the
+	// expected amount and currency in the payment attempt
+	priceClient := price.Client{B: stripe.GetBackend(stripe.APIBackend), Key: config.Get("stripe_secret")}
+	p, err := priceClient.Get(priceId, nil)
+	if err != nil {
+		log.Error(log.V{"Checkout, error fetching stripe price": err})
+		return server.InternalError(err)
+	}
+
+	if !p.Active || p.UnitAmount <= 0 || (story.Schedule == "onetime" && p.Type != "one_time") || (story.Schedule != "onetime" && p.Type != "recurring") {
+		return server.BadRequestError(errors.New("price schedule mismatch"))
+	}
+	if p.Recurring != nil {
+		interval := "month"
+		if story.Schedule == "yearly" {
+			interval = "year"
+		}
+		if string(p.Recurring.Interval) != interval || p.Recurring.IntervalCount != 1 {
+			return server.BadRequestError(errors.New("price interval mismatch"))
+		}
+	}
+	expectedAmount, err := stripeExpectedAmount(p.UnitAmount, config.Get(fmt.Sprintf("stripe_tax_rate_%s", taxCountry)))
+	if err != nil {
+		return server.InternalError(err)
+	}
 	// Subscription or One Time Payment
 	var mode *string
 	var taxRate []*string
 	var subscriptionData *stripe.CheckoutSessionSubscriptionDataParams
+	schedule := "onetime"
 
-	// Check if the price is recurring or one time
-	p, err := price.Get(req.Price, nil)
-
-	if err == nil {
-		log.Info(log.V{"Currency:": p.Currency})
-
-		if p.Type == "recurring" {
-			mode = stripe.String(string(stripe.CheckoutSessionModeSubscription))
-			if config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)) != "" {
-				subscriptionData = &stripe.CheckoutSessionSubscriptionDataParams{
-					DefaultTaxRates: stripe.StringSlice([]string{
-						config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)),
-					}),
-				}
-			}
-		} else if p.Type == "one_time" {
-			mode = stripe.String(string(stripe.CheckoutSessionModePayment))
-			if config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)) != "" {
-				taxRate = stripe.StringSlice([]string{
-					config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)),
-				})
+	if p.Type == "recurring" {
+		mode = stripe.String(string(stripe.CheckoutSessionModeSubscription))
+		schedule = story.Schedule
+		if config.Get(fmt.Sprintf("stripe_tax_rate_%s", taxCountry)) != "" {
+			subscriptionData = &stripe.CheckoutSessionSubscriptionDataParams{
+				DefaultTaxRates: stripe.StringSlice([]string{
+					config.Get(fmt.Sprintf("stripe_tax_rate_%s", taxCountry)),
+				}),
 			}
 		}
-	}
-
-	// Redirect to the new story
-	productId, err := strconv.ParseInt(req.Product, 10, 64)
-	if err != nil {
-		return server.InternalError(err)
-	}
-	story, err := products.Find(productId)
-	if err != nil {
-		return server.InternalError(err)
-	}
-
-	if config.Get(fmt.Sprintf("stripe_tax_rate_%s", clientCountry)) != "" {
-		// If India, add tax ID
-		params := &stripe.CheckoutSessionParams{
-			BillingAddressCollection: stripe.String("required"),
-			CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/cancel"),
-			LineItems: []*stripe.CheckoutSessionLineItemParams{
-				{
-					Price: stripe.String(req.Price),
-					// For metered billing, do not pass quantity
-					Quantity: stripe.Int64(1),
-					TaxRates: taxRate,
-				},
-			},
-			Mode: mode,
-			PaymentMethodTypes: stripe.StringSlice([]string{
-				"card",
-			}),
-			SubscriptionData: subscriptionData,
-
-			SuccessURL: successURL,
+	} else if p.Type == "one_time" {
+		mode = stripe.String(string(stripe.CheckoutSessionModePayment))
+		if config.Get(fmt.Sprintf("stripe_tax_rate_%s", taxCountry)) != "" {
+			taxRate = stripe.StringSlice([]string{
+				config.Get(fmt.Sprintf("stripe_tax_rate_%s", taxCountry)),
+			})
 		}
-
-		params.AddMetadata("plan", story.NameDisplay())
-
-		if req.Product != "" {
-			params.AddMetadata("product_id", req.Product)
-		}
-
-		s, err := stripesession.New(params)
-		if err != nil {
-			// Needed when using stripe JS
-			/*			w.WriteHeader(http.StatusBadRequest)
-						writeJSON(w, nil, err)
-						return nil*/
-			return server.InternalError(err)
-		}
-		// Needed when using stripe JS
-		/*		writeJSON(w, struct {
-					SessionID string `json:"sessionId"`
-				}{
-					SessionID: s.ID,
-				}, nil)*/
-		// Then redirect to the URL on the Checkout Session
-		http.Redirect(w, r, s.URL, http.StatusSeeOther)
-
 	} else {
-		// No Tax ID for rest of the world
-		params := &stripe.CheckoutSessionParams{
-			BillingAddressCollection: stripe.String("required"),
-			SuccessURL:               successURL,
-			CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/cancel"),
-			PaymentMethodTypes: stripe.StringSlice([]string{
-				"card",
-			}),
-			Mode: mode,
-			LineItems: []*stripe.CheckoutSessionLineItemParams{
-				{
-					Price: stripe.String(req.Price),
-					// For metered billing, do not pass quantity
-					Quantity: stripe.Int64(1),
-				},
-			},
-		}
-
-		params.AddMetadata("plan", story.NameDisplay())
-
-		if req.Product != "" {
-			params.AddMetadata("product_id", req.Product)
-		}
-
-		s, err := stripesession.New(params)
-		if err != nil {
-			// Needed when using stripe JS
-			/*			w.WriteHeader(http.StatusBadRequest)
-						writeJSON(w, nil, err)
-						return nil*/
-			return server.InternalError(err)
-		}
-		// Needed when using stripe JS
-		/*		writeJSON(w, struct {
-					SessionID string `json:"sessionId"`
-				}{
-					SessionID: s.ID,
-				}, nil)*/
-		// Then redirect to the URL on the Checkout Session
-		http.Redirect(w, r, s.URL, http.StatusSeeOther)
-
+		return server.Redirect(w, r, "/subscriptions/failure?errorDetail=Unsupported+price+type")
 	}
 
-	return err
+	// Create the immutable payment attempt with the server-side price
+	attempt, err := newAttempt(story.ID, "stripe", schedule, clientCountry, expectedAmount, string(p.Currency), priceId, "", "")
+	if err != nil {
+		log.Error(log.V{"Checkout, error creating payment attempt": err})
+		return server.InternalError(err)
+	}
+
+	successURL := stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/stripe-success?session_id={CHECKOUT_SESSION_ID}")
+
+	sessionParams := &stripe.CheckoutSessionParams{
+		BillingAddressCollection: stripe.String("required"),
+		CancelURL:                stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/failure"),
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				Price: stripe.String(priceId),
+				// For metered billing, do not pass quantity
+				Quantity: stripe.Int64(1),
+				TaxRates: taxRate,
+			},
+		},
+		Mode:               mode,
+		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
+		SubscriptionData:   subscriptionData,
+		SuccessURL:         successURL,
+	}
+
+	if schedule != "onetime" {
+		if sessionParams.SubscriptionData == nil {
+			sessionParams.SubscriptionData = &stripe.CheckoutSessionSubscriptionDataParams{}
+		}
+		sessionParams.SubscriptionData.AddMetadata("attempt_id", attempt.Id)
+	}
+	sessionParams.AddMetadata("plan", story.NameDisplay())
+	sessionParams.AddMetadata("product_id", strconv.FormatInt(story.ID, 10))
+	sessionParams.AddMetadata("attempt_id", attempt.Id)
+
+	client := stripeSessions()
+	s, err := client.New(sessionParams)
+	if err != nil {
+		return server.InternalError(err)
+	}
+
+	// Store the checkout session id in the attempt
+	if err := attempt.SetProviderIds(s.ID, "", ""); err != nil {
+		log.Error(log.V{"Checkout, error storing session id in attempt": err})
+		return server.InternalError(err)
+	}
+
+	// Bind the attempt to this browser
+	setAttemptCookie(w, r, attempt)
+
+	// Then redirect to the URL on the Checkout Session
+	http.Redirect(w, r, s.URL, http.StatusSeeOther)
+
+	return nil
 }
 
 type errResp struct {

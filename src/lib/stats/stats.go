@@ -72,7 +72,10 @@ func RegisterHit(r *http.Request) {
 		"uip": {clientIP},                            // IP address of the user
 	}
 
-	go sendToGA(ua, clientIP, id, payload)
+	// Analytics are optional; never post when no collector is configured
+	if config.Get("analytics_URL") != "" {
+		go sendToGA(ua, clientIP, id, payload)
+	}
 
 	// Insert the entry with current time
 	mu.Lock()
@@ -85,13 +88,18 @@ func sendToGA(ua string, ip string, cid string, values url.Values) {
 
 	client := &http.Client{}
 
-	req, _ := http.NewRequest("POST", config.Get("analytics_URL"), strings.NewReader(values.Encode()))
+	req, err := http.NewRequest("POST", config.Get("analytics_URL"), strings.NewReader(values.Encode()))
+	if err != nil {
+		log.Error(log.V{"GA collector request error": err.Error()})
+		return
+	}
 	req.Header.Add("User-Agent", ua)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	if resp, err := client.Do(req); err != nil {
 		log.Error(log.V{"GA collector POST error": err.Error()})
 	} else {
+		defer resp.Body.Close()
 		log.Info(log.V{"\nGA collector status": resp.Status, "\nGA collector cid": cid, "\nGA collector ip": ip})
 
 		// GA sends response body only on debug server, which is set in config for development only

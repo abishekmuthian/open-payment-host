@@ -74,8 +74,9 @@ type Story struct {
 	RazorpayPrice map[string]map[string]interface{}
 
 	//API
-	WebhookURL    string
-	WebhookSecret string
+	WebhookURL             string
+	WebhookSecret          string
+	AllowedRedirectOrigins string
 }
 
 // Domain returns the domain of the story URL

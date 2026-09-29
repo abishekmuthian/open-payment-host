@@ -42,6 +42,7 @@ func Do(v Verb, r Resource, u User) error {
 
 	// Check abilities for a match
 	mu.RLock()
+	defer mu.RUnlock()
 	for _, a := range abilities {
 
 		// If no err, return nil to signify success
@@ -49,7 +50,6 @@ func Do(v Verb, r Resource, u User) error {
 			return nil
 		}
 	}
-	mu.RUnlock()
 
 	// If we reach here, no matching authorisation was found - note u may be nil
 	return fmt.Errorf("can: no authorisation for action:%v %v %v", v, r, u)

@@ -14,6 +14,7 @@ type Charge struct {
 		Status        string `json:"status"`
 		DelayDuration string `json:"delay_duration"`
 		SourceType    string `json:"source_type"`
+		ReferenceID   string `json:"reference_id"`
 		CardDetails   struct {
 			Status string `json:"status"`
 			Card   struct {
@@ -35,9 +36,10 @@ type Charge struct {
 				CapturedAt   time.Time `json:"captured_at"`
 			} `json:"card_payment_timeline"`
 		} `json:"card_details"`
-		LocationID string `json:"location_id"`
-		OrderID    string `json:"order_id"`
-		TotalMoney struct {
+		LocationID        string `json:"location_id"`
+		OrderID           string `json:"order_id"`
+		BuyerEmailAddress string `json:"buyer_email_address"`
+		TotalMoney        struct {
 			Amount   int    `json:"amount"`
 			Currency string `json:"currency"`
 		} `json:"total_money"`

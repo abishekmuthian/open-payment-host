@@ -9,6 +9,7 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/assets"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"github.com/abishekmuthian/open-payment-host/src/users"
 	useractions "github.com/abishekmuthian/open-payment-host/src/users/actions"
 
@@ -49,6 +50,7 @@ func Setup(mu *sync.RWMutex) {
 
 	// Setup our database
 	SetupDatabase(mu)
+	subscriptions.StartPaymentDeliveries()
 
 	// Setup our authentication and authorisation
 	SetupAuth()
@@ -92,8 +94,7 @@ func SetupDefaultUser() {
 
 		if strings.Contains(err.Error(), "No results found") {
 			log.Info(log.V{"App": "Creating admin user..."})
-			useractions.HandleCreateAdminUser(config.Get("admin_email"), config.Get("admin_default_password"))
-			if err != nil {
+			if err := useractions.HandleCreateAdminUser(config.Get("admin_email"), config.Get("admin_default_password")); err != nil {
 				log.Error(log.V{"App, Error creating admin user": err})
 			}
 		}
