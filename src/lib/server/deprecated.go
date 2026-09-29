@@ -24,7 +24,7 @@ func (s *Server) Logf(format string, v ...interface{}) {
 
 // Log logs the message to our internal logger
 func (s *Server) Log(message string) {
-	s.Logf(message)
+	s.Logf("%s", message)
 }
 
 // Fatalf the message with the given arguments to our internal logger, and then exits with status 1
@@ -37,7 +37,7 @@ func (s *Server) Fatalf(format string, v ...interface{}) {
 
 // Fatal logs the message, and then exits with status 1
 func (s *Server) Fatal(format string) {
-	s.Fatalf(format)
+	s.Fatalf("%s", format)
 }
 
 // Timef logs a time since starting, when used with defer at the start of a function to time

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"runtime"
+	"time"
 
 	//"strings"
 	"testing"
@@ -103,5 +104,18 @@ func TestNumberToCommas(t *testing.T) {
 		if r != v {
 			t.Errorf("numbertocommas: wanted:%s got:%s", v, r)
 		}
+	}
+}
+
+// TestDateTimeLayoutPercent checks that a percent sign in a layout is not
+// treated as a format verb.
+func TestDateTimeLayoutPercent(t *testing.T) {
+	when := time.Date(2026, 9, 29, 14, 5, 0, 0, time.UTC)
+
+	if got, want := string(Date(when, "Jan 2006 %d")), "Sep 2026 %d"; got != want {
+		t.Fatalf(Format, "Date", want, got)
+	}
+	if got, want := string(Time(when, "15:04 %")), "14:05 %"; got != want {
+		t.Fatalf(Format, "Time", want, got)
 	}
 }
