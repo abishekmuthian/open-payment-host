@@ -99,6 +99,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         theme: "auto",
       });
     } else {
+      // Razorpay keeps its modal open for retries after a failed attempt, so the
+      // error is shown only if the buyer closes the modal without paying.
+      let lastPaymentError = null;
       var options = {
         key: razorpayKeyID(), // Enter the Key ID generated from the Dashboard
         subscription_id: subscriptionID(),
@@ -106,6 +109,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         // description: "Test Transaction",
         // image: "https://example.com/your_logo",
         handler: function (response) {
+          lastPaymentError = null;
           window.location = "/subscriptions/success?" + new URLSearchParams(response);
         },
         prefill: {
@@ -128,6 +132,20 @@ document.addEventListener("DOMContentLoaded", async function () {
         theme: {
           color: "#3399cc",
         },
+        modal: {
+          ondismiss: function () {
+            if (lastPaymentError) {
+              Swal.fire({
+                title: "Error processing Razorpay payment!",
+                text: lastPaymentError.description,
+                icon: "error",
+                confirmButtonText: "Dismiss",
+                theme: "auto",
+              });
+              lastPaymentError = null;
+            }
+          },
+        },
       };
       var rzp1 = new Razorpay(options);
       rzp1.on("payment.failed", function (response) {
@@ -138,12 +156,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         console.log(response.error.reason);
         console.log(response.error.metadata.order_id);
         console.log(response.error.metadata.payment_id);
-        Swal.fire({
-          title: "Error processing Razorpay payment!",
-          text: response.error.description,
-          icon: "error",
-          confirmButtonText: "Dismiss",
-        });
+        lastPaymentError = response.error;
       });
 
       rzp1.open();
