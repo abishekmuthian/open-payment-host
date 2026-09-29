@@ -70,7 +70,7 @@ func (c *Config) Load(path string) error {
 
 // Production returns true if current config is production.
 func (c *Config) Production() bool {
-	return c.Mode == ModeProduction
+	return c != nil && c.Mode == ModeProduction
 }
 
 // Configuration returns all the configuration key/values for a given mode.

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -17,16 +18,10 @@ import (
 // HandleTogglePaypal handles toggle on/off for PayPal payment gateway
 // Responds to post /products/toggle/paypal
 func HandleTogglePaypal(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may create products
+	params, err := authoriseCreateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -44,7 +39,7 @@ func HandleTogglePaypal(w http.ResponseWriter, r *http.Request) error {
 	if checked == "" {
 		log.Info(log.V{"PayPal": "RETURNING EMPTY"})
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte("<!-- EMPTY -->"))
+		_, err = w.Write([]byte(""))
 		return err
 	}
 
@@ -65,18 +60,10 @@ func HandleTogglePaypal(w http.ResponseWriter, r *http.Request) error {
 func HandleToggleRazorpay(w http.ResponseWriter, r *http.Request) error {
 	log.Info(log.V{"Handler": "Razorpay Toggle - START"})
 
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may create products
+	params, err := authoriseCreateToggle(w, r)
 	if err != nil {
-		log.Error(log.V{"Razorpay": "Auth error", "error": err})
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		log.Error(log.V{"Razorpay": "Params error", "error": err})
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -114,16 +101,10 @@ func HandleToggleRazorpay(w http.ResponseWriter, r *http.Request) error {
 // HandleTogglePaypalUpdate handles toggle on/off for PayPal in update page
 // Responds to post /products/{id:[0-9]+}/toggle/paypal
 func HandleTogglePaypalUpdate(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may update this product
+	params, product, err := authoriseUpdateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -140,20 +121,11 @@ func HandleTogglePaypalUpdate(w http.ResponseWriter, r *http.Request) error {
 	// For now, just trigger a page reload or return the static template
 	// The data is already rendered server-side, so we just return the div content
 
-	// Get the product ID
-	id := params.GetInt("id")
-
-	// Find the product to get pricing data
-	product, err := products.Find(id)
-	if err != nil {
-		return server.NotFoundError(err)
-	}
-
 	schedule := params.Get("schedule")
 
 	log.Info(log.V{
 		"Handler":         "PayPalUpdate Toggle",
-		"productID":       id,
+		"productID":       product.ID,
 		"requestSchedule": schedule,
 		"dbSchedule":      product.Schedule,
 		"schedulesMatch":  schedule == product.Schedule,
@@ -206,16 +178,10 @@ func HandleTogglePaypalUpdate(w http.ResponseWriter, r *http.Request) error {
 // HandleToggleStripe handles toggle on/off for Stripe payment gateway
 // Responds to post /products/toggle/stripe
 func HandleToggleStripe(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may create products
+	params, err := authoriseCreateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -252,16 +218,10 @@ func HandleToggleStripe(w http.ResponseWriter, r *http.Request) error {
 // HandleToggleSquare handles toggle on/off for Square payment gateway
 // Responds to post /products/toggle/square
 func HandleToggleSquare(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may create products
+	params, err := authoriseCreateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -298,16 +258,10 @@ func HandleToggleSquare(w http.ResponseWriter, r *http.Request) error {
 // HandleToggleAPI handles toggle on/off for API webhook
 // Responds to post /products/toggle/api
 func HandleToggleAPI(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may create products
+	params, err := authoriseCreateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -340,16 +294,10 @@ func HandleToggleAPI(w http.ResponseWriter, r *http.Request) error {
 // HandleToggleRazorpayUpdate handles toggle on/off for Razorpay in update page
 // Responds to post /products/{id:[0-9]+}/toggle/razorpay
 func HandleToggleRazorpayUpdate(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may update this product
+	params, product, err := authoriseUpdateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -362,20 +310,11 @@ func HandleToggleRazorpayUpdate(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// Get the product ID
-	id := params.GetInt("id")
-
-	// Find the product to get pricing data
-	product, err := products.Find(id)
-	if err != nil {
-		return server.NotFoundError(err)
-	}
-
 	schedule := params.Get("schedule")
 
 	log.Info(log.V{
 		"Handler":         "RazorpayUpdate Toggle",
-		"productID":       id,
+		"productID":       product.ID,
 		"requestSchedule": schedule,
 		"dbSchedule":      product.Schedule,
 		"schedulesMatch":  schedule == product.Schedule,
@@ -428,16 +367,10 @@ func HandleToggleRazorpayUpdate(w http.ResponseWriter, r *http.Request) error {
 // HandleToggleStripeUpdate handles toggle on/off for Stripe in update page
 // Responds to post /products/{id:[0-9]+}/toggle/stripe
 func HandleToggleStripeUpdate(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may update this product
+	params, product, err := authoriseUpdateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -450,20 +383,11 @@ func HandleToggleStripeUpdate(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// Get the product ID
-	id := params.GetInt("id")
-
-	// Find the product to get pricing data
-	product, err := products.Find(id)
-	if err != nil {
-		return server.NotFoundError(err)
-	}
-
 	schedule := params.Get("schedule")
 
 	log.Info(log.V{
 		"Handler":         "StripeUpdate Toggle",
-		"productID":       id,
+		"productID":       product.ID,
 		"requestSchedule": schedule,
 		"dbSchedule":      product.Schedule,
 		"schedulesMatch":  schedule == product.Schedule,
@@ -509,16 +433,10 @@ func HandleToggleStripeUpdate(w http.ResponseWriter, r *http.Request) error {
 // HandleToggleSquareUpdate handles toggle on/off for Square in update page
 // Responds to post /products/{id:[0-9]+}/toggle/square
 func HandleToggleSquareUpdate(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may update this product
+	params, product, err := authoriseUpdateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -531,20 +449,11 @@ func HandleToggleSquareUpdate(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// Get the product ID
-	id := params.GetInt("id")
-
-	// Find the product to get pricing data
-	product, err := products.Find(id)
-	if err != nil {
-		return server.NotFoundError(err)
-	}
-
 	schedule := params.Get("schedule")
 
 	log.Info(log.V{
 		"Handler":         "SquareUpdate Toggle",
-		"productID":       id,
+		"productID":       product.ID,
 		"requestSchedule": schedule,
 		"dbSchedule":      product.Schedule,
 		"schedulesMatch":  schedule == product.Schedule,
@@ -590,16 +499,10 @@ func HandleToggleSquareUpdate(w http.ResponseWriter, r *http.Request) error {
 // HandleToggleAPIUpdate handles toggle on/off for API webhook in update page
 // Responds to post /products/{id:[0-9]+}/toggle/api
 func HandleToggleAPIUpdate(w http.ResponseWriter, r *http.Request) error {
-	// Check the authenticity token
-	err := session.CheckAuthenticity(w, r)
+	// Check the authenticity token and that the user may update this product
+	params, product, err := authoriseUpdateToggle(w, r)
 	if err != nil {
-		return server.NotAuthorizedError(err)
-	}
-
-	// Get the params
-	params, err := mux.Params(r)
-	if err != nil {
-		return server.InternalError(err)
+		return err
 	}
 
 	// When checkbox is checked, it sends "on", when unchecked it's not included
@@ -612,15 +515,6 @@ func HandleToggleAPIUpdate(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// Get the product ID
-	id := params.GetInt("id")
-
-	// Find the product to get webhook data
-	product, err := products.Find(id)
-	if err != nil {
-		return server.NotFoundError(err)
-	}
-
 	view := view.NewRenderer(w, r)
 	view.AddKey("story", product)
 
@@ -628,4 +522,45 @@ func HandleToggleAPIUpdate(w http.ResponseWriter, r *http.Request) error {
 	view.Layout("")
 
 	return view.Render()
+}
+
+// authoriseCreateToggle checks the CSRF token and that the current user may
+// create products, and returns the request params.
+func authoriseCreateToggle(w http.ResponseWriter, r *http.Request) (*mux.RequestParams, error) {
+	err := session.CheckAuthenticity(w, r)
+	if err != nil {
+		return nil, server.NotAuthorizedError(err)
+	}
+	err = can.Create(products.New(), session.CurrentUser(w, r))
+	if err != nil {
+		return nil, server.NotAuthorizedError(err)
+	}
+	params, err := mux.Params(r)
+	if err != nil {
+		return nil, server.InternalError(err)
+	}
+	return params, nil
+}
+
+// authoriseUpdateToggle checks the CSRF token and that the current user may
+// update the product in the URL, since update toggles render its prices and
+// webhook secret.
+func authoriseUpdateToggle(w http.ResponseWriter, r *http.Request) (*mux.RequestParams, *products.Story, error) {
+	err := session.CheckAuthenticity(w, r)
+	if err != nil {
+		return nil, nil, server.NotAuthorizedError(err)
+	}
+	params, err := mux.Params(r)
+	if err != nil {
+		return nil, nil, server.InternalError(err)
+	}
+	product, err := products.Find(params.GetInt("id"))
+	if err != nil {
+		return nil, nil, server.NotFoundError(err)
+	}
+	err = can.Update(product, session.CurrentUser(w, r))
+	if err != nil {
+		return nil, nil, server.NotAuthorizedError(err)
+	}
+	return params, product, nil
 }

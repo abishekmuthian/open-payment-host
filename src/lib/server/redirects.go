@@ -19,7 +19,7 @@ func Redirect(w http.ResponseWriter, r *http.Request, path string) error {
 func RedirectStatus(w http.ResponseWriter, r *http.Request, path string, status int) error {
 
 	// We check this is an internal path - to redirect externally use http.Redirect directly
-	if strings.HasPrefix(path, "/") && !strings.Contains(path, ":") {
+	if IsLocalPath(path) {
 		// Status may be any value, e.g.
 		// 301 - http.StatusMovedPermanently - permanent redirect
 		// 302 - http.StatusFound - tmp redirect
@@ -37,4 +37,20 @@ func RedirectStatus(w http.ResponseWriter, r *http.Request, path string, status 
 func RedirectExternal(w http.ResponseWriter, r *http.Request, path string) error {
 	http.Redirect(w, r, path, http.StatusFound)
 	return nil
+}
+
+// IsLocalPath reports whether path is a same-origin absolute path. It rejects
+// schemes, control characters (browsers strip tabs and newlines) and
+// protocol-relative forms such as //host and /\host, which browsers treat as
+// external URLs.
+func IsLocalPath(path string) bool {
+	if !strings.HasPrefix(path, "/") || strings.Contains(path, ":") {
+		return false
+	}
+	for _, c := range path {
+		if c < 0x20 || c == 0x7f {
+			return false
+		}
+	}
+	return len(path) == 1 || (path[1] != '/' && path[1] != '\\')
 }

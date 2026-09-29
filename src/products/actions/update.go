@@ -9,9 +9,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
-	"regexp"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -309,28 +307,12 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 
 	}
 
+	// Parse the per-country gateway prices, skipping invalid rows
+	prices := buildPriceMaps(params.Values, params.Get("schedule"))
+
 	// Store stripe price
 	if config.GetBool("stripe") && config.Get("stripe_key") != "" {
-		result := make(map[string]string)
-
-		countryRegex := regexp.MustCompile(`^stripe_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					planIDKey := fmt.Sprintf("stripe_plan_id_%s", index)
-					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
-						result[value[0]] = planID[0]
-					}
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Stripe)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err
@@ -342,44 +324,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if config.GetBool("square") && config.Get("square_access_token") != "" && config.Get("square_app_id") != "" {
-		result := make(map[string]map[string]interface{})
-
-		countryRegex := regexp.MustCompile(`^square_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					// Initialize a new map for the amount and currency
-
-					amountCurrencyMap := make(map[string]interface{})
-
-					amountKey := fmt.Sprintf("square_amount_%s", index)
-					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
-						var amount float64
-						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
-							amountCurrencyMap["amount"] = amount
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse amount": err})
-						}
-					}
-
-					currencyKey := fmt.Sprintf("square_currency_%s", index)
-					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
-						amountCurrencyMap["currency"] = currency[0]
-					}
-
-					result[value[0]] = amountCurrencyMap
-
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Square)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err
@@ -388,96 +333,20 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 		storyParams["square_price"] = string(jsonResult)
 		story.Update(storyParams)
 
-		var squarePrice map[string]map[string]interface{}
-
-		err = json.Unmarshal([]byte(storyParams["square_price"]), &squarePrice)
-
-		if err == nil && (!reflect.DeepEqual(story.SquarePrice, squarePrice) || story.Schedule != storyParams["schedule"]) {
-			if len(squarePrice) != 0 {
-				catalogMap := make(map[string]string)
-				for clientCountry, data := range squarePrice {
-					amount := data["amount"]
-					currency := data["currency"]
-					catalogId, planErr := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string), storyParams["schedule"])
-
-					if planErr != nil {
-						log.Error(log.V{"Error creating subscription plan ": planErr})
-						continue
-					}
-					log.Info(log.V{"CountryCode is ": clientCountry, "Catalog ID is ": catalogId})
-
-					if catalogId != "" && clientCountry != "" {
-
-						catalogMap[clientCountry] = catalogId
-
-						catalogMapJson, err := json.Marshal(catalogMap)
-
-						if err == nil {
-							storyParams["square_subscription_plan_Id"] = string(catalogMapJson)
-						}
-
-					}
+		// Recreate the Square plans only when prices or the schedule changed
+		if !reflect.DeepEqual(story.SquarePrice, prices.Square) || story.Schedule != storyParams["schedule"] {
+			catalogMap := createSquarePlans(story.ID, prices.Square, storyParams["schedule"])
+			if len(catalogMap) != 0 {
+				catalogMapJson, err := json.Marshal(catalogMap)
+				if err == nil {
+					storyParams["square_subscription_plan_Id"] = string(catalogMapJson)
 				}
 			}
-
 		}
 	}
 
 	if config.GetBool("paypal") && config.Get("paypal_client_id") != "" && config.Get("paypal_client_secret") != "" {
-		result := make(map[string]map[string]interface{})
-
-		countryRegex := regexp.MustCompile(`^paypal_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					// Initialize a new map for the amount and currency
-
-					amountCurrencyMap := make(map[string]interface{})
-
-					amountKey := fmt.Sprintf("paypal_amount_%s", index)
-					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
-						var amount float64
-						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
-							amountCurrencyMap["amount"] = amount
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse amount": err})
-						}
-					}
-
-					taxKey := fmt.Sprintf("paypal_tax_%s", index)
-					if taxStr, exists := r.Form[taxKey]; exists && len(taxStr) > 0 {
-						var tax float64
-						if tax, err = strconv.ParseFloat(taxStr[0], 64); err == nil {
-							amountCurrencyMap["tax"] = tax
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse tax": err})
-						}
-					}
-
-					currencyKey := fmt.Sprintf("paypal_currency_%s", index)
-					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
-						amountCurrencyMap["currency"] = currency[0]
-					}
-
-					planIDKey := fmt.Sprintf("paypal_plan_id_%s", index)
-					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
-						amountCurrencyMap["plan_id"] = planID[0]
-					}
-
-					result[value[0]] = amountCurrencyMap
-
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Paypal)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err
@@ -488,49 +357,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if config.GetBool("razorpay") && config.Get("razorpay_key_id") != "" && config.Get("razorpay_key_secret") != "" {
-		result := make(map[string]map[string]interface{})
-
-		countryRegex := regexp.MustCompile(`^razorpay_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					// Initialize a new map for the amount and currency
-
-					amountCurrencyMap := make(map[string]interface{})
-
-					amountKey := fmt.Sprintf("razorpay_amount_%s", index)
-					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
-						var amount float64
-						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
-							amountCurrencyMap["amount"] = amount
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse amount": err})
-						}
-					}
-
-					currencyKey := fmt.Sprintf("razorpay_currency_%s", index)
-					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
-						amountCurrencyMap["currency"] = currency[0]
-					}
-
-					planIDKey := fmt.Sprintf("razorpay_plan_id_%s", index)
-					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
-						amountCurrencyMap["plan_id"] = planID[0]
-					}
-
-					result[value[0]] = amountCurrencyMap
-
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Razorpay)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err

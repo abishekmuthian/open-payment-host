@@ -94,8 +94,7 @@ func SetupDefaultUser() {
 
 		if strings.Contains(err.Error(), "No results found") {
 			log.Info(log.V{"App": "Creating admin user..."})
-			useractions.HandleCreateAdminUser(config.Get("admin_email"), config.Get("admin_default_password"))
-			if err != nil {
+			if err := useractions.HandleCreateAdminUser(config.Get("admin_email"), config.Get("admin_default_password")); err != nil {
 				log.Error(log.V{"App, Error creating admin user": err})
 			}
 		}

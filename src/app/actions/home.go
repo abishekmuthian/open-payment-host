@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
+	"github.com/abishekmuthian/open-payment-host/src/lib/query"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/stats"
+	"github.com/abishekmuthian/open-payment-host/src/lib/status"
 )
 
 // HandleHome displays a list of products using gravity to order them
@@ -24,11 +26,20 @@ func HandleHome(w http.ResponseWriter, r *http.Request) error {
 	// FIXME listLimit should be int64 to reflect page, so needs changes in query limit
 	const listLimit = 10
 
-	// Build a query
-	q := products.Query().Limit(listLimit)
+	currentUser := session.CurrentUser(w, r)
 
-	// Select only above 0 points and status is null or not suspended or in draft,  Order by rank, then points, then name
-	q.Where("points > 0").Order("points desc, points desc")
+	// Select only above 0 points and status is null or not suspended or in draft,
+	// as on the product page drafts and suspended products are visible to admins only
+	visible := func(q *query.Query) *query.Query {
+		q.Where("points > 0")
+		if !currentUser.Admin() {
+			q.Where("(status IS NULL OR status NOT IN (?,?))", status.Draft, status.Suspended)
+		}
+		return q
+	}
+
+	// Build a query, Order by points
+	q := visible(products.Query().Limit(listLimit)).Order("points desc, points desc")
 
 	// Fetch the  params
 	params, err := mux.Params(r)
@@ -36,7 +47,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
-	productsCount, _ := products.Query().Count()
+	productsCount, _ := visible(products.Query()).Count()
 
 	// Set the offset in pages if we have one
 	page := int(params.GetInt("page"))
@@ -88,7 +99,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("meta_desc", config.Get("meta_desc"))
 	view.AddKey("meta_keywords", config.Get("meta_keywords"))
 	view.AddKey("userCount", stats.UserCount())
-	view.AddKey("currentUser", session.CurrentUser(w, r))
+	view.AddKey("currentUser", currentUser)
 
 	// Set the name and year
 	view.AddKey("name", config.Get("name"))

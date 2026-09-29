@@ -107,6 +107,7 @@ func SetupRoutes() *mux.Mux {
 	// Add middleware
 	router.AddMiddleware(log.Middleware)
 	router.AddMiddleware(session.Middleware)
+	router.AddMiddleware(session.PasswordChangeMiddleware)
 	router.AddMiddleware(gzip.Middleware)
 	router.AddMiddleware(secure.Middleware)
 

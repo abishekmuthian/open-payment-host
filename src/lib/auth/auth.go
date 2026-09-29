@@ -4,10 +4,7 @@ package auth
 import (
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"net/http"
-	"strings"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -58,21 +55,13 @@ func AuthenticityToken(writer http.ResponseWriter, request *http.Request) (strin
 // Set the authenticity token as well if available
 
 func NonceToken(writer http.ResponseWriter, request *http.Request) (string, error) {
-	// Get the secret from the session, or generate if none found
-
-	rand.Seed(time.Now().UnixNano())
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789" +
-		"-._~")
-	length := 12
-	var b strings.Builder
-	for i := 0; i < length; i++ {
-		b.WriteRune(chars[rand.Intn(len(chars))])
+	// 16 bytes from crypto/rand; CSP nonces must be unpredictable
+	b := RandomToken(16)
+	if len(b) != 16 {
+		return "", fmt.Errorf("auth: error generating nonce")
 	}
-
-	nonce := base64.URLEncoding.EncodeToString([]byte(b.String()))
-	return nonce, nil
+	// Unpadded, so the value needs no escaping in HTML attributes
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 // CheckAuthenticityToken checks the token against that

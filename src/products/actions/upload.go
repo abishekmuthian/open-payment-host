@@ -9,10 +9,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
+	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/google/uuid"
 )
 
@@ -22,6 +24,12 @@ func HandleFileAttachment(w http.ResponseWriter, r *http.Request) error {
 	err := session.CheckAuthenticity(w, r)
 	if err != nil {
 		return err
+	}
+
+	// Only users who may create products may use the product editor
+	err = can.Create(products.New(), session.CurrentUser(w, r))
+	if err != nil {
+		return server.NotAuthorizedError(err)
 	}
 
 	// Get the params

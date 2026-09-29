@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.9](https://badgen.net/static/version/0.3.9/blue)
+![Version 0.3.12](https://badgen.net/static/version/0.3.12/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
@@ -144,10 +144,16 @@ If you would like to help me achieve these goals, consider sponsoring me
 ### Automatic payment gateway router
 
 #### Paypal
-https://github.com/user-attachments/assets/41c0d989-4a4f-43e4-8b54-f7938be3dda0
+
+<a href="https://github.com/user-attachments/assets/41c0d989-4a4f-43e4-8b54-f7938be3dda0"><img src="/demo/Paypal/payment-gateway-router-thumbnail.png" alt="PayPal automatic payment gateway routing demo" width="480"></a>
+
+[Watch the PayPal routing demo (4-second MP4)](https://github.com/user-attachments/assets/41c0d989-4a4f-43e4-8b54-f7938be3dda0)
 
 #### Razorpay
-https://github.com/user-attachments/assets/86ea6d40-37cf-42f9-81f2-590671baa88c
+
+<a href="https://github.com/user-attachments/assets/86ea6d40-37cf-42f9-81f2-590671baa88c"><img src="/demo/Razorpay/payment-gateway-router-thumbnail.png" alt="Razorpay automatic payment gateway routing demo" width="480"></a>
+
+[Watch the Razorpay routing demo (4-second MP4)](https://github.com/user-attachments/assets/86ea6d40-37cf-42f9-81f2-590671baa88c)
 
 ## Usage
 
@@ -359,7 +365,7 @@ Successful redirects retain `custom_id` and `order_id` (one-time) or `subscripti
 
 `subscription_id` : subscription id of the payment. Store it to track the subscription of the user.
 
-`custom_id` : e.g. user id to identify the user and enable subscription features.
+`custom_id` : e.g. user id to identify the user and enable subscription features. It is empty when the purchase did not start from your site with `?custom_id=`, for example when a buyer pays directly on the product page. Such events are valid; acknowledge them with a 2xx response.
 
 `status` : `active` only after the first payment is confirmed; `cancelled` after the provider confirms cancellation. An ACTIVE subscription without a completed initial payment remains pending.
 
@@ -368,6 +374,16 @@ Successful redirects retain `custom_id` and `order_id` (one-time) or `subscripti
 Bodies retain the existing fields and `email`. One-time events contain `order_id` instead of `subscription_id`. Subscription activation includes `cancellation_token`; other event types omit it.
 
 The content type is `application/json`. Additional headers are `X-OPH-Event-ID`, `X-OPH-Event-Type`, and `X-OPH-Timestamp`. Verify `X-OPH-Signature` as HMAC-SHA256 over the exact received body, then deduplicate by event ID. Failed deliveries are retried with the same ID and body; acknowledging an already processed ID must not repeat your own fulfillment.
+
+#### Delivery and Retries
+
+Delivery is at least once, and events for a product arrive in order.
+
+Return any 2xx status once the event is stored or deliberately ignored. This includes duplicate event IDs, an unknown `subscription_id` or `order_id`, an empty `custom_id`, and event types you don't use. Return a non-2xx status only for failures you want retried.
+
+A non-2xx status, a redirect, or no response within 30 seconds counts as a failure. The event is retried with the same `X-OPH-Event-ID` and body, 30 seconds after the first failure and then at doubling intervals up to 1 hour. Later events for the same product wait until it succeeds. After 3 days the event is abandoned and later events continue; an administrator can replay it.
+
+Events for other products are unaffected.
 
 #### Cancel Subscription
 
@@ -381,17 +397,13 @@ Legacy links containing only `subscription_id` and `custom_id` cannot authorize 
 
 Stripe, Square, and Razorpay request cancellation at the provider's period boundary; PayPal uses its cancellation API. A successful request does not immediately emit a cancelled event; the provider's status webhook determines when it becomes effective.
 
-#### Webhook Callback Request
+#### Subscription Status Webhooks
 
-After successful cancellation, OPH will send a webhook POST request to your configured webhook URL.
+**When it is sent:** OPH sends a status event only after the payment provider confirms the new state, not when the subscriber submits the cancel form. PayPal cancels immediately. Razorpay cancels at the end of the current billing period, so keep the subscriber's access until the `cancelled` event arrives. Status events are sent only for subscriptions whose first payment has completed.
 
-#### Request Header
+**Headers:** the same four headers as other events (`X-OPH-Signature`, `X-OPH-Event-ID`, `X-OPH-Event-Type`, `X-OPH-Timestamp`), for example `X-OPH-Event-Type: subscription.cancelled`.
 
-`X-OPH-Signature` : HMAC SHA256 signature of the request body using your webhook secret.
-
-#### Request Body
-
-The request body is JSON with the following parameters:
+**Body:**
 
 ```json
 {
@@ -402,15 +414,28 @@ The request body is JSON with the following parameters:
 }
 ```
 
-#### Request Parameters
+Status and refund events contain no `cancellation_token`. `custom_id` and `email` may be empty. Refunds of one-time payments contain `order_id` instead of `subscription_id`.
 
-`subscription_id` : The subscription ID that was cancelled.
+**Event types:**
 
-`custom_id` : The custom ID (user ID) associated with the subscription.
+| `X-OPH-Event-Type` | Gateway | Suggested action |
+|---|---|---|
+| `subscription.cancelled` | PayPal, Razorpay | Revoke access |
+| `subscription.expired` | PayPal, Razorpay (Razorpay `completed`) | Revoke access |
+| `subscription.suspended` | PayPal | Decide per your policy (pause or revoke access) |
+| `subscription.halted`, `subscription.paused`, `subscription.pending` | Razorpay | Decide per your policy (pause or revoke access) |
+| `subscription.refunded`, `payment.refunded` | PayPal, Razorpay | Revoke access |
+| `subscription.partially_refunded`, `payment.partially_refunded` | PayPal, Razorpay | Decide per your policy |
 
-`status` : Always "cancelled" for cancellation webhooks.
+**Handling a `subscription.cancelled` event:**
 
-`email` : Email address (may be empty for cancellations).
+1. Verify `X-OPH-Signature` as HMAC-SHA256 over the raw request body.
+2. If the `X-OPH-Event-ID` was already processed, return 2xx without doing anything else.
+3. Look up the user by the stored `subscription_id`, not by `custom_id`.
+4. Revoke access or mark the subscription as ended. Delete the stored `cancellation_token`; it can no longer be used.
+5. Return 2xx, even if the subscription is unknown or already cancelled.
+
+A later `subscription.active` event for the same `subscription_id` means the subscription was reactivated after a lapse. It may carry the same `cancellation_token` if that token has not been used.
 
 
 ## Developer
@@ -426,6 +451,15 @@ $ go build open-payment-host
 ```
 
 There are `docker-compose` , `Dockerfile` files in the root of the project to build a docker image.
+
+### Tests
+
+```
+$ go test ./...
+$ go test -cover ./src/...
+```
+
+The suite is hermetic: each test uses a temporary config and a freshly migrated SQLite database, and payment provider APIs are mocked, so no real charges are made and `secrets/` is never read. It covers all four payment gateways across one-time, monthly and yearly schedules, including signed webhooks, refunds, cancellations and fulfillment, as well as product, user and routing flows. Key coverage: payments 59%, cancellations 89%, products 66%, sessions 90%.
 
 ### Tailwind
 

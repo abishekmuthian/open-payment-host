@@ -207,9 +207,9 @@ func applySubscriptionStatus(gateway, subscriptionID, status string) error {
 		if _, err := tx.Exec("UPDATE payment_attempts SET id=id WHERE id=?", a.Id); err != nil {
 			return err
 		}
-		var previous string
+		var previous, completed string
 		var counted int
-		if err := tx.QueryRow("SELECT status,counted FROM payment_attempts WHERE id=?", a.Id).Scan(&previous, &counted); err != nil {
+		if err := tx.QueryRow("SELECT status,counted,COALESCE(completed_at,'') FROM payment_attempts WHERE id=?", a.Id).Scan(&previous, &counted, &completed); err != nil {
 			return err
 		}
 		if previous == status || previous == "cancelled" || previous == "expired" {
@@ -231,7 +231,9 @@ func applySubscriptionStatus(gateway, subscriptionID, status string) error {
 		if _, err := tx.Exec("UPDATE subscriptions SET payment_status=? WHERE pg=? AND subscr_id=?", strings.ToUpper(status), gateway, subscriptionID); err != nil {
 			return err
 		}
-		if counted != 0 {
+		// The counter changes once, but every status change after fulfillment
+		// is reported, so a cancellation after a suspension still notifies.
+		if completed != "" {
 			return enqueuePaymentEffect(tx, a, ProviderFacts{}, "subscription."+status, status)
 		}
 		return nil

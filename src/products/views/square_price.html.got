@@ -19,7 +19,7 @@
     type="number"
     name="{{ $pg }}_amount_{{ $fieldIndex }}"
     id="{{ $pg }}_amount_{{ $fieldIndex }}"
-    placeholder="Amount in minor units (5000 = USD 50)"
+    placeholder="500 = $5"
     aria-label="Amount in currency minor units"
     min="1"
     step="1"

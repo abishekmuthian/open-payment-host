@@ -46,7 +46,7 @@ func syncPaymentMailingLists(p *products.Story, email, status string) error {
 		if err != nil {
 			return err
 		}
-		req, err := http.NewRequest(http.MethodPut, "https://"+dc+".api.mailchimp.com/3.0/lists/"+url.PathEscape(p.MailchimpAudienceID)+"/members/"+mailchimp.GetMD5Hash(email), bytes.NewReader(body))
+		req, err := http.NewRequest(http.MethodPut, "https://"+dc+".api.mailchimp.com/3.0/lists/"+url.PathEscape(p.MailchimpAudienceID)+"/members/"+mailchimp.GetMD5Hash(strings.ToLower(email)), bytes.NewReader(body))
 		if err != nil {
 			return err
 		}

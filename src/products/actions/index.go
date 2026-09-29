@@ -52,13 +52,15 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) error {
 	if len(filter) > 0 {
 
 		// Replace special characters with escaped sequence
-		filter = strings.Replace(filter, "_", "\\_", -1)
-		filter = strings.Replace(filter, "%", "\\%", -1)
+		escaped := strings.Replace(filter, "\\", "\\\\", -1)
+		escaped = strings.Replace(escaped, "_", "\\_", -1)
+		escaped = strings.Replace(escaped, "%", "\\%", -1)
 
-		wildcard := "%" + filter + "%"
+		wildcard := "%" + strings.ToLower(escaped) + "%"
 
-		// Perform a wildcard search for name or url
-		q.Where("products.name ILIKE ? OR products.summary ILIKE ?", wildcard, wildcard)
+		// Perform a case-insensitive wildcard search for name or summary,
+		// using LOWER/LIKE as ILIKE is not available in SQLite or MySQL
+		q.Where(`LOWER(products.name) LIKE ? ESCAPE '\' OR LOWER(products.summary) LIKE ? ESCAPE '\'`, wildcard, wildcard)
 
 		// If filtering, order by rank, not by date
 		q.Order("rank desc, points desc, id desc")

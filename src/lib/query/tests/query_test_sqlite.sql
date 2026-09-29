@@ -1,5 +1,5 @@
 /* Database created using sqlite for tests - query_test */
-DROP TABLE pages;
+DROP TABLE IF EXISTS pages;
 CREATE TABLE pages (
     id integer NOT NULL PRIMARY KEY,
     title text,

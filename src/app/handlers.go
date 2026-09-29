@@ -116,7 +116,7 @@ func hash(s string) string {
 
 func addCacheControl(w http.ResponseWriter, r *http.Request) {
 	// Cache for 30 days
-	w.Header().Set("Cache-Control", "max-age:2592000")
+	w.Header().Set("Cache-Control", "max-age=2592000")
 
 	// Set an expires header Mon Jan 2 15:04:05 -0700 MST 2006
 	w.Header().Set("Expires", time.Now().AddDate(0, 0, 30).UTC().Format("Mon, 2 Jan 2006 15:04:05 MST"))

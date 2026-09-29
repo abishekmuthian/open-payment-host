@@ -50,11 +50,11 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 	// Resolve the product from the posted product id
 	productId, err := strconv.ParseInt(params.Get("productId"), 10, 64)
 	if err != nil {
-		return server.InternalError(err)
+		return server.BadRequestError(err)
 	}
 	story, err := products.Find(productId)
 	if err != nil {
-		return server.InternalError(err)
+		return server.NotFoundError(err)
 	}
 
 	// Get the client country

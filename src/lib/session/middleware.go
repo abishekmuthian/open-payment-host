@@ -52,3 +52,58 @@ func shouldSetToken(r *http.Request) bool {
 
 	return true
 }
+
+// PasswordChangeMiddleware restricts a session that logged in with the default
+// admin password to the password change page, logout, login and static assets.
+// The login handler sets auth.SessionPasswordChangeKey; changing the password
+// logs the user out, which clears it.
+func PasswordChangeMiddleware(h http.HandlerFunc) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		changePath, restricted := passwordChangePath(r)
+		if !restricted || passwordChangeAllowed(r, changePath) {
+			h(w, r)
+			return
+		}
+
+		// htmx would swap a followed redirect into the page, so ask it to navigate
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Redirect", changePath)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.Redirect(w, r, changePath, http.StatusFound)
+	}
+
+}
+
+// passwordChangePath returns the password change page for the logged-in user
+// when the session must change the default password.
+func passwordChangePath(r *http.Request) (string, bool) {
+	s, err := auth.SessionGet(r)
+	if err != nil {
+		return "", false
+	}
+	id := s.Get(auth.SessionPasswordChangeKey)
+	if id == "" || id != s.Get(auth.SessionUserKey) {
+		return "", false
+	}
+	return "/users/" + id + "/password/change", true
+}
+
+// passwordChangeAllowed reports whether a restricted session may make request r.
+func passwordChangeAllowed(r *http.Request, changePath string) bool {
+	p := r.URL.Path
+	switch {
+	case p == changePath || p == changePath+"/":
+		return r.Method == http.MethodGet || r.Method == http.MethodPost
+	case p == "/users/logout":
+		return r.Method == http.MethodPost
+	case p == "/users/login":
+		return r.Method == http.MethodGet || r.Method == http.MethodPost
+	case p == "/favicon.ico" || strings.HasPrefix(p, "/assets/"):
+		return r.Method == http.MethodGet || r.Method == http.MethodHead
+	}
+	return false
+}

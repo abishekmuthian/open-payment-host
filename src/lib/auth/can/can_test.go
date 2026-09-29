@@ -2,6 +2,7 @@ package can
 
 import (
 	"testing"
+	"time"
 )
 
 // Some mock structs for use in testing
@@ -185,5 +186,24 @@ func TestCanDo(t *testing.T) {
 	err = Show(p2, reader)
 	if err != nil {
 		t.Fatalf("can: failed block show page, %s", err)
+	}
+}
+
+// Regression: a successful check returned without releasing the read lock,
+// so a later Authorise blocked forever.
+func TestSuccessfulCheckReleasesLock(t *testing.T) {
+	Authorise(1234, ManageResource, Anything)
+	u := &user{id: 5, role: 1234}
+	for i := 0; i < 3; i++ {
+		if err := Manage(&page{table: PagesTable}, u); err != nil {
+			t.Fatal(err)
+		}
+	}
+	done := make(chan struct{})
+	go func() { Authorise(1235, ManageResource, Anything); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Authorise deadlocked after successful checks")
 	}
 }

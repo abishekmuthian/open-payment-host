@@ -6,6 +6,7 @@ import (
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/auth"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/users"
 )
@@ -43,11 +44,13 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) *users.User {
 	}
 
 	if id > 0 {
-		user, err = users.Find(id)
+		found, err := users.Find(id)
 		if err != nil {
+			// Deleted user: treat as anonymous, never return a nil user
 			log.Info(log.V{"msg": "session error user not found", "user_id": id, "error": err, "status": http.StatusNotFound})
 			return user
 		}
+		user = found
 	}
 
 	return user
@@ -93,7 +96,7 @@ func CheckAuthenticity(w http.ResponseWriter, r *http.Request) error {
 	err = auth.CheckAuthenticityToken(token, r)
 	if err != nil {
 		clearSession(w, r)
-		return err
+		return authenticityError(err)
 	}
 
 	return nil
@@ -105,8 +108,13 @@ func CheckAuthenticityToken(w http.ResponseWriter, r *http.Request, token string
 	err := auth.CheckAuthenticityToken(token, r)
 	if err != nil {
 		clearSession(w, r)
-		return err
+		return authenticityError(err)
 	}
 
 	return nil
+}
+
+// authenticityError reports a failed CSRF check as 401 rather than a server error.
+func authenticityError(err error) error {
+	return server.NotAuthorizedError(err, "Session expired", "Your session has expired or the form is stale. Please reload the page and try again.")
 }
