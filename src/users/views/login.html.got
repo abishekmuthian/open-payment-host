@@ -46,6 +46,10 @@
       <div>
         <p class="bg-error mt-2 px-2">Invalid login credentials, Check email and password.</p>
       </div>
+      {{ else if eq .error "too_many_login_attempts"}}
+      <div>
+        <p class="bg-error mt-2 px-2">Too many failed login attempts. Please wait 15 minutes and try again.</p>
+      </div>
       {{ end }}
     {{ end }}
   </div>

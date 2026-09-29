@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
+	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/auth"
@@ -86,9 +87,9 @@ func HandlePasswordChange(w http.ResponseWriter, r *http.Request) error {
 		return server.Redirect(w, r, "/users/"+strconv.FormatInt(user.ID, 10)+"/password/change/?error=low_passwords_characters")
 	}
 
-	// Check if the pass is same as default password
+	// The new password must differ from both the current and the default password
 	err = auth.CheckPassword(pass, user.PasswordHash)
-	if err == nil {
+	if err == nil || pass == config.Get("admin_default_password") {
 		return server.Redirect(w, r, "/users/"+strconv.FormatInt(user.ID, 10)+"/password/change/?error=no_default_password")
 	}
 

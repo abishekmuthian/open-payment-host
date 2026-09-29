@@ -110,8 +110,7 @@ func Time(time time.Time, formats ...string) got.HTML {
 	if len(formats) > 0 {
 		layout = formats[0]
 	}
-	value := fmt.Sprintf(time.Format(layout))
-	return got.HTML(Escape(value))
+	return got.HTML(Escape(time.Format(layout)))
 }
 
 // Ago returns a time string reporting distance from the current date
@@ -159,8 +158,7 @@ func Date(t time.Time, formats ...string) got.HTML {
 	if len(formats) > 0 {
 		layout = formats[0]
 	}
-	value := fmt.Sprintf(t.Format(layout))
-	return got.HTML(Escape(value))
+	return got.HTML(Escape(t.Format(layout)))
 }
 
 // UTCDate returns a formatted date string in 2006-01-02

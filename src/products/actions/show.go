@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/status"
 	"github.com/abishekmuthian/open-payment-host/src/products"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 
 	"github.com/kennygrant/sanitize"
 
@@ -112,44 +114,20 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 
 		log.Info(log.V{"Subscription, Client Country": clientCountry})
 
-		// Find which price has the clientCountry
-
-		var pg string
-		if story.StripePrice != nil && story.StripePrice[clientCountry] != "" {
-			pg = "stripe"
-			log.Info(log.V{"msg": "Show, Using Stripe Price as client country was found"})
-		} else if story.SquarePrice != nil && story.SquarePrice[clientCountry] != nil && story.SquarePrice[clientCountry]["amount"] != nil {
-			pg = "square"
-			log.Info(log.V{"msg": "Show, Using Square Price as client country was found"})
-		} else if story.PaypalPrice != nil && story.PaypalPrice[clientCountry] != nil && (story.PaypalPrice[clientCountry]["amount"] != nil || story.PaypalPrice[clientCountry]["plan_id"] != nil) {
-			pg = "paypal"
-			log.Info(log.V{"msg": "Show, Using PayPal Price as client country was found"})
-		} else if story.RazorpayPrice != nil && story.RazorpayPrice[clientCountry] != nil && (story.RazorpayPrice[clientCountry]["amount"] != nil || story.RazorpayPrice[clientCountry]["plan_id"] != nil) {
-			pg = "razorpay"
-			log.Info(log.V{"msg": "Show, Using Razorpay Price as client country was found"})
-		} else if story.StripePrice != nil && story.StripePrice["DF"] != "" {
-			pg = "stripe"
-			clientCountry = "DF"
-			log.Info(log.V{"msg": "Show, Using Stripe Price as default country was found"})
-		} else if story.SquarePrice != nil && story.SquarePrice["DF"] != nil && story.SquarePrice["DF"]["amount"] != nil {
-			pg = "square"
-			clientCountry = "DF"
-			log.Info(log.V{"msg": "Show, Using Square Price as default country was found"})
-
-		} else if story.PaypalPrice != nil && story.PaypalPrice["DF"] != nil && (story.PaypalPrice["DF"]["amount"] != nil || story.PaypalPrice["DF"]["plan_id"] != nil) {
-			pg = "paypal"
-			clientCountry = "DF"
-			log.Info(log.V{"msg": "Show, Using PayPal Price as default country was found"})
-
-		} else if story.RazorpayPrice != nil && story.RazorpayPrice["DF"] != nil && (story.RazorpayPrice["DF"]["amount"] != nil || story.RazorpayPrice["DF"]["plan_id"] != nil) {
-			pg = "razorpay"
-			clientCountry = "DF"
-			log.Info(log.V{"msg": "Show, Using Razorpay Price as default country was found"})
-		} else {
+		// Find which gateway has a price for the clientCountry, falling back to DF
+		pg, priceCountry := selectGateway(story, clientCountry)
+		if pg == "" {
 			// No payment gateway configured for this country
 			log.Error(log.V{"Show, No payment gateway configured for country": clientCountry})
 			view.Template("products/views/show.html.got")
 			return view.Render()
+		}
+		log.Info(log.V{"msg": "Show, Using price", "gateway": pg, "country": priceCountry})
+		clientCountry = priceCountry
+
+		scheduleLabel := "Monthly"
+		if story.Schedule == "yearly" {
+			scheduleLabel = "Year"
 		}
 
 		switch pg {
@@ -163,265 +141,144 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 
 			log.Info(log.V{"Price ID: ": priceId})
 
-			stripe.Key = config.Get("stripe_secret")
-
-			p, err := price.Get(priceId, nil)
+			priceClient := price.Client{B: stripe.GetBackend(stripe.APIBackend), Key: config.Get("stripe_secret")}
+			p, err := priceClient.Get(priceId, nil)
 
 			if err == nil {
 
 				log.Info(log.V{"Currency:": p.Currency})
 
 				view.AddKey("priceId", priceId)
+				display, err := subscriptions.FormatConfiguredPrice(p.UnitAmount, string(p.Currency), true)
+				if err != nil {
+					return err
+				}
 
-				if p.Type == "recurring" {
-					view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+string(p.Recurring.Interval))
+				if p.Type == "recurring" && p.Recurring != nil {
+					view.AddKey("price", display+"/"+string(p.Recurring.Interval))
 				} else if p.Type == "one_time" {
-					view.AddKey("price", strconv.FormatInt(p.UnitAmount/100, 10)+" "+string(p.Currency)+"/"+"One Time")
+					view.AddKey("price", display+"/"+"One Time")
 				}
 			}
 			view.AddKey("stripe", config.GetBool("stripe"))
 		case "square":
-			// Code for Square
+			// Code for Square, amounts are stored in minor units
 			amount := story.SquarePrice[clientCountry]["amount"]
 			currency := story.SquarePrice[clientCountry]["currency"]
+			currencyCode, _ := currency.(string)
 
-			if amount != nil && currency != nil {
-				if story.Schedule == "onetime" {
-					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
-					view.AddKey("type", "onetime")
-				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
-					scheduleLabel := "Monthly"
-					if story.Schedule == "yearly" {
-						scheduleLabel = "Year"
-					}
-					view.AddKey("price", strconv.FormatFloat(amount.(float64)/1000, 'g', 5, 64)+" "+currency.(string)+"/"+scheduleLabel)
-					view.AddKey("type", "subscription")
-				}
-			} else {
+			if amount == nil || currencyCode == "" {
 				return errors.New("Invalid price details for client country: " + clientCountry)
-
+			}
+			display, err := subscriptions.FormatConfiguredPrice(amount, currencyCode, true)
+			if err != nil {
+				return err
+			}
+			if story.Schedule == "onetime" {
+				view.AddKey("price", display+"/"+"One Time")
+				view.AddKey("type", "onetime")
+			} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
+				view.AddKey("price", display+"/"+scheduleLabel)
+				view.AddKey("type", "subscription")
 			}
 
 			view.AddKey("amount", amount)
 			view.AddKey("currency", currency)
 			view.AddKey("square", config.GetBool("square"))
 		case "paypal":
-			// Code for PayPal
-			amount := story.PaypalPrice[clientCountry]["amount"]
-			currency := story.PaypalPrice[clientCountry]["currency"]
-			planId := story.PaypalPrice[clientCountry]["plan_id"]
+			// Code for PayPal, amounts are stored in major units
+			paypalPrice := story.PaypalPrice[clientCountry]
+			amount := paypalPrice["amount"]
+			currency := paypalPrice["currency"]
+			currencyCode, _ := currency.(string)
+			hasAmount := amount != nil && currencyCode != ""
 
-			if amount != nil && currency != nil {
-				if story.Schedule == "onetime" {
-					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
-					view.AddKey("type", "onetime")
-					view.AddKey("paypal_payment_link", "/subscriptions/paypal?"+fmt.Sprintf("type=%s&product_id=%d", "onetime", story.ID))
-				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
-					scheduleLabel := "Monthly"
-					if story.Schedule == "yearly" {
-						scheduleLabel = "Year"
-					}
-					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+scheduleLabel)
-					view.AddKey("type", "subscription")
-					view.AddKey("paypal_payment_link", "/subscriptions/paypal?"+fmt.Sprintf("type=%s&product_id=%d&plan_id=%s&redirect_uri=%s&custom_id=%s", "subscription", story.ID, planId.(string), redirectUri, customId))
-				}
-			} else {
+			// One-time payments need an amount; subscriptions need at least a plan
+			if !hasAmount && (story.Schedule == "onetime" || paypalPrice["plan_id"] == nil) {
 				return errors.New("Invalid price details for client country: " + clientCountry)
+			}
+			display := ""
+			if hasAmount {
+				var err error
+				display, err = subscriptions.FormatConfiguredPrice(amount, currencyCode, false)
+				if err != nil {
+					return err
+				}
+			}
+
+			if story.Schedule == "onetime" {
+				view.AddKey("price", display+"/"+"One Time")
+				view.AddKey("type", "onetime")
+				view.AddKey("paypal_payment_link", paymentEntryURL("paypal", story.ID, customId, redirectUri))
+			} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
+				if display != "" {
+					view.AddKey("price", display+"/"+scheduleLabel)
+				} else {
+					view.AddKey("price", scheduleLabel)
+				}
+				view.AddKey("type", "subscription")
+				view.AddKey("paypal_payment_link", paymentEntryURL("paypal", story.ID, customId, redirectUri))
 			}
 
 			view.AddKey("amount", amount)
 			view.AddKey("currency", currency)
 			view.AddKey("paypal", config.GetBool("paypal"))
 		case "razorpay":
-			// Code for Razorpay
-			amount := story.RazorpayPrice[clientCountry]["amount"]
-			currency := story.RazorpayPrice[clientCountry]["currency"]
-			planId := story.RazorpayPrice[clientCountry]["plan_id"]
-			if (amount != nil && currency != nil) || planId != nil {
-				if story.Schedule == "onetime" {
-					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
-					view.AddKey("type", "onetime")
-					view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d&redirect_uri=%s&custom_id=%s", "onetime", story.ID, redirectUri, customId))
-					view.AddKey("amount", amount)
-					view.AddKey("currency", currency)
-				} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
-					// Create a subscription using the plan id
+			// Code for Razorpay, one-time amounts are stored in major units
+			razorpayPrice := story.RazorpayPrice[clientCountry]
+			amount := razorpayPrice["amount"]
+			currency := razorpayPrice["currency"]
+			currencyCode, _ := currency.(string)
+			planId, _ := razorpayPrice["plan_id"].(string)
 
-					razorpayClient := razorpay.NewClient(config.Get("razorpay_key_id"), config.Get("razorpay_key_secret"))
-
-					// Set total_count based on schedule: 120 for monthly (10 years), 30 for yearly (30 years)
-					// Razorpay UPI payment method requires expire_at to be max 30 years
-					totalCount := 120
-					if story.Schedule == "yearly" {
-						totalCount = 30
-					}
-
-					data := map[string]interface{}{
-						"plan_id":     planId,
-						"total_count": totalCount,
-					}
-
-					subscription, err := razorpayClient.Subscription.Create(data, nil)
-
-					if err != nil {
-						log.Error(log.V{"Show product, Error creating Razorpay subscription": err})
-						return server.InternalError(err)
-					}
-
-					subscriptionId := subscription["id"].(string)
-
-					if subscriptionId != "" {
-						view.AddKey("type", "subscription")
-						view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d&subscription_id=%s&redirect_uri=%s&custom_id=%s", "subscription", story.ID, subscriptionId, redirectUri, customId))
-						razorpaySubscription, err := razorpayClient.Subscription.Fetch(subscriptionId, nil, nil)
-
-						if err != nil {
-							return errors.New("Error fetching Razorpay subscription: " + err.Error())
-						}
-
-						razorpayPlanId := razorpaySubscription["plan_id"]
-
-						razorpayPlan, err := razorpayClient.Plan.Fetch(razorpayPlanId.(string), nil, nil)
-
-						if err == nil {
-							razorpayItem := razorpayPlan["item"].(map[string]interface{})
-
-							razorpayAmount := razorpayItem["amount"]
-
-							razorpayCurrency := razorpayItem["currency"]
-
-							scheduleLabel := "Monthly"
-							if story.Schedule == "yearly" {
-								scheduleLabel = "Year"
-							}
-							view.AddKey("price", strconv.FormatFloat(razorpayAmount.(float64)/100, 'g', 5, 64)+" "+razorpayCurrency.(string)+"/"+scheduleLabel)
-						} else {
-							log.Error(log.V{"Product show, Error fetching razorpay amount": err})
-						}
-
-					}
+			if story.Schedule == "onetime" {
+				if amount == nil || currencyCode == "" {
+					return errors.New("Invalid price details for client country: " + clientCountry)
 				}
-				view.AddKey("razorpay", config.GetBool("razorpay"))
-			} else {
-				return errors.New("Invalid price details for client country: " + clientCountry)
+				display, err := subscriptions.FormatConfiguredPrice(amount, currencyCode, false)
+				if err != nil {
+					return err
+				}
+				view.AddKey("price", display+"/"+"One Time")
+				view.AddKey("type", "onetime")
+				view.AddKey("razorpay_payment_link", paymentEntryURL("razorpay", story.ID, customId, redirectUri))
+				view.AddKey("amount", amount)
+				view.AddKey("currency", currency)
+			} else if story.Schedule == "monthly" || story.Schedule == "yearly" {
+				if planId == "" {
+					return errors.New("Invalid price details for client country: " + clientCountry)
+				}
+				razorpayClient := razorpay.NewClient(config.Get("razorpay_key_id"), config.Get("razorpay_key_secret"))
+				plan, err := razorpayClient.Plan.Fetch(planId, nil, nil)
+				if err != nil {
+					return server.InternalError(err)
+				}
+				item, ok := plan["item"].(map[string]interface{})
+				if !ok {
+					return errors.New("invalid plan item")
+				}
+				itemCurrency, ok := item["currency"].(string)
+				if !ok {
+					return errors.New("invalid plan currency")
+				}
+				label := "Monthly"
+				if story.Schedule == "yearly" {
+					label = "Yearly"
+				}
+				display, err := subscriptions.FormatConfiguredPrice(item["amount"], itemCurrency, true)
+				if err != nil {
+					return err
+				}
+				view.AddKey("price", display+"/"+label)
+				view.AddKey("type", "subscription")
+				view.AddKey("razorpay_payment_link", paymentEntryURL("razorpay", story.ID, customId, redirectUri))
 			}
+			view.AddKey("razorpay", config.GetBool("razorpay"))
 
 		default:
 			log.Error(log.V{"Show, Invalid payment gateway selected": pg, "country": clientCountry})
 			return errors.New("invalid payment gateway: " + pg + " for country: " + clientCountry)
 		}
-
-		// Check which payment gateway has the price for this country and use it
-		/* 		if story.StripePrice != nil && (story.StripePrice[clientCountry] != "" || story.StripePrice["DF"] != "") {
-
-		   		} else if story.SquarePrice != nil && (story.SquarePrice[clientCountry]["amount"] != nil || story.SquarePrice["DF"]["amount"] != nil) {
-
-		   		} else if story.PaypalPrice != nil && ((story.PaypalPrice[clientCountry]["amount"] != nil || story.PaypalPrice[clientCountry]["plan_id"] != nil) || (story.PaypalPrice["DF"]["amount"] != nil || story.PaypalPrice["DF"]["plan_id"] != nil)) {
-
-		   		} else if story.RazorpayPrice != nil && ((story.RazorpayPrice[clientCountry]["amount"] != nil || story.RazorpayPrice[clientCountry]["plan_id"] != nil) || (story.RazorpayPrice["DF"]["amount"] != nil || story.RazorpayPrice["DF"]["plan_id"] != nil)) {
-		   			if story.Schedule == "onetime" {
-		   				amount := story.RazorpayPrice[clientCountry]["amount"]
-		   				currency := story.RazorpayPrice[clientCountry]["currency"]
-		   				if amount != nil && currency != nil {
-
-		   					view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
-		   					view.AddKey("type", "onetime")
-		   					view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d", "onetime", story.ID))
-
-		   				} else {
-		   					if len(story.RazorpayPrice) > 0 {
-		   						clientCountry := "DF"
-		   						amount := story.RazorpayPrice[clientCountry]["amount"]
-		   						currency := story.RazorpayPrice[clientCountry]["currency"]
-		   						if amount == nil || currency == nil {
-		   							return errors.New("Invalid price details for client country: " + clientCountry)
-		   						}
-		   						view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"One Time")
-		   						view.AddKey("type", "onetime")
-		   						view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d", "onetime", story.ID))
-		   					}
-		   				}
-		   				view.AddKey("amount", amount)
-		   				view.AddKey("currency", currency)
-		   			} else if story.Schedule == "monthly" {
-		   				planId := story.RazorpayPrice[clientCountry]["plan_id"]
-		   				// Create a subscription using the plan id
-
-		   				razorpayClient := razorpay.NewClient(config.Get("razorpay_key_id"), config.Get("razorpay_key_secret"))
-
-		   				data := map[string]interface{}{
-		   					"plan_id":     planId,
-		   					"total_count": 120,
-		   				}
-
-		   				subscription, err := razorpayClient.Subscription.Create(data, nil)
-
-		   				if err != nil {
-		   					log.Error(log.V{"Show product, Error creating Razorpay subscription": err})
-		   					return server.InternalError(err)
-		   				}
-
-		   				subscriptionId := subscription["id"].(string)
-
-		   				if subscriptionId != "" {
-		   					// view.AddKey("price", strconv.FormatFloat(amount.(float64), 'g', 5, 64)+" "+currency.(string)+"/"+"Monthly")
-		   					view.AddKey("type", "subscription")
-		   					view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d&subscription_id=%s", "subscription", story.ID, subscriptionId))
-		   				} else {
-		   					if len(story.RazorpayPrice) > 0 {
-		   						clientCountry := "DF"
-		   						planId := story.RazorpayPrice[clientCountry]["plan_id"]
-		   						// Create a subscription using the plan id
-
-		   						razorpayClient := razorpay.NewClient(config.Get("razorpay_key_id"), config.Get("razorpay_key_secret"))
-
-		   						data := map[string]interface{}{
-		   							"plan_id":     planId,
-		   							"total_count": 1,
-		   						}
-
-		   						subscription, err := razorpayClient.Subscription.Create(data, nil)
-
-		   						if err != nil {
-		   							log.Error(log.V{"Show product, Error creating Razorpay subscription": err})
-		   							return server.InternalError(err)
-		   						}
-
-		   						subscriptionId := subscription["id"].(string)
-		   						if subscriptionId == "" {
-		   							return errors.New("Invalid subscription ID for client country: " + clientCountry)
-		   						}
-
-		   						view.AddKey("type", "subscription")
-		   						view.AddKey("razorpay_payment_link", "/subscriptions/razorpay?"+fmt.Sprintf("type=%s&product_id=%d&subscription_id=%s", "subscription", story.ID, subscriptionId))
-		   					}
-		   				}
-
-		   				razorpaySubscription, err := razorpayClient.Subscription.Fetch(subscriptionId, nil, nil)
-
-		   				if err != nil {
-		   					return errors.New("Error fetching Razorpay subscription: " + err.Error())
-		   				}
-
-		   				razorpayPlanId := razorpaySubscription["plan_id"]
-
-		   				razorpayPlan, err := razorpayClient.Plan.Fetch(razorpayPlanId.(string), nil, nil)
-
-		   				if err == nil {
-		   					razorpayItem := razorpayPlan["item"].(map[string]interface{})
-
-		   					razorpayAmount := razorpayItem["amount"]
-
-		   					razorpayCurrency := razorpayItem["currency"]
-
-		   					view.AddKey("price", strconv.FormatFloat(razorpayAmount.(float64)/100, 'g', 5, 64)+" "+razorpayCurrency.(string)+"/"+"Monthly")
-		   				} else {
-		   					log.Error(log.V{"Product show, Error fetching razorpay amount": err})
-		   				}
-		   			}
-		   			view.AddKey("razorpay", config.GetBool("razorpay"))
-
-		   		} */
 
 		view.AddKey("showSubscribe", true)
 
@@ -441,20 +298,18 @@ func MetaHashTag(hashtags []string) string {
 	return metahashtag
 }
 
+// truncateString shortens name to at most limit characters, ending in "..."
+// only when it was actually shortened.
 func truncateString(name string, limit int) string {
-	result := name
-	chars := 0
-	if len(name) > limit {
-		if limit > 3 {
-			limit -= 3
-			for i := range name {
-				if chars >= limit {
-					result = name[:i]
-					break
-				}
-				chars++
-			}
-		}
+	if len([]rune(name)) <= limit {
+		return name
 	}
-	return result + "..."
+	if limit <= 3 {
+		return string([]rune(name)[:limit])
+	}
+	return string([]rune(name)[:limit-3]) + "..."
+}
+
+func paymentEntryURL(gateway string, id int64, customID, redirect string) string {
+	return "/subscriptions/" + gateway + "?" + url.Values{"product_id": {strconv.FormatInt(id, 10)}, "custom_id": {customID}, "redirect_uri": {redirect}}.Encode()
 }

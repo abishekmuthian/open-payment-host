@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -209,28 +208,12 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 		}
 
 	}
+	// Parse the per-country gateway prices, skipping invalid rows
+	prices := buildPriceMaps(params.Values, params.Get("schedule"))
+
 	// Store stripe price
 	if config.GetBool("stripe") && config.Get("stripe_key") != "" && config.Get("stripe_secret") != "" {
-		result := make(map[string]string)
-
-		countryRegex := regexp.MustCompile(`^stripe_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					planIDKey := fmt.Sprintf("stripe_plan_id_%s", index)
-					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
-						result[value[0]] = planID[0]
-					}
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Stripe)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err
@@ -242,49 +225,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 	// Store razorpay price
 	if config.GetBool("razorpay") && config.Get("razorpay_key_id") != "" && config.Get("razorpay_key_secret") != "" {
-		result := make(map[string]map[string]interface{})
-
-		countryRegex := regexp.MustCompile(`^razorpay_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					// Initialize a new map for the amount and currency
-
-					amountCurrencyMap := make(map[string]interface{})
-
-					amountKey := fmt.Sprintf("razorpay_amount_%s", index)
-					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
-						var amount float64
-						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
-							amountCurrencyMap["amount"] = amount
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse amount": err})
-						}
-					}
-
-					currencyKey := fmt.Sprintf("razorpay_currency_%s", index)
-					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
-						amountCurrencyMap["currency"] = currency[0]
-					}
-
-					planIDKey := fmt.Sprintf("razorpay_plan_id_%s", index)
-					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
-						amountCurrencyMap["plan_id"] = planID[0]
-					}
-
-					result[value[0]] = amountCurrencyMap
-
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Razorpay)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err
@@ -296,60 +237,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 	// Store paypal price
 	if config.GetBool("paypal") && config.Get("paypal_client_id") != "" && config.Get("paypal_client_secret") != "" {
-		result := make(map[string]map[string]interface{})
-
-		countryRegex := regexp.MustCompile(`^paypal_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					// Initialize a new map for the amount and currency
-
-					amountCurrencyMap := make(map[string]interface{})
-
-					amountKey := fmt.Sprintf("paypal_amount_%s", index)
-					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
-						var amount float64
-						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
-							amountCurrencyMap["amount"] = amount
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse amount": err})
-						}
-					}
-
-					taxKey := fmt.Sprintf("paypal_tax_%s", index)
-					if taxStr, exists := r.Form[taxKey]; exists && len(taxStr) > 0 {
-						var tax float64
-						if tax, err = strconv.ParseFloat(taxStr[0], 64); err == nil {
-							amountCurrencyMap["tax"] = tax
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse tax": err})
-						}
-					}
-
-					currencyKey := fmt.Sprintf("paypal_currency_%s", index)
-					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
-						amountCurrencyMap["currency"] = currency[0]
-					}
-
-					planIDKey := fmt.Sprintf("paypal_plan_id_%s", index)
-					if planID, exists := r.Form[planIDKey]; exists && len(planID) > 0 {
-						amountCurrencyMap["plan_id"] = planID[0]
-					}
-
-					result[value[0]] = amountCurrencyMap
-
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Paypal)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err
@@ -361,45 +249,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 	// Create subscription plan for Square
 	if config.GetBool("square") && config.Get("square_access_token") != "" && config.Get("square_app_id") != "" {
-
-		result := make(map[string]map[string]interface{})
-
-		countryRegex := regexp.MustCompile(`^square_country_(\d+)$`)
-
-		// Iterate over all query parameters
-		r.ParseForm()
-		for key, value := range params.Values {
-			if len(value) > 0 {
-				switch {
-				case countryRegex.MatchString(key):
-					index := countryRegex.FindStringSubmatch(key)[1]
-					// Initialize a new map for the amount and currency
-
-					amountCurrencyMap := make(map[string]interface{})
-
-					amountKey := fmt.Sprintf("square_amount_%s", index)
-					if amountStr, exists := r.Form[amountKey]; exists && len(amountStr) > 0 {
-						var amount float64
-						if amount, err = strconv.ParseFloat(amountStr[0], 64); err == nil {
-							amountCurrencyMap["amount"] = amount
-						} else {
-							// Handle the error, e.g., log it or return an HTTP error
-							log.Error(log.V{"Failed to parse amount": err})
-						}
-					}
-
-					currencyKey := fmt.Sprintf("square_currency_%s", index)
-					if currency, exists := r.Form[currencyKey]; exists && len(currency) > 0 {
-						amountCurrencyMap["currency"] = currency[0]
-					}
-
-					result[value[0]] = amountCurrencyMap
-
-				}
-			}
-		}
-
-		jsonResult, err := json.Marshal(result)
+		jsonResult, err := json.Marshal(prices.Square)
 		if err != nil {
 			log.Error(log.V{"Error marshalling JSON": err})
 			return err
@@ -408,45 +258,19 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 		storyParams["square_price"] = string(jsonResult)
 		story.Update(storyParams)
 
-		var squarePrice map[string]map[string]interface{}
-
-		err = json.Unmarshal([]byte(storyParams["square_price"]), &squarePrice)
-
 		// Creating subscription plan for Square
-		if err == nil {
-			if len(squarePrice) != 0 {
-				for clientCountry, data := range squarePrice {
-					amount := data["amount"]
-					currency := data["currency"]
-					catalogId, error := CreateSubscriptionPlan(story.ID, int64(amount.(float64)), currency.(string))
+		catalogMap := createSquarePlans(story.ID, prices.Square, storyParams["schedule"])
+		if len(catalogMap) != 0 {
+			catalogMapJson, err := json.Marshal(catalogMap)
+			if err == nil {
+				storyParams["square_subscription_plan_Id"] = string(catalogMapJson)
 
-					if err != nil {
-						log.Error(log.V{"Error creating subscription plan ": error})
-						continue
-					}
-					log.Info(log.V{"CountryCode is ": clientCountry, "Catalog ID is ": catalogId})
-
-					if catalogId != "" && clientCountry != "" {
-						catalogMap := make(map[string]string)
-
-						catalogMap[clientCountry] = catalogId
-
-						catalogMapJson, err := json.Marshal(catalogMap)
-
-						if err == nil {
-							storyParams["square_subscription_plan_Id"] = string(catalogMapJson)
-
-							// Update the db with catalog id
-							err = story.Update(storyParams)
-							if err != nil {
-								return server.InternalError(err)
-							}
-						}
-
-					}
+				// Update the db with catalog id
+				err = story.Update(storyParams)
+				if err != nil {
+					return server.InternalError(err)
 				}
 			}
-
 		}
 	}
 
@@ -471,8 +295,34 @@ func CountHashTag(name string) int {
 	return len(fulltext)
 }
 
+// createSquarePlans creates a Square subscription plan per country price
+// and returns country -> catalog ID. Countries whose plan fails are logged
+// and left out, as before.
+func createSquarePlans(productID int64, squarePrice map[string]map[string]interface{}, schedule string) map[string]string {
+	catalogMap := make(map[string]string)
+	for clientCountry, data := range squarePrice {
+		amount, ok := data["amount"].(float64)
+		currency, currencyOK := data["currency"].(string)
+		if !ok || !currencyOK {
+			log.Error(log.V{"Square plan, skipping invalid price for country": clientCountry})
+			continue
+		}
+		catalogId, planErr := CreateSubscriptionPlan(productID, int64(amount), currency, schedule)
+		if planErr != nil {
+			log.Error(log.V{"Error creating subscription plan ": planErr})
+			continue
+		}
+		log.Info(log.V{"CountryCode is ": clientCountry, "Catalog ID is ": catalogId})
+
+		if catalogId != "" && clientCountry != "" {
+			catalogMap[clientCountry] = catalogId
+		}
+	}
+	return catalogMap
+}
+
 // CreateSubscriptionPlan creates a subscription plan for square
-func CreateSubscriptionPlan(productId int64, amount int64, currency string) (string, error) {
+func CreateSubscriptionPlan(productId int64, amount int64, currency string, schedule string) (string, error) {
 
 	type RecurringPriceMoney struct {
 		Amount   int64  `json:"amount"`
@@ -501,9 +351,8 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 	u, _ := uuid.NewRandom()
 
 	product, err := products.Find(productId)
-
 	if err != nil {
-		// Handle error
+		return "", err
 	}
 
 	data := Payload{
@@ -515,7 +364,7 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 				Name: fmt.Sprintf("Subscription for %s", product.Name),
 				Phases: []Phases{
 					Phases{
-						Cadence: "MONTHLY",
+						Cadence: squarePlanCadence(schedule),
 						RecurringPriceMoney: RecurringPriceMoney{
 							Amount:   amount,
 							Currency: currency,
@@ -527,13 +376,13 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
-		// handle err
+		return "", err
 	}
 	body := bytes.NewReader(payloadBytes)
 
 	req, err := http.NewRequest("POST", config.Get("square_domain")+"/catalog/object", body)
 	if err != nil {
-		// handle err
+		return "", err
 	}
 	req.Header.Set("Square-Version", "2023-04-19")
 	req.Header.Set("Authorization", "Bearer "+config.Get("square_access_token"))
@@ -541,7 +390,7 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		// handle err
+		return "", err
 	}
 	defer resp.Body.Close()
 
@@ -562,6 +411,9 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 
 		log.Info(log.V{"Square Payment parsed": error})
 
+		if len(error.Errors) == 0 {
+			return "", fmt.Errorf("square catalog: status %d", resp.StatusCode)
+		}
 		return "", errors.New(error.Errors[0].Detail)
 	}
 
@@ -576,4 +428,11 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string) (str
 	log.Info(log.V{"Square Payment parsed": catalog})
 
 	return catalog.CatalogObject.ID, err
+}
+
+func squarePlanCadence(schedule string) string {
+	if schedule == "yearly" {
+		return "ANNUAL"
+	}
+	return "MONTHLY"
 }

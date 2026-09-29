@@ -162,7 +162,7 @@
           class="select w-full max-w-60 rounded-sm schedule-select"
           name="schedule"
           _="on change
-              set oldValue to my[@data-current-value]
+              set oldValue to my@data-current-value
               set newValue to my.value
               log 'Schedule change - old:', oldValue, 'new:', newValue
               {{ if .stripe }}log 'Stripe toggle checked:', #stripe-toggle-update.checked{{ end }}
@@ -180,7 +180,7 @@
                   })
                   if result.isConfirmed
                       set my.value to newValue
-                      set my[@data-current-value] to newValue
+                      set my@data-current-value to newValue
                       {{ if .stripe }}
                       if #stripe-toggle-update.checked
                           set #stripe-toggle-update.checked to false
@@ -209,11 +209,11 @@
                       set my.value to oldValue
                   end
               else
-                  set my[@data-current-value] to newValue
+                  set my@data-current-value to newValue
               end
           on load
               set my.value to '{{ .story.Schedule }}'
-              set my[@data-current-value] to my.value
+              set my@data-current-value to my.value
           "
         >
           {{ if eq .story.Schedule "onetime" }}

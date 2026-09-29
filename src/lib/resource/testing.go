@@ -1,19 +1,14 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/auth"
 	"github.com/abishekmuthian/open-payment-host/src/lib/auth/can"
-	"github.com/abishekmuthian/open-payment-host/src/lib/query"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/helpers"
@@ -108,48 +103,4 @@ func SetupView(depth int) error {
 	view.Helpers["root_url"] = helpers.RootURL
 
 	return view.LoadTemplatesAtPaths([]string{filepath.Join(basePath(depth), "src")}, view.Helpers)
-}
-
-// SetupTestDatabase sets up the database for all tests from the test config.
-func SetupTestDatabase(depth int) error {
-	// required for sqlite
-	mu := &sync.RWMutex{}
-
-	// Set up a stderr logger with time prefix
-	logger, err := log.NewStdErr(log.PrefixDateTime)
-	if err != nil {
-		return err
-	}
-	log.Add(logger)
-
-	// Read config json
-	path := filepath.Join(basePath(depth), "secrets", "fragmenta.json")
-	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	var data map[string]map[string]string
-	err = json.Unmarshal(file, &data)
-	if err != nil {
-		return err
-	}
-
-	config := data["test"]
-	options := map[string]string{
-		"adapter":  config["db_adapter"],
-		"user":     config["db_user"],
-		"password": config["db_pass"],
-		"db":       config["db"],
-	}
-
-	// Ask query to open the database
-	err = query.OpenDatabase(options, mu)
-	if err != nil {
-		return err
-	}
-
-	// For speed
-	query.Exec("set synchronous_commit=off;")
-	return nil
 }

@@ -39,28 +39,21 @@ func HandlePrice(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("fieldIndex", fieldIndex+1)
 	view.AddKey("schedule", schedule)
 
-	if pg == "stripe" {
+	switch {
+	case pg == "stripe":
 		view.Template("products/views/stripe_price.html.got")
-	}
-
-	if pg == "square" {
+	case pg == "square":
 		view.Template("products/views/square_price.html.got")
-	}
-
-	if pg == "paypal" {
-		if schedule == "onetime" {
-			view.Template("products/views/paypal_price_onetime.html.got")
-		} else if schedule == "monthly" || schedule == "yearly" {
-			view.Template("products/views/paypal_price_monthly.html.got")
-		}
-	}
-
-	if pg == "razorpay" {
-		if schedule == "onetime" {
-			view.Template("products/views/razorpay_price_onetime.html.got")
-		} else if schedule == "monthly" || schedule == "yearly" {
-			view.Template("products/views/razorpay_price_monthly.html.got")
-		}
+	case pg == "paypal" && schedule == "onetime":
+		view.Template("products/views/paypal_price_onetime.html.got")
+	case pg == "paypal" && (schedule == "monthly" || schedule == "yearly"):
+		view.Template("products/views/paypal_price_monthly.html.got")
+	case pg == "razorpay" && schedule == "onetime":
+		view.Template("products/views/razorpay_price_onetime.html.got")
+	case pg == "razorpay" && (schedule == "monthly" || schedule == "yearly"):
+		view.Template("products/views/razorpay_price_monthly.html.got")
+	default:
+		return server.NotFoundError(nil, "Unknown price fields", "No price fields for gateway "+pg+" and schedule "+schedule)
 	}
 
 	view.Layout("")

@@ -2,6 +2,7 @@ package query
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -85,22 +86,11 @@ func OpenDatabase(opts map[string]string, mu *sync.RWMutex) error {
 			log.Info(log.V{"msg": "Finished creating tables"})
 
 			// Migrate Database
-			driver, err := sqlite3.WithInstance(database.SQLDB(), &sqlite3.Config{})
-			if err != nil {
-				log.Error(log.V{"Database migration, Error creating db instance": err})
-			}
-
-			m, err := migrate.NewWithDatabaseInstance("file://db/migrate", "sqlite3", driver)
-			if err != nil {
-				log.Error(log.V{"Database migration, Error creating migration instance ": err})
-
-			}
-
-			if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+			if err := migrateDatabase(); err != nil {
 				log.Error(log.V{"Database migration, Error migrating ": err})
-			} else {
-				log.Info(log.V{"msg": "Database migration successful"})
+				return err
 			}
+			log.Info(log.V{"msg": "Database migration successful"})
 
 		} else {
 			log.Error(log.V{"Unable to read the database file": err})
@@ -116,6 +106,51 @@ func OpenDatabase(opts map[string]string, mu *sync.RWMutex) error {
 	}
 
 	return err
+}
+
+// baselineConflicts maps migrations to the products column they add. Before
+// 0.3.10 db/Create-Tables.sql already created these columns, so fresh installs
+// stopped dirty at the migration adding them. The column existing proves the
+// migration's effect is present, so it is safe to mark it applied.
+var baselineConflicts = map[uint]string{1: "paypal_price", 12: "listmonk_list_id"}
+
+// migrateDatabase applies db/migrate and returns any failure.
+func migrateDatabase() error {
+	driver, err := sqlite3.WithInstance(database.SQLDB(), &sqlite3.Config{})
+	if err != nil {
+		return fmt.Errorf("query: creating migration driver: %w", err)
+	}
+	m, err := migrate.NewWithDatabaseInstance("file://db/migrate", "sqlite3", driver)
+	if err != nil {
+		return fmt.Errorf("query: creating migration instance: %w", err)
+	}
+	for attempt := 0; ; attempt++ {
+		err = m.Up()
+		if err == nil || errors.Is(err, migrate.ErrNoChange) {
+			return nil
+		}
+		version, dirty, verr := m.Version()
+		if verr != nil || !dirty || attempt >= len(baselineConflicts) || !productsHasColumn(baselineConflicts[version]) {
+			return fmt.Errorf("query: migrating database: %w", err)
+		}
+		log.Info(log.V{"msg": "Database migration, marking baseline column migration applied", "version": version})
+		if err := m.Force(int(version)); err != nil {
+			return fmt.Errorf("query: repairing migration %d: %w", version, err)
+		}
+	}
+}
+
+// productsHasColumn reports whether the products table has the named column.
+func productsHasColumn(column string) bool {
+	if column == "" {
+		return false
+	}
+	rows, err := database.SQLDB().Query("SELECT 1 FROM pragma_table_info('products') WHERE name = ?", column)
+	if err != nil {
+		return false
+	}
+	defer rows.Close()
+	return rows.Next()
 }
 
 // CloseDatabase closes the database opened by OpenDatabase

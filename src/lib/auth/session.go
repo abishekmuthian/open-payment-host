@@ -34,6 +34,10 @@ var SessionName = "fragmenta_session"
 // SessionUserKey is the session user key.
 var SessionUserKey = "user_id"
 
+// SessionPasswordChangeKey holds the id of a user who logged in with the
+// default admin password and must change it before using the site.
+var SessionPasswordChangeKey = "password_change_user_id"
+
 // SessionTokenKey is the session token key.
 var SessionTokenKey = "authenticity_token"
 

@@ -2,662 +2,106 @@ package subscriptions
 
 import (
 	"encoding/json"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
-
-	"github.com/abishekmuthian/open-payment-host/src/lib/mailchimp"
-	"github.com/abishekmuthian/open-payment-host/src/lib/query"
+	"errors"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
-	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
-	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/razorpay/razorpay-go/utils"
+	"net/http"
 )
 
-// HandleRazorpayWebhook receives the webhook POST request from the Razorpay
 func HandleRazorpayWebhook(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "POST" {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+	body, err := readWebhookBody(w, r)
+	if err != nil {
 		return nil
 	}
-
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Error(log.V{"Razorpay webhook, ioutil.ReadAll: %v": err})
-		return err
-	}
-
-	// Verify Razorpay Webhook
-	webhookVerificationStatus := utils.VerifyWebhookSignature(string(b), r.Header.Get("X-Razorpay-Signature"), config.Get("razorpay_webhook_secret"))
-
-	if webhookVerificationStatus {
-		log.Info(log.V{"msg": "Razorpay webhook verified"})
-		// Signature is valid. Return 200 OK.
-		w.WriteHeader(200)
-	} else {
-		// Signature is invalid
-		w.WriteHeader(403)
-		log.Error(log.V{"Razorpay Webhook": "Invalid Razorpay Webhook Signature"})
+	secret := config.Get("razorpay_webhook_secret")
+	if secret == "" || !utils.VerifyWebhookSignature(string(body), r.Header.Get("X-Razorpay-Signature"), secret) {
+		http.Error(w, "Invalid signature", 403)
 		return nil
 	}
-
-	var razorpayWebhookEvent RazorpayWebhookEvent
-
-	err = json.Unmarshal(b, &razorpayWebhookEvent)
-
-	if err != nil {
-		log.Error(log.V{"Razorpay Webhook JSON Unmarshall": err})
+	var e struct {
+		Event   string `json:"event"`
+		Payload struct {
+			Order struct {
+				Entity struct {
+					ID string `json:"id"`
+				} `json:"entity"`
+			} `json:"order"`
+			Payment struct {
+				Entity razorpayPayment `json:"entity"`
+			} `json:"payment"`
+			Subscription struct {
+				Entity struct {
+					ID     string `json:"id"`
+					Status string `json:"status"`
+				} `json:"entity"`
+			} `json:"subscription"`
+			Refund struct {
+				Entity struct {
+					ID        string `json:"id"`
+					PaymentID string `json:"payment_id"`
+					Amount    int64  `json:"amount"`
+					Currency  string `json:"currency"`
+					Status    string `json:"status"`
+				} `json:"entity"`
+			} `json:"refund"`
+		} `json:"payload"`
 	}
-
-	log.Info(log.V{"Razorpay Webhook Event Parsed": razorpayWebhookEvent})
-
-	switch razorpayWebhookEvent.Event {
-	case "order.paid":
-		// Handle order paid event
-		log.Info(log.V{"Razorpay webhook event": "Order Paid"})
-		var razorpayEventOrderPaid RazorpayEventOrderPaid
-
-		err = json.Unmarshal(b, &razorpayEventOrderPaid)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Checkout JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventOrderPaid})
-		var subscription *Subscription
-
-		subscription, err = FindPayment(razorpayEventOrderPaid.Payload.Order.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay order in db using Capture Id": err})
-		}
-
-		if subscription == nil {
-			newSubscription := New()
-			err = recordRazorpayCheckoutOrder(razorpayEventOrderPaid, newSubscription)
-
+	if err = json.Unmarshal(body, &e); err != nil {
+		http.Error(w, "Invalid event", 400)
+		return nil
+	}
+	err = processPaymentEvent("razorpay", r.Header.Get("X-Razorpay-Event-Id"), func() error {
+		switch e.Event {
+		case "order.paid":
+			orderID := e.Payload.Order.Entity.ID
+			payment := e.Payload.Payment.Entity
+			if payment.InvoiceID != "" {
+				if orderID == "" || payment.ID == "" || payment.OrderID == "" || payment.OrderID != orderID {
+					return errors.New("invalid invoice-backed Razorpay order event")
+				}
+				// Razorpay also emits order.paid for subscription invoices. The
+				// subscription.charged event performs the recurring payment proof.
+				return nil
+			}
+			a, err := FindAttemptByProviderOrder("razorpay", orderID)
 			if err != nil {
-				log.Error(log.V{"Webhook, error recording razorpay order in db": err})
 				return err
 			}
-
-			// Fetch the created subscription to get the complete record
-			subscription, err = FindPayment(razorpayEventOrderPaid.Payload.Order.Entity.ID)
+			f, err := fetchRazorpayPaymentFacts(a.ProviderOrderId, payment.ID)
 			if err != nil {
-				log.Error(log.V{"Razorpay Webhook, error finding razorpay transaction id in db using entity id for updating it": err})
 				return err
 			}
-
-			productId := subscription.ProductId
-			product, err := products.Find(productId)
+			_, err = verifyAndFulfill(a, f)
+			return err
+		case "subscription.charged":
+			a, err := FindAttemptByProviderSubscription("razorpay", e.Payload.Subscription.Entity.ID)
 			if err != nil {
-				log.Error(log.V{"Webhook, error finding product in db": err})
 				return err
 			}
-
-			// Update counters based on product schedule for order.paid events
-			if product != nil {
-				productParams := make(map[string]string)
-				if product.Schedule == "onetime" {
-					product.TotalOnetimePayments += 1
-					productParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
-				} else {
-					// Monthly or yearly subscription
-					product.TotalSubscribers += 1
-					productParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
-				}
-				err = product.Update(productParams)
-				if err != nil {
-					log.Error(log.V{"Razorpay webhook, Error updating product counters for order.paid": err})
-				}
-			}
-
-			// If mailchimp list id and mailchimp token is available add to the mailchimp list
-			if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
-				audience := mailchimp.Audience{
-					MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
-					Email:       subscription.CustomerEmail,
-					Status:      "subscribed",
-				}
-				go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
-			}
-			addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
-
-			// Send webhook notification only once
-			if product.WebhookURL != "" && product.WebhookSecret != "" {
-				params := map[string]interface{}{
-					"order_id":  subscription.PaymentId,
-					"custom_id": subscription.UserId,
-					"status":    "active",
-					"email":     subscription.CustomerEmail,
-				}
-
-				log.Info(log.V{"Razorpay order.paid webhook params": params, "event": "order.paid"})
-
-				go func() {
-					err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
-					if err != nil {
-						log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
-					} else {
-						log.Info(log.V{"msg": "Successfully sent webhook to product's URL", "event": "order.paid"})
-					}
-				}()
-			}
-		} else {
-			log.Info(log.V{"Webhook, razorpay order already exists in db, Order ID": subscription.ID})
-			product, productErr := products.Find(subscription.ProductId)
-			if productErr != nil {
-				log.Error(log.V{"Razorpay webhook, Error finding existing order product for Listmonk": productErr})
-			} else {
-				addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
-			}
-		}
-	case "subscription.authenticated":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Authenticated"})
-	case "subscription.activated":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Activated"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-		}
-
-		if subscription == nil {
-			newSubscription := New()
-			err = recordRazorpaySubscription(razorpayEventSubscriptionCompleted, newSubscription)
-
+			f, err := fetchRazorpaySubscriptionFacts(a.ProviderSubscriptionId, e.Payload.Payment.Entity.ID)
 			if err != nil {
-				log.Error(log.V{"Webhook, error recording razorpay subscription in db": err})
 				return err
 			}
-
-			subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-
-			if err == nil {
-				// Call the webhook from the product
-				productId := subscription.ProductId
-
-				product, err := products.Find(productId)
-				if err != nil {
-					log.Error(log.V{"Webhook, error finding product in db": err})
-					return err
-				}
-
-				// If mailchimp list id and mailchimp token is available add to the mailchimp list
-				if product.MailchimpAudienceID != "" && config.Get("mailchimp_token") != "" {
-					audience := mailchimp.Audience{
-						MergeFields: mailchimp.Merge{FirstName: subscription.FirstName},
-						Email:       subscription.CustomerEmail,
-						Status:      "subscribed",
-					}
-					go mailchimp.AddToAudience(audience, product.MailchimpAudienceID, mailchimp.GetMD5Hash(subscription.CustomerEmail), config.Get("mailchimp_token"))
-				}
-				addSubscriberToListmonk(product.ListmonkListID, subscription.CustomerEmail, subscription.FirstName)
-
-				if product.WebhookURL != "" && product.WebhookSecret != "" {
-					params := map[string]interface{}{
-						"subscription_id": subscription.SubscriptionId,
-						"custom_id":       subscription.UserId,
-						"status":          "active",
-						"email":           subscription.CustomerEmail,
-					}
-
-					log.Info(log.V{"Razorpay subscription.activated webhook params": params, "event": "subscription.activated"})
-
-					go func() {
-						err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
-						if err != nil {
-							log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
-						} else {
-							log.Info(log.V{"msg": "Successfully sent webhook to product's URL", "event": "subscription.activated"})
-						}
-					}()
-				}
-			} else {
-				log.Error(log.V{"Razorpay Webhook, error finding subscription to send webhook": err})
+			_, err = verifyAndFulfill(a, f)
+			return err
+		case "subscription.cancelled", "subscription.completed", "subscription.halted", "subscription.paused", "subscription.pending":
+			status := e.Payload.Subscription.Entity.Status
+			if status == "completed" {
+				status = "expired"
 			}
-
-		} else {
-			log.Info(log.V{"Webhook, razorpay subscription already exists in db, Subscription ID": subscription.ID})
-		}
-	case "subscription.charged":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Charged"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-	case "subscription.completed":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Completed"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-	case "subscription.updated":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Updated"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-	case "subscription.pending":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Pending"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-	case "subscription.halted":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Halted"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-	case "subscription.cancelled":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Cancelled"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-
-		if err == nil {
-			// Call the webhook from the product
-			productId := subscription.ProductId
-
-			product, err := products.Find(productId)
-			if err != nil {
-				log.Error(log.V{"Webhook, error finding product in db": err})
-				return err
+			switch status {
+			case "cancelled", "expired", "halted", "paused", "pending":
+				return applySubscriptionStatus("razorpay", e.Payload.Subscription.Entity.ID, status)
 			}
-
-			if product.WebhookURL != "" && product.WebhookSecret != "" {
-				params := map[string]interface{}{
-					"subscription_id": subscription.SubscriptionId,
-					"custom_id":       subscription.UserId,
-					"status":          "cancelled",
-					"email":           subscription.CustomerEmail,
-				}
-
-				log.Info(log.V{"Razorpay subscription.cancelled webhook params": params, "event": "subscription.cancelled"})
-
-				go func() {
-					err := SendWebhook(product.WebhookURL, product.WebhookSecret, params)
-					if err != nil {
-						log.Error(log.V{"Razorpay webhook, Error sending webhook to product's URL": err})
-					} else {
-						log.Info(log.V{"msg": "Successfully sent webhook to product's URL", "event": "subscription.cancelled"})
-					}
-				}()
+			return errors.New("unexpected subscription status")
+		case "refund.processed":
+			f := e.Payload.Refund.Entity
+			if f.Status != "processed" {
+				return errors.New("refund is not processed")
 			}
+			return applyRefund("razorpay", f.PaymentID, f.ID, f.Amount, f.Currency)
 		}
-	case "subscription.paused":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Paused"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-	case "subscription.resumed":
-		log.Info(log.V{"Razorpay webhook event": "Subscription Resumed"})
-		var razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted
-
-		err = json.Unmarshal(b, &razorpayEventSubscriptionCompleted)
-
-		if err != nil {
-			log.Error(log.V{"Razorpay  Webhook Subscription JSON Unmarshall": err})
-			return err
-		}
-
-		log.Info(log.V{"Razorpay  Webhook Event Parsed": razorpayEventSubscriptionCompleted})
-
-		var subscription *Subscription
-
-		subscription, err = FindSubscription(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID)
-		if err != nil {
-			log.Info(log.V{"Webhook, error finding razorpay subscription in db using Capture Id": err})
-			return nil
-		}
-		err = updateRazorpaySubscription(razorpayEventSubscriptionCompleted, subscription)
-
-	}
-
-	return err
-}
-
-func recordRazorpayCheckoutOrder(razorpayEventOrderPaid RazorpayEventOrderPaid, subscription *Subscription) error {
-	// Params not validated using ValidateParams as user did not create these?
-	transactionParams := make(map[string]string)
-	transactionParams["pg"] = "razorpay"
-	transactionParams["txn_id"] = razorpayEventOrderPaid.Payload.Order.Entity.ID
-	createdAtTime := time.Unix(razorpayEventOrderPaid.Payload.Order.Entity.CreatedAt, 0) // Convert to time.Time
-
-	transactionParams["payment_date"] = query.TimeString(createdAtTime)
-	transactionParams["payment_gross"] = strconv.Itoa(razorpayEventOrderPaid.Payload.Payment.Entity.Amount / 100)
-	transactionParams["payment_fee"] = strconv.Itoa(razorpayEventOrderPaid.Payload.Payment.Entity.Fee / 100) // Fee is in INR
-	transactionParams["mc_currency"] = razorpayEventOrderPaid.Payload.Payment.Entity.Currency
-	transactionParams["payment_status"] = razorpayEventOrderPaid.Payload.Payment.Entity.Status
-
-	// FIXME: Razorpay doesn't seem to be supporting tax collection, The tax is got from the product
-	// transactionParams["tax"] =
-
-	if len(razorpayEventOrderPaid.Payload.Payment.Entity.Notes) > 0 {
-		if customID, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["custom_id"]; exists {
-			transactionParams["user_id"] = customID.(string)
-		}
-
-		// Phone number storage is disabled for privacy - phone is sent to Razorpay but not stored locally
-		// if phone, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["phone"]; exists {
-		// 	transactionParams["payer_phone"] = phone.(string)
-		// }
-
-		if address, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address"]; exists {
-			transactionParams["address_street"] = address.(string)
-		}
-
-		if addressCity, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address_city"]; exists {
-			transactionParams["address_city"] = addressCity.(string)
-		}
-
-		if addressState, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address_state"]; exists {
-			transactionParams["address_state"] = addressState.(string)
-		}
-
-		if addressPincode, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["address_pincode"]; exists {
-			transactionParams["address_zip"] = addressPincode.(string)
-		}
-
-		if email, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["email"]; exists {
-			transactionParams["payer_email"] = email.(string)
-		}
-
-		if name, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["name"]; exists {
-			transactionParams["first_name"] = name.(string)
-		}
-
-		if productIdString, exists := razorpayEventOrderPaid.Payload.Payment.Entity.Notes["product_id"]; exists {
-
-			transactionParams["item_number"] = productIdString.(string)
-
-			// Convert receipt to int64
-			productId, err := strconv.ParseInt(productIdString.(string), 10, 64)
-			if err == nil {
-
-				product, err := products.Find(productId)
-				if err == nil {
-					transactionParams["item_name"] = product.Name
-				} else {
-					log.Error(log.V{"Razorpay webhook, Error finding product": err})
-				}
-			} else {
-				log.Error(log.V{"Razorpay webhook, Error converting receipt to int64": err})
-			}
-
-		}
-
-	}
-
-	dbId, err := subscription.Create(transactionParams)
-
-	if err == nil {
-		log.Info(log.V{"Webhook, razorpay order added to db, ID: ": dbId})
-	}
-
-	return err
-}
-
-func recordRazorpaySubscription(razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted, subscription *Subscription) error {
-	var product *products.Story
-
-	// Params not validated using ValidateParams as user did not create these?
-	transactionParams := make(map[string]string)
-	transactionParams["pg"] = "razorpay"
-	transactionParams["subscr_id"] = razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.ID
-	createdAtTime := time.Unix(razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.CreatedAt, 0) // Convert to time.Time
-
-	transactionParams["payment_date"] = query.TimeString(createdAtTime)
-	transactionParams["payment_gross"] = strconv.Itoa(razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Amount / 100)
-	transactionParams["payment_fee"] = strconv.Itoa(razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Fee / 100) // Fee is in INR
-	transactionParams["mc_currency"] = razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Currency
-	transactionParams["payment_status"] = razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.Status
-	transactionParams["payer_id"] = razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.CustomerID
-
-	// FIXME: Razorpay doesn't seem to be supporting tax collection, The tax is got from the product
-	// transactionParams["tax"] =
-
-	if len(razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes) > 0 {
-		if customID, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["custom_id"]; exists {
-			transactionParams["user_id"] = customID.(string)
-		}
-
-		// Phone number storage is disabled for privacy - phone is sent to Razorpay but not stored locally
-		// if phone, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["phone"]; exists {
-		// 	transactionParams["payer_phone"] = phone.(string)
-		// }
-
-		if address, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address"]; exists {
-			transactionParams["address_street"] = address.(string)
-		}
-
-		if addressCity, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address_city"]; exists {
-			transactionParams["address_city"] = addressCity.(string)
-		}
-
-		if addressState, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address_state"]; exists {
-			transactionParams["address_state"] = addressState.(string)
-		}
-
-		if addressPincode, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["address_pincode"]; exists {
-			transactionParams["address_zip"] = addressPincode.(string)
-		}
-
-		if email, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["email"]; exists {
-			transactionParams["payer_email"] = email.(string)
-		}
-
-		if name, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["name"]; exists {
-			transactionParams["first_name"] = name.(string)
-		}
-
-		if productIdString, exists := razorpayEventSubscriptionCompleted.Payload.Payment.Entity.Notes["product_id"]; exists {
-
-			transactionParams["item_number"] = productIdString.(string)
-
-			// Convert receipt to int64
-			productId, err := strconv.ParseInt(productIdString.(string), 10, 64)
-			if err == nil {
-
-				product, err = products.Find(productId)
-				if err == nil {
-					transactionParams["item_name"] = product.Name
-				} else {
-					log.Error(log.V{"Razorpay webhook, Error finding product": err})
-				}
-			} else {
-				log.Error(log.V{"Razorpay webhook, Error converting receipt to int64": err})
-			}
-
-		}
-
-	}
-
-	dbId, err := subscription.Create(transactionParams)
-
-	if err == nil {
-		log.Info(log.V{"Webhook, razorpay subscription added to db, ID: ": dbId})
-
-		// Update counters based on product schedule
-		if product != nil {
-			transactionParams := make(map[string]string)
-			if product.Schedule == "onetime" {
-				product.TotalOnetimePayments += 1
-				transactionParams["total_onetime_payments"] = strconv.FormatInt(product.TotalOnetimePayments, 10)
-			} else {
-				// Monthly or yearly subscription
-				product.TotalSubscribers += 1
-				transactionParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10)
-			}
-			err = product.Update(transactionParams)
-			if err != nil {
-				log.Error(log.V{"Razorpay webhook, Error updating product counters": err})
-				return err
-			}
-		}
-	}
-
-	return err
-}
-
-func updateRazorpaySubscription(razorpayEventSubscriptionCompleted RazorpayEventSubscriptionCompleted, subscription *Subscription) error {
-	transactionParams := make(map[string]string)
-
-	transactionParams["payment_status"] = razorpayEventSubscriptionCompleted.Payload.Subscription.Entity.Status
-
-	err := subscription.Update(transactionParams)
-
-	if err == nil {
-		log.Info(log.V{"msg": "Webhook, razorpay subscription updated to db"})
-		// Update the total subscribers count for the product associated with this subscription
-		product, err := products.Find(subscription.ProductId)
-		if err != nil {
-			log.Error(log.V{"Razorpay webhook, Error finding product": err})
-			return err
-		} else if product != nil {
-			// Check if product status is not active and then decrement the count
-			// Only decrement for recurring subscriptions (not one-time payments)
-			if subscription.PaymentStaus != "active" && product.Schedule != "onetime" {
-
-				// Decrement the total subscribers in the product
-				product.TotalSubscribers -= 1
-				transactionParams := make(map[string]string)
-				transactionParams["total_subscribers"] = strconv.FormatInt(product.TotalSubscribers, 10) // Use FormatInt instead of Itoa
-				err = product.Update(transactionParams)
-				if err != nil {
-					log.Error(log.V{"Razorpay webhook, Error updating total subscribers for product": err})
-					return err
-				}
-			}
-		}
-	}
-	return err
+		return nil
+	})
+	return webhookResult(w, err)
 }

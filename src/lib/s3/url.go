@@ -35,6 +35,9 @@ func GeneratePresignedUrl(s3bucket string, s3key string) (string, error) {
 	}
 
 	sess, err := session.NewSession(awsConfig)
+	if err != nil {
+		return "", err
+	}
 
 	// Create S3 service client
 	svc := s3.New(sess)
@@ -48,8 +51,6 @@ func GeneratePresignedUrl(s3bucket string, s3key string) (string, error) {
 	if err != nil {
 		log.Println("Failed to sign request", err)
 	}
-
-	log.Println("The URL is", urlStr)
 
 	return urlStr, err
 }
