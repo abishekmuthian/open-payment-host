@@ -154,7 +154,7 @@ func (c *Collection) Load() error {
 	return nil
 }
 
-// Compile images, styles and scripts asset folders from src into dst (minifying and amalgamating)
+// Compile images, styles and scripts asset folders from src into dst (concatenating, never minifying)
 func (c *Collection) Compile(src string, dst string) error {
 
 	// First scan the directory for files we're interested in

@@ -7,9 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-
-	"github.com/abishekmuthian/open-payment-host/src/lib/assets/internal/cssmin"
-	"github.com/abishekmuthian/open-payment-host/src/lib/assets/internal/jsmin"
 )
 
 // A sortable file array
@@ -104,11 +101,11 @@ func (g *Group) Compile(dst string) error {
 		}
 	}
 	// Generate hashes for the files concatted using our existing file hashes as input
-	// NB this is not the hash of the minified file
+	// NB this is not the hash of the concatenated file
 	g.scripthash = bytesHash([]byte(scriptHashes))
 	g.stylehash = bytesHash([]byte(styleHashes))
 
-	// Write out this group's minified concatted files
+	// Write out this group's concatenated files
 	err := g.writeFiles(dst, scriptWriter, styleWriter)
 
 	// Reset the buffers on our files, which we no longer need
@@ -119,24 +116,16 @@ func (g *Group) Compile(dst string) error {
 	return err
 }
 
-// writeScript
+// writeFiles writes the concatenated group files to dst. They are never
+// minified: vendored libraries ship minified, Tailwind minifies app.css
+// (--minify) and the gzip middleware compresses responses.
 func (g *Group) writeFiles(dst string, scriptWriter, styleWriter bytes.Buffer) error {
-	var err error
-
-	// Minify CSS
-	miniCSS := cssmin.Minify(styleWriter.Bytes())
-	err = ioutil.WriteFile(g.StylePath(dst), miniCSS, permissions)
+	err := ioutil.WriteFile(g.StylePath(dst), styleWriter.Bytes(), permissions)
 	if err != nil {
 		return err
 	}
 
-	// Minify JS
-	minijs, err := jsmin.Minify(scriptWriter.Bytes())
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(g.ScriptPath(dst), minijs, permissions)
+	err = ioutil.WriteFile(g.ScriptPath(dst), scriptWriter.Bytes(), permissions)
 	if err != nil {
 		return err
 	}

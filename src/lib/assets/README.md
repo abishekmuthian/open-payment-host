@@ -3,7 +3,7 @@ Assets provides asset compilation, concatenation and fingerprinting. Asset detai
 
 ### Usage
 
-Use the assets package to organize assets however you like within your src folder, and output them in compressed form in your public/assets folder when you come to deploy your app. 
+Use the assets package to organize assets however you like within your src folder, and output them concatenated and fingerprinted (never minified) in your public/assets folder when you come to deploy your app. 
 
 ```Go 
   // Load asset details from json file on each run

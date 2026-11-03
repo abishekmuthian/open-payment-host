@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.14](https://badgen.net/static/version/0.3.14/blue)
+![Version 0.3.16](https://badgen.net/static/version/0.3.16/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
@@ -222,6 +222,7 @@ User configurable values are included in the table below.
 | autocert_domains                      | Comma separated domains for SSL certificates.                                                   | Demo: NA, Prod: www.example.com, example.com                                        |
 | autocert_email                        | email id for SSL certificate related notifications.                                             | Demo: NA, Prod: admin@example.com                                                   |
 | autocert_ssl                          | Enable or Disable automatic ssl                                                                 | Demo: NA, Prod: yes/no                                                              |
+| assets_compiled                       | Serve scripts and styles as one fingerprinted bundle each (`yes`) or as separate files (`no`). Assets are recompiled on every start. Installs created before 0.3.16 should set the production value to `yes`. | Dev: no, Prod: yes                                     |
 | name                                  | Name of the website.                                                                            | Default: Open Payment Host                                                          |
 | meta_title                            | Title of the website.                                                                           | Default : Sell what you want without paying commissions                             |
 | meta_desc                             | Description of the website.                                                                     | Default: Sell Subscriptions, Newsletters, Digital Files without paying commissions. |
@@ -465,10 +466,16 @@ The suite is hermetic: each test uses a temporary config and a freshly migrated 
 
 Open Payment Host uses Tailwind and Daisy UI for its UI.
 
-Compile Tailwind using the following command,
+During development, compile Tailwind on every change using the following command,
 
 ```
 npx @tailwindcss/cli -i ./tailwind/tailwind.css -o ./src/app/assets/styles/app.css --watch
+```
+
+Before committing, build a minified `app.css`. The asset pipeline only concatenates and fingerprints assets, it does not minify them.
+
+```
+npx @tailwindcss/cli -i ./tailwind/tailwind.css -o ./src/app/assets/styles/app.css --minify
 ```
 
 ### License

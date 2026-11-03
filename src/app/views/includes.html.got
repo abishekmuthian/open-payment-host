@@ -1,4 +1,4 @@
+{{/* The app group bundles every vendored library (htmx, hyperscript,
+     sweetalert2, trix). Never add separate script tags for them. */}}
 {{ style "app" }}
 {{ script "app" }}
-{{ script "htmx" }}
-{{ script "hyperscript" }}
