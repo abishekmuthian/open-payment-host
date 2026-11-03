@@ -18,7 +18,7 @@ require (
 	github.com/razorpay/razorpay-go v1.3.4
 	github.com/sendgrid/sendgrid-go v3.12.0+incompatible
 	github.com/stripe/stripe-go/v72 v72.122.0
-	golang.org/x/crypto v0.56.0
+	golang.org/x/crypto v0.58.0
 )
 
 require (
@@ -38,6 +38,6 @@ require (
 	github.com/aws/aws-sdk-go v1.49.6
 	github.com/gomarkdown/markdown v0.0.0-20260411013819-759bbc3e3207
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
-	golang.org/x/net v0.57.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 )

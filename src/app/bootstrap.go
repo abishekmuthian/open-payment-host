@@ -16,7 +16,7 @@ import (
 //	"github.com/abishekmuthian/iwillpayforthat/src/lib/server/fragmenta/config"
 
 const (
-	version                     = "0.3.14"
+	version                     = "0.3.16"
 	permissions                 = 0744
 	createDatabaseMigrationName = "Create-Database"
 	createTablesMigrationName   = "Create-Tables"
@@ -133,7 +133,7 @@ func generateConfig(projectPath string) error {
 		ConfigProduction[k] = v
 	}
 
-	ConfigProduction["assets_compiled"] = "no"
+	ConfigProduction["assets_compiled"] = "yes"
 	ConfigProduction["log"] = "log/production.log"
 	ConfigProduction["port"] = "443"
 	ConfigProduction["autocert_email"] = ""
