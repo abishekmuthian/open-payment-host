@@ -2,12 +2,6 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 {{ end }}
 
-{{ if .loadTrixScript }}
-{{ style "trix" }}
-{{ script "trix" }}
-{{ end }}
-
-
 {{ if .loadSquareScript }}
 <script type="text/javascript" src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
 {{ end }}
@@ -22,14 +16,5 @@
 
 {{ if .loadRazorpayScript }}
 <script type="text/javascript" src="https://checkout.razorpay.com/v1/checkout.js"></script>
-{{ end }}
-
-{{ if .loadHypermedia }}
-{{ script "htmx" }}
-{{ script "hyperscript" }}
-{{ end }}
-
-{{ if .loadSweetAlert }}
-{{ script "sweetalert2" }}
 {{ end }}
 

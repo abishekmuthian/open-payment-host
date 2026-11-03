@@ -16,30 +16,19 @@ import (
 func SetupAssets() {
 	defer log.Time(time.Now(), log.V{"msg": "Finished loading assets"})
 
-	// Compilation of assets is done on deploy
-	// We just load them here
 	assetsCompiled := config.GetBool("assets_compiled")
 
 	// Init the pkg global for use in ServeAssets
 	appAssets = assets.New(assetsCompiled)
 
-	// Load asset details from json file on each run
-	if config.Production() {
-		err := appAssets.Load()
-		if err != nil {
-			log.Info(log.V{"msg": "Compiling Asssets"})
-			err := appAssets.Compile("src", "data/public")
-			if err != nil {
-				log.Fatal(log.V{"a": "unable to compile assets", "error": err})
-				os.Exit(1)
-			}
-		}
-	} else {
-		log.Info(log.V{"msg": "Compiling Asssets in dev mode"})
-		err := appAssets.Compile("src", "data/public")
-		if err != nil {
-			log.Fatal(log.V{"a": "unable to compile assets", "error": err})
-		}
+	// Always recompile, in production too: data/secrets/assets.json and
+	// data/public/ are persisted volumes, so a manifest from an older image
+	// would lack newly added assets.
+	log.Info(log.V{"msg": "Compiling Assets"})
+	err := appAssets.Compile("src", "data/public")
+	if err != nil {
+		log.Fatal(log.V{"a": "unable to compile assets", "error": err})
+		os.Exit(1)
 	}
 
 	// Set up helpers which are aware of fingerprinted assets
