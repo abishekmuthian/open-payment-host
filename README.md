@@ -105,7 +105,7 @@ If you would like to help me achieve these goals, consider sponsoring me
 
 ### Home
 
-![Hope page of OPH](/demo/Square/1.a.home.png)
+![Home page of OPH](/demo/home-page.gif)
 
 ### WYSIWYG editor
 
