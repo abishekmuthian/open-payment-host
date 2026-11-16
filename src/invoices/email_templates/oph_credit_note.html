@@ -1,0 +1,10 @@
+<p>Hello {{ .Tx.Data.customer_name }},</p>
+<p>
+  Your credit note <strong>{{ .Tx.Data.document_number }}</strong>
+  for <strong>{{ .Tx.Data.product_name }}</strong>
+  against invoice {{ .Tx.Data.original_invoice_number }}
+  is attached as a PDF.
+</p>
+<p>Your refund has been processed and the amount will be credited back to your account within 5-7 working days.</p>
+<p>Sorry you didn't like my product. Let me know how I can make it better by replying to this email.</p>
+<p>{{ .Tx.Data.seller_name }}</p>

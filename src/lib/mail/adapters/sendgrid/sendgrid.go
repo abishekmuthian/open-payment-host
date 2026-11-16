@@ -1,7 +1,9 @@
 package sendgrid
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -60,9 +62,26 @@ func (s *Service) Send(email *m.Email) error {
 	message.AddPersonalizations(p)
 	message.AddContent(sendgridContent)
 
+	for _, a := range email.Attachments {
+		attachment := mail.NewAttachment()
+		attachment.SetContent(base64.StdEncoding.EncodeToString(a.Data))
+		attachment.SetType(a.ContentType)
+		attachment.SetFilename(a.Name)
+		attachment.SetDisposition("attachment")
+		message.AddAttachment(attachment)
+	}
+	if email.MessageID != "" {
+		message.SetHeader("Message-ID", "<"+email.MessageID+">")
+	}
 	request := sendgrid.GetRequest(s.secret, "/v3/mail/send", "https://api.sendgrid.com")
 	request.Method = "POST"
 	request.Body = mail.GetRequestBody(message)
-	_, err := sendgrid.API(request)
-	return err
+	response, err := sendgrid.API(request)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return fmt.Errorf("mail: SendGrid HTTP %d", response.StatusCode)
+	}
+	return nil
 }

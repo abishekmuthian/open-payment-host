@@ -210,6 +210,7 @@ func TestMailingSyncFollowsEntitlement(t *testing.T) {
 	lm, srv := newFakeListmonk(t)
 	testenv.Set("listmonk_URL", srv.URL)
 	testenv.Set("listmonk_API_token", "api:secret")
+	testenv.Set("listmonk_preconfirm_subscriptions", "yes")
 	testenv.Exec(t, "UPDATE products SET listmonk_list_id=7")
 
 	first, f1 := fixtureAttempt(t, "razorpay", "onetime")
@@ -302,12 +303,43 @@ func TestMailchimpRequestShape(t *testing.T) {
 }
 
 func TestListmonkPreconfirmSetting(t *testing.T) {
-	testenv.Config(t, nil)
-	for value, want := range map[string]bool{"": true, "true": true, "YES": true, " 1 ": true, "on": true, "false": false, "no": false, "0": false, "maybe": false} {
-		testenv.Set("listmonk_preconfirm_subscriptions", value)
-		if got := listmonkPreconfirmSubscriptions(); got != want {
-			t.Errorf("%q: %v want %v", value, got, want)
-		}
+	for _, value := range []string{"yes", "no", "", "true", "false", "YES", " 1 ", "on", "0", "maybe"} {
+		t.Run(value, func(t *testing.T) {
+			testenv.Config(t, map[string]string{"listmonk_URL": "https://listmonk.example.test", "listmonk_API_token": "api:secret", "listmonk_preconfirm_subscriptions": value})
+			calls := 0
+			var preconfirm bool
+			var mu sync.Mutex
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
+				calls++
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodGet {
+					_, _ = io.WriteString(w, `{"data":{"results":[]}}`)
+					return
+				}
+				var payload struct {
+					Preconfirm bool `json:"preconfirm_subscriptions"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+					t.Fatal(err)
+				}
+				preconfirm = payload.Preconfirm
+				_, _ = io.WriteString(w, `{"data":{"id":1,"email":"buyer@example.test"}}`)
+			}))
+			t.Cleanup(srv.Close)
+			testenv.Set("listmonk_URL", srv.URL)
+			err := syncPaymentMailingLists(&products.Story{ListmonkListID: 7}, "buyer@example.test", "active")
+			mu.Lock()
+			defer mu.Unlock()
+			if value == "yes" || value == "no" {
+				if err != nil || calls != 2 || preconfirm != (value == "yes") {
+					t.Fatalf("preconfirm=%v calls=%d error=%v", preconfirm, calls, err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), "listmonk_preconfirm_subscriptions") || calls != 0 {
+				t.Fatal("invalid boolean did not fail before contacting Listmonk", err)
+			}
+		})
 	}
 }
 

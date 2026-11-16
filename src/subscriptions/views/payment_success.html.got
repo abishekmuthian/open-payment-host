@@ -1,21 +1,20 @@
-<div class="flex items-center justify-center p-12">
-    <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
-     <h1 class="text-4xl font-medium">Payment successful</h1>
-     <br>
-     <div class="prose lg:prose-xl">
-        {{ if .downloadUrl }}
-        Your payment was successful! Your download will start automatically.
-        {{ else }}
-        Your payment was successful! You will receive details about your subscription over the email.
-        {{ end }}
-     </div>
-     <br>
-     <div class="flex gap-4">
-         {{ if .downloadUrl }}
-         <a class="btn" href="{{ .downloadUrl }}">Download File</a>
-         {{ end }}
-         <a class="btn" href="/">Home</a>
-     </div>
+<div class="flex items-center justify-center p-6 sm:p-12">
+    <div class="mx-auto flex w-full max-w-xl flex-col gap-5 lg:max-w-[680px]">
+        <h1 class="text-4xl font-medium">Payment successful</h1>
+        <div class="prose lg:prose-xl">
+            {{ if .downloadUrl }}
+            Your payment was successful! Your download will start automatically.
+            {{ else }}
+            Your payment was successful! You will receive details about your subscription over the email.
+            {{ end }}
+        </div>
+        {{ template "subscriptions/views/invoice_link.html.got" . }}
+        <div class="flex flex-wrap items-center gap-3">
+            {{ if .downloadUrl }}
+            <a class="btn" href="{{ .downloadUrl }}">Download File</a>
+            {{ end }}
+            <a class="btn btn-neutral" href="/">Home</a>
+        </div>
     </div>
 </div>
 

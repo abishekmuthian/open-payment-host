@@ -13,8 +13,10 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/users"
 	useractions "github.com/abishekmuthian/open-payment-host/src/users/actions"
 
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mail"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mail/adapters/sendgrid"
+	smtpadapter "github.com/abishekmuthian/open-payment-host/src/lib/mail/adapters/smtp"
 )
 
 // appAssets holds a reference to our assets for use in asset setup
@@ -50,7 +52,9 @@ func Setup(mu *sync.RWMutex) {
 
 	// Setup our database
 	SetupDatabase(mu)
+	SetupMail()
 	subscriptions.StartPaymentDeliveries()
+	invoices.Start()
 
 	// Setup our authentication and authorisation
 	SetupAuth()
@@ -113,4 +117,7 @@ func SetupDefaultUser() {
 func SetupMail() {
 	mail.Production = config.Production()
 	mail.Service = sendgrid.New(config.Get("mail_from"), config.Get("mail_secret"))
+	if config.Get("smtp_host") != "" {
+		mail.Service = &smtpadapter.Service{Host: config.Get("smtp_host"), Port: config.Get("smtp_port"), Username: config.Get("smtp_username"), Password: config.Get("smtp_password"), From: config.Get("smtp_from"), Mode: config.Get("smtp_mode")}
+	}
 }

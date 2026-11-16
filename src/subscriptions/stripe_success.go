@@ -8,8 +8,10 @@ import (
 	"github.com/stripe/stripe-go/v72"
 	stripesession "github.com/stripe/stripe-go/v72/checkout/session"
 	"github.com/stripe/stripe-go/v72/invoice"
+	"github.com/stripe/stripe-go/v72/paymentintent"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func stripeSessions() stripesession.Client {
@@ -96,9 +98,46 @@ func fetchStripeSessionFacts(a *PaymentAttempt) (ProviderFacts, error) {
 			return ProviderFacts{}, err
 		}
 	}
+	if a.InvoiceContext != "" {
+		if a.Schedule != "onetime" {
+			client := invoice.Client{B: stripe.GetBackend(stripe.APIBackend), Key: config.Get("stripe_secret")}
+			inv, e := client.Get(f.PaymentId, nil)
+			if e != nil {
+				return ProviderFacts{}, e
+			}
+			if inv.ID != f.PaymentId || !inv.Paid || inv.AmountPaid != a.Amount || inv.Subscription == nil || inv.Subscription.ID != f.SubscriptionId {
+				return ProviderFacts{}, errors.New("invoice details mismatch")
+			}
+			f.PaidAt = providerUnix(inv.StatusTransitions.PaidAt)
+		} else if s.PaymentIntent != nil {
+			client := paymentintent.Client{B: stripe.GetBackend(stripe.APIBackend), Key: config.Get("stripe_secret")}
+			intent, e := client.Get(s.PaymentIntent.ID, nil)
+			if e != nil {
+				return ProviderFacts{}, e
+			}
+			if intent.ID != s.PaymentIntent.ID || intent.Status != "succeeded" || intent.AmountReceived != a.Amount || !currencyEqual(string(intent.Currency), a.Currency) {
+				return ProviderFacts{}, errors.New("payment intent mismatch")
+			}
+			f.PaidAt = providerUnix(intent.Created)
+		}
+	}
+	if s.TotalDetails != nil {
+		tax := s.TotalDetails.AmountTax
+		f.TaxAmount = &tax
+	}
 	if s.CustomerDetails != nil {
 		f.Email = s.CustomerDetails.Email
 		f.Name = s.CustomerDetails.Name
+		b := stripeBilling(f.Name, f.Email, s.CustomerDetails.Address)
+		for _, id := range s.CustomerDetails.TaxIDs {
+			if string(id.Type) == "in_gst" {
+				b.GSTIN = id.Value
+			}
+		}
+		f.Billing = &b
+	}
+	if f.PaidAt.IsZero() && s.PaymentIntent != nil && s.PaymentIntent.Created > 0 {
+		f.PaidAt = time.Unix(s.PaymentIntent.Created, 0).UTC()
 	}
 	return f, nil
 }

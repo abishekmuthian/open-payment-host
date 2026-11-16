@@ -1,0 +1,11 @@
+DROP TABLE invoices;
+DROP TABLE invoice_sequences;
+DROP TABLE invoice_billing;
+DROP TABLE invoice_settings;
+ALTER TABLE payment_attempts DROP COLUMN invoice_billing;
+ALTER TABLE payment_attempts DROP COLUMN invoice_context;
+ALTER TABLE products DROP COLUMN gst_export;
+ALTER TABLE products DROP COLUMN gst_inclusive;
+ALTER TABLE products DROP COLUMN gst_rate;
+ALTER TABLE products DROP COLUMN gst_code;
+ALTER TABLE products DROP COLUMN gst_enabled;

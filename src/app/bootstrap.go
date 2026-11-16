@@ -92,6 +92,13 @@ func generateConfig(projectPath string) error {
 		"reset_admin":                       "no",
 		"turnstile_site_key":                "1x00000000000000000000AA",
 		"turnstile_secret_key":              "1x0000000000000000000000000000000AA",
+		"automated_invoice":                 "no",
+		"smtp_host":                         "",
+		"smtp_port":                         "587",
+		"smtp_username":                     "",
+		"smtp_password":                     "",
+		"smtp_from":                         "",
+		"smtp_mode":                         "starttls",
 		"mailchimp_token":                   "",
 		"stripe_key":                        "",
 		"stripe_secret":                     "",
@@ -124,7 +131,7 @@ func generateConfig(projectPath string) error {
 		"whatsapp_number":                   "",
 		"listmonk_API_token":                "",
 		"listmonk_URL":                      "",
-		"listmonk_preconfirm_subscriptions": "true",
+		"listmonk_preconfirm_subscriptions": "yes",
 	}
 
 	// Copying development values to production and then adding more

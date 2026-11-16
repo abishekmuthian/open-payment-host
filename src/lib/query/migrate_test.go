@@ -19,6 +19,7 @@ var productColumns = []string{
 	"thirty_days_page_views", "thirty_days_top3_countries", "insights_updated", "subscribers",
 	"total_subscribers", "total_onetime_payments", "mailchimp_audience_id", "listmonk_list_id",
 	"stripe_price", "square_price", "schedule", "square_subscription_plan_id", "paypal_price",
+	"gst_enabled", "gst_code", "gst_rate", "gst_inclusive", "gst_export",
 	"razorpay_price", "webhook_url", "webhook_secret", "allowed_redirect_origins",
 }
 
@@ -29,14 +30,14 @@ var subscriptionColumns = []string{
 	"pg", "payer_phone", "custom", "invoice",
 }
 
-var paymentTables = []string{"payment_attempts", "payment_events", "payment_transactions", "payment_outbox"}
+var paymentTables = []string{"payment_attempts", "payment_events", "payment_transactions", "payment_outbox", "invoice_settings", "invoice_billing", "invoice_sequences", "invoices"}
 
 func TestFreshDatabaseMigratesCleanly(t *testing.T) {
 	testenv.Config(t, nil)
 	path := testenv.DB(t) // fails unless version == latest and not dirty
 
-	if v, dirty := testenv.MigrationState(t); v != 14 || dirty != 0 {
-		t.Fatalf("migration state = %d dirty=%d, want 14 clean", v, dirty)
+	if v, dirty := testenv.MigrationState(t); v != 15 || dirty != 0 {
+		t.Fatalf("migration state = %d dirty=%d, want 15 clean", v, dirty)
 	}
 	products := testenv.Columns(t, "products")
 	for _, c := range productColumns {
@@ -75,7 +76,7 @@ func TestFreshDatabaseMigratesCleanly(t *testing.T) {
 	if err := query.OpenDatabase(map[string]string{"adapter": "sqlite3", "db": path}, &sync.RWMutex{}); err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
-	if v, dirty := testenv.MigrationState(t); v != 14 || dirty != 0 {
+	if v, dirty := testenv.MigrationState(t); v != 15 || dirty != 0 {
 		t.Fatalf("after reopen = %d dirty=%d", v, dirty)
 	}
 	if n := testenv.Scalar(t, "SELECT COUNT(*) FROM products WHERE name='kept'"); n != 1 {

@@ -25,7 +25,8 @@ CLAUDE.md
 AGENTS.md
 *.log
 *PLAN.md
-
 SECURITY_ADVISORY_IMPLEMENTATION.md
 Test_Coverage.md
 MEMORY.md
+.hugo_build.lock
+GST_INVOICING.md

@@ -30,6 +30,10 @@ type PayPalOrderDetailsResult struct {
 			CurrencyCode string `json:"currency_code,omitempty"`
 			Value        string `json:"value,omitempty"`
 			Breakdown    struct {
+				TaxTotal struct {
+					Value        string `json:"value"`
+					CurrencyCode string `json:"currency_code"`
+				} `json:"tax_total"`
 			} `json:"breakdown,omitempty"`
 		} `json:"amount,omitempty"`
 		Payee struct {

@@ -88,6 +88,17 @@ func (c *Config) GetBool(key string) bool {
 	return v == "yes"
 }
 
+// GetBoolStrict uses the standard yes/no conversion and reports missing or
+// invalid values instead of silently interpreting them as false.
+func (c *Config) GetBoolStrict(key string) (bool, error) {
+	switch c.Get(key) {
+	case "yes", "no":
+		return c.GetBool(key), nil
+	default:
+		return false, fmt.Errorf("config: %s must be set to \"yes\" or \"no\"", key)
+	}
+}
+
 // Config (Get) returns a specific value or "" if no value
 // For compatability with older server config, we wrap this function
 // Deprecated
@@ -121,4 +132,10 @@ func GetInt(key string) int64 {
 // (yes=true, no=false), or false if no value
 func GetBool(key string) bool {
 	return Current.GetBool(key)
+}
+
+// GetBoolStrict returns a boolean or a configuration error for a missing or
+// invalid setting. Only the string values yes and no are accepted.
+func GetBoolStrict(key string) (bool, error) {
+	return Current.GetBoolStrict(key)
 }

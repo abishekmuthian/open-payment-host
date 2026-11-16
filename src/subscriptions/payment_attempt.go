@@ -16,6 +16,7 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
+	"github.com/abishekmuthian/open-payment-host/src/products"
 	"github.com/google/uuid"
 )
 
@@ -47,31 +48,32 @@ const (
 // but browser-supplied amount, currency, price id, plan id and success-page product id
 // never authorize payment or fulfillment.
 type PaymentAttempt struct {
-	Id                          string
-	CreatedAt                   time.Time
-	UpdatedAt                   time.Time
-	ProductId                   int64
-	Gateway                     string
-	Schedule                    string
-	Country                     string
-	Amount                      int64
-	Currency                    string
-	PriceId                     string
-	ProviderOrderId             string
-	ProviderPaymentId           string
-	ProviderSubscriptionId      string
-	CustomId                    string
-	RedirectURI                 string
-	CompletionTokenHash         string
-	CancellationTokenHash       string
-	CancellationTokenCiphertext string
-	BrowserTokenHash            string
-	CompletionExpiresAt         int64
-	CancellationUsed            bool
-	Status                      string
-	ExpiresAt                   time.Time
-	CompletedAt                 time.Time
-	CancelledAt                 time.Time
+	InvoiceContext, InvoiceBilling string
+	Id                             string
+	CreatedAt                      time.Time
+	UpdatedAt                      time.Time
+	ProductId                      int64
+	Gateway                        string
+	Schedule                       string
+	Country                        string
+	Amount                         int64
+	Currency                       string
+	PriceId                        string
+	ProviderOrderId                string
+	ProviderPaymentId              string
+	ProviderSubscriptionId         string
+	CustomId                       string
+	RedirectURI                    string
+	CompletionTokenHash            string
+	CancellationTokenHash          string
+	CancellationTokenCiphertext    string
+	BrowserTokenHash               string
+	CompletionExpiresAt            int64
+	CancellationUsed               bool
+	Status                         string
+	ExpiresAt                      time.Time
+	CompletedAt                    time.Time
+	CancelledAt                    time.Time
 
 	// completionToken holds the plaintext token transiently at creation,
 	// it is only stored hashed in the database.
@@ -82,6 +84,8 @@ type PaymentAttempt struct {
 // attemptWithColumns fills an attempt from database columns.
 func attemptWithColumns(cols map[string]interface{}) *PaymentAttempt {
 	a := &PaymentAttempt{}
+	a.InvoiceContext = resource.ValidateString(cols["invoice_context"])
+	a.InvoiceBilling = resource.ValidateString(cols["invoice_billing"])
 	a.Id = resource.ValidateString(cols["id"])
 	a.CreatedAt = resource.ValidateTime(cols["created_at"])
 	a.UpdatedAt = resource.ValidateTime(cols["updated_at"])
@@ -292,6 +296,13 @@ func newAttempt(productId int64, gateway string, schedule string, country string
 		return nil, err
 	}
 
+	product, err := products.Find(productId)
+	if err != nil {
+		return nil, err
+	}
+	if err = setInvoiceBase(a, product, 0, country); err != nil {
+		return nil, err
+	}
 	// Return with the plaintext completion token so the caller can set the cookie.
 	a.completionToken = completionToken
 	return a, nil

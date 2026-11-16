@@ -23,17 +23,19 @@ type Story struct {
 	// status.ResourceStatus defines a status field and associated behaviour
 	status.ResourceStatus
 
-	Name          string
-	Summary       string
-	Description   string
-	FeaturedImage string
-	URL           string
-	S3Bucket      string
-	S3Key         string
-	UserID        int64
-	Points        int64
-	Rank          int64
-	CommentCount  int64
+	GSTEnabled, GSTInclusive, GSTExport int64
+	GSTCode, GSTRate                    string
+	Name                                string
+	Summary                             string
+	Description                         string
+	FeaturedImage                       string
+	URL                                 string
+	S3Bucket                            string
+	S3Key                               string
+	UserID                              int64
+	Points                              int64
+	Rank                                int64
+	CommentCount                        int64
 
 	// UserName denormalises the user name - pull from users join
 	UserName string

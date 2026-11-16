@@ -10,12 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/log"
 	"github.com/abishekmuthian/open-payment-host/src/lib/session"
 	"github.com/abishekmuthian/open-payment-host/src/lib/view"
+	"github.com/abishekmuthian/open-payment-host/src/products"
 )
 
 // HandleBillingShow shows the billing details page for GET request /subscriptions/billing
@@ -55,6 +57,9 @@ func HandleBillingShow(w http.ResponseWriter, r *http.Request) error {
 	view.AddKey("currency", currency)
 	view.AddKey("type", paymentType)
 	view.AddKey("productId", productId)
+	if product, e := products.Find(params.GetInt("productId")); e == nil {
+		view.AddKey("gstEnabled", product.GSTEnabled != 0)
+	}
 
 	// Set Cloudflare turnstile site key
 	view.AddKey("turnstile_site_key", config.Get("turnstile_site_key"))
@@ -90,8 +95,6 @@ func HandleBilling(w http.ResponseWriter, r *http.Request) error {
 			return server.Redirect(w, r, "/subscriptions/failure?errorDetail=Check your billing details.")
 		}
 	}
-
-	log.Info(log.V{"params from billing": params})
 
 	name := params.Get("name")
 	email := params.Get("email")
@@ -177,5 +180,20 @@ func HandleBilling(w http.ResponseWriter, r *http.Request) error {
 		return server.Redirect(w, r, "/subscriptions/billing?error=security_challenge_not_completed_login"+fmt.Sprintf("&amount=%s&currency=%s&type=%s&productId=%s", amount, currency, paymentType, productId))
 	}
 
-	return server.Redirect(w, r, fmt.Sprintf("/subscriptions/square?amount=%s&currency=%s&type=%s&addressLine1=%s&addressLine2=%s&givenName=%s&email=%s&country=%s&city=%s&state=%s&postalcode=%s&intent=%s&productId=%s", amount, currency, paymentType, addressLine1, addressLine2, name, email, country, locality, state, postalcode, intent, productId))
+	b := invoices.Billing{Name: name, Email: email, Address: addressLine1 + " " + addressLine2, City: locality, Country: country, State: state, PostalCode: postalcode, Business: params.Get("billing_business"), GSTIN: params.Get("billing_gstin")}
+	product, e := products.Find(params.GetInt("productId"))
+	if e != nil {
+		return server.NotFoundError(e)
+	}
+	if product.GSTEnabled != 0 {
+		if e = b.Validate(); e != nil {
+			return server.BadRequestError(e)
+		}
+	}
+	ref, e := storeBillingDraft(w, r, b)
+	if e != nil {
+		return server.InternalError(e)
+	}
+	_ = intent
+	return server.Redirect(w, r, "/subscriptions/square?"+url.Values{"billing_ref": {ref}, "productId": {productId}, "type": {paymentType}}.Encode())
 }

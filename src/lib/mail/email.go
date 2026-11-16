@@ -5,13 +5,20 @@ import (
 )
 
 // Email represents an email to be sent.
+type Attachment struct {
+	Name, ContentType string
+	Data              []byte
+}
+
 type Email struct {
-	Recipients []string
-	ReplyTo    string
-	Subject    string
-	Body       string
-	Template   string
-	Layout     string
+	Attachments []Attachment
+	MessageID   string
+	Recipients  []string
+	ReplyTo     string
+	Subject     string
+	Body        string
+	Template    string
+	Layout      string
 }
 
 // New returns a new email with the default tenplates and the given recipient.

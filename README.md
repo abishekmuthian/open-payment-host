@@ -2,7 +2,7 @@
 
 # Open Payment Host  
 
-![Version 0.3.16](https://badgen.net/static/version/0.3.16/blue)
+![Version 0.3.17](https://badgen.net/static/version/0.3.17/blue)
 [![Go](https://img.shields.io/badge/Go-%2300ADD8.svg?&logo=go&logoColor=white)](#)
 [![HTMX](https://img.shields.io/badge/HTMX-36C?logo=htmx&logoColor=fff)](#)
 [![hyperscript](https://img.shields.io/badge/%2F%2F%2F__hyperscript-white?style=flat)](#)
@@ -105,7 +105,7 @@ If you would like to help me achieve these goals, consider sponsoring me
 
 ### Home
 
-![Hope page of OPH](/demo/Square/1.a.home.png)
+![Home page of OPH](/demo/home-page.gif)
 
 ### WYSIWYG editor
 
@@ -249,9 +249,16 @@ User configurable values are included in the table below.
 | stripe_callback_domain                | Root URL for callback after Stripe event.                                                       | Dev: [Use tunnel like ngrok], Prod: [Use root_url]                                  |
 | subscription_client_country           | Test country for testing multi-country pricing.                                                 | Dev: US, IN, FR etc. Prod: NA                                                       |
 | mailchimp_token                       | Mailchimp API Key.                                                                              | e.g. ...-us12                                                                       |
-| listmonk_URL                          | Base URL of the Listmonk instance used to add purchasers to product-specific lists.             | e.g. https://listmonk.example.com                                                   |
-| listmonk_API_token                    | Listmonk API credentials in `api_key:token` format.                                              | e.g. oph:secret-token                                                               |
-| listmonk_preconfirm_subscriptions     | Preconfirm Listmonk subscriptions. Set to `no` or `false` to use double opt-in lists.            | Default: true; true values: true, yes, 1, on                                        |
+| automated_invoice                     | Send invoice and credit-note emails through the selected provider in development or production. With `no`, PDFs still generate and emails remain queued without consuming retries; setting `yes` resumes them. | Default: `no`; only the strings `yes`/`no` are accepted. Missing or invalid values return a configuration error. |
+| smtp_host                             | SMTP server hostname for **Current mail service**. A non-empty value selects SMTP instead of the existing SendGrid sender. | Default: empty; e.g. `smtp.example.com` |
+| smtp_port                             | SMTP server port. | Default: `587`; usually `587` for STARTTLS or `465` for implicit TLS. |
+| smtp_username                         | SMTP authentication username. Leave empty only if your SMTP server does not require authentication. | Default: empty |
+| smtp_password                         | SMTP authentication password. | Default: empty |
+| smtp_from                             | Authorized sender address for SMTP mail. Required when SMTP is selected. | Default: empty; e.g. `billing@example.com` |
+| smtp_mode                             | SMTP encryption mode. Certificates are verified; cleartext SMTP is unsupported. | Default: `starttls`; accepted values: `starttls`, `tls` (implicit TLS). |
+| listmonk_URL                          | Base URL of the Listmonk instance used for subscriber synchronization and invoice email.        | e.g. https://listmonk.example.com                                                   |
+| listmonk_API_token                    | Listmonk API credentials in `api_username:token` format. Use the API user's actual username and generated token. | e.g. oph:secret-token                                                     |
+| listmonk_preconfirm_subscriptions     | Preconfirm Listmonk subscriptions. Set to `no` to use double opt-in lists.                       | Default: yes; only yes/no accepted. Missing or invalid values return a configuration error. |
 | turnstile_secret_key                  | Cloudflare turnstile secret key for captcha.                                                    | Dev: 1x00000000000000000000AA, Prod: 0x...                                          |
 | turnstile_site_key                    | Cloudflare turnstile key for captcha.                                                           | Dev: 1x0000000000000000000000000000000AA, Prod: 0x...                               |
 | paypal                                | Enable the paypal payment gateway, When enabled all other paypal credentials are mandatory.     | Dev/Prod : yes,no                                                                   |
@@ -265,6 +272,10 @@ User configurable values are included in the table below.
 | razorpay_webhook_secret               | Razorpay webhook secret                                                                         | Dev: XXX, Prod: XXX                                                                 |
 | whatsapp_number                       | Whatsapp number for customer support                                                            | Phone number without +,space or dash e.g. 15551234567                               |
 
+Configure these values in the active environment and restart OPH after changes.
+SMTP settings belong in secrets; there are no separate SMTP fields on the invoice
+settings page. Listmonk invoice delivery uses Listmonk's own sending infrastructure
+and does not require configuring SMTP in OPH.
 
 
 ### Stripe Webhook Setup
@@ -438,8 +449,138 @@ Status and refund events contain no `cancellation_token`. `custom_id` and `email
 
 A later `subscription.active` event for the same `subscription_id` means the subscription was reactivated after a lapse. It may carry the same `cancellation_token` if that token has not been used.
 
+### Automated Invoice and Credit Note <sup>Experimental</sup>
+
+Optional Indian GST invoicing generates PDF invoices after verified payments and
+renewals, and linked credit notes after verified refunds. It supports Stripe,
+Square, PayPal and Razorpay for one-time purchases and fixed-price monthly/yearly
+subscriptions, with one seller GST registration per OPH instance.
+
+*Note: Automated invoice and credit note generation has been tested only with the Razorpay payment gateway.*
+
+#### GST invoice setup
+
+1. Open **Invoicing settings** (`/admin/invoicing`) as an administrator. Save the
+   seller's legal name, full address, GSTIN, GST state code, email and authorised
+   signatory before enabling GST on a product.
+2. Optionally upload a PNG/JPEG signature, up to 1 MB and 2048 × 2048 pixels.
+   Signatures are stored privately; the uploaded image is not certificate-based
+   PDF signing.
+3. For eligible exports without IGST, enter the **LUT ARN** from your GST portal
+   acknowledgement and the LUT financial year, for example `2026-27` for
+   1 April 2026–31 March 2027. Update the LUT each year and enable the product's
+   **Eligible for export under LUT** option. Previously saved years such as `2627`
+   remain compatible and display as `2026-27`.
+4. At the bottom of the product create/update form, enable **GST invoicing** and
+   enter HSN/SAC and the GST rate. With **Amount includes GST** on, tax is extracted
+   from the configured amount; with it off, GST is added to the base amount for
+   domestic sales. Reconcile gateway tax fields and provider plan totals so tax
+   is charged once. Existing subscriptions retain their frozen pricing.
+
+Existing billing forms are reused without an additional invoice-review screen.
+Country selectors show country names; Business name and GSTIN appear only when
+the selected billing country is India. Domestic invoices use CGST/SGST (or UTGST)
+for the same state/territory and IGST for interstate supplies. Eligible LUT exports
+show the export endorsement, LUT ARN and financial year in the paid currency.
+
+#### Invoice numbering
+
+For a next invoice number of `2026-AM-0017`, configure:
+
+| Setting | Value |
+| --- | --- |
+| Number format | Financial year-prefix-sequence |
+| Invoice prefix | `AM` |
+| Credit-note prefix | A distinct prefix, for example `CN` |
+| Sequence padding | `4` |
+| Minimum next sequence | `17` |
+
+The year is the financial year's starting year: FY 2026–27 uses `2026`, including
+January–March 2027, then changes to `2027` on 1 April in Asia/Kolkata. Each financial
+year has separate invoice and credit-note counters starting at the configured
+minimum. Raising the minimum advances counters; lowering it or changing a prefix
+does not rewind them. Coordinate it with invoices already issued elsewhere.
+Complete numbers, including separators and padding, must fit within 16 characters.
+Legacy prefix/financial-year/sequence and exact-prefix-plus-sequence formats remain
+available; the exact-prefix format does not update a manually entered year.
+
+#### Invoice email delivery
+
+Set `"automated_invoice": "yes"` in secrets for the active environment and restart
+OPH. This enables invoice and credit-note email in both development and production.
+Only the strings `yes` and `no` are accepted; existing installations must add the
+key explicitly. With `no`, or a missing/invalid value, PDFs still generate and
+emails remain queued without consuming retries. Setting `yes` resumes queued
+emails. Missing or invalid values also produce a configuration error.
+
+To use **Listmonk**:
+
+1. Create an API user or use an existing one, and grant its role `tx:send`.
+   Configure `listmonk_URL` and `listmonk_API_token` in secrets, then restart OPH.
+   The token value must be `your-api-username:generated-token`, using that API
+   user's actual username and token for the configured instance.
+2. Under **Campaigns → Templates**, create two **Transactional** templates using
+   the supplied HTML bodies and subjects below. Record their numeric IDs.
+3. Under **Invoice email delivery** in **Invoicing settings**, select **Listmonk**
+   and enter both template IDs. Messenger and From overrides are optional;
+   leaving them blank uses Listmonk's defaults. The seller email frozen in the
+   document supplies Reply-To.
+
+| Template name | Subject | HTML body |
+| --- | --- | --- |
+| `oph_invoice` | `Invoice {{ .Tx.Data.document_number }} — {{ .Tx.Data.seller_name }}` | [Invoice template](src/invoices/email_templates/oph_invoice.html) |
+| `oph_credit_note` | `Credit note {{ .Tx.Data.document_number }} — {{ .Tx.Data.seller_name }}` | [Credit-note template](src/invoices/email_templates/oph_credit_note.html) |
+
+Listmonk sends to external recipients without creating newsletter subscribers and
+attaches the private PDF. Template data includes `customer_name`, `product_name`,
+`seller_name`, `document_number` and `original_invoice_number`. The product name
+matches the invoice description without hashtags. Invoice email includes purchase
+thanks and support text; credit-note email includes the processed-refund message,
+5–7 working day timeframe and feedback request. Deployment does not update saved
+Listmonk template bodies: copy changes into the existing templates while retaining
+their IDs. Subscriber synchronization has separate permissions and settings.
+
+To use direct SMTP instead, select **Current mail service** and configure the
+`smtp_*` keys listed under [Configuration](#configuration) in secrets. Use
+`smtp_mode: "starttls"` with port `587`, or `"tls"` with port `465`, as supported
+by your server. A non-empty `smtp_host` selects OPH's global SMTP sender; otherwise
+its existing SendGrid configuration remains in use. Restart after changes. The
+selected invoice provider is used without falling back to another sender.
+
+#### Downloads, refunds and recovery
+
+The payment-success page offers a secure download when the invoice is ready, and
+PDFs are attached to email. Open **Invoices** (`/admin/invoices`) to inspect a
+document, download it, or use **Retry generation / email** after correcting an
+error. **Resend email** queues another copy of an already submitted document.
+Issued PDFs, snapshots, signatures and numbers remain unchanged on retry/resend
+or later settings updates. Include invoice data in database backups.
+
+**Submitted** means the email service accepted the message; it does not confirm
+inbox delivery. Check Listmonk or SMTP logs for later delivery failures. For
+Listmonk authentication errors, verify the API username/token pair; for permission
+errors, check `tx:send`. Automatic generation/email retries resume after restart,
+with backoff from 30 seconds up to one hour, stopping after 20 failures. Review
+tasks require correction through the document page, without rejecting payment
+fulfillment. Email submission is at least once, so ambiguous failures can cause
+duplicate emails containing the same invoice.
+
+Partial/full refunds create linked credit notes only when an original invoice
+exists. Partial refunds allocate the original tax proportionally. Cancellation
+alone does not create a credit note. Invoicing is opt-in per product, and historical
+payments are not backfilled: enabling GST later does not create an invoice or
+refund credit note for an earlier payment without invoicing.
+
+This feature does not implement IRP/IRN registration, GST return filing, INR
+exchange-rate conversion, historical invoice reconstruction, SEZ or reverse-charge
+treatment. PDFs display **Reverse charge: No** for the supported workflow.
+Export eligibility, remittance evidence and tax reporting remain part of the
+seller's accounting process. Validate checkout, renewals, refunds and email in
+your gateways' sandboxes before production use.
 
 ## Developer
+
+For UI additions and changes, follow the [UI design conventions](DESIGN.md) for themes, form spacing, buttons, conditional sections, and responsive pricing rows.
 
 ### Build Open Payment Host
 

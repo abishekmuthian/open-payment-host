@@ -17,7 +17,7 @@
 {{ end }}
 <div
     id="razorpay_price_field"
-    class="space-y-3"
+    class="flex flex-col gap-5"
     _="
     on every change in .country-select set currentCountry to the target's value
     set sameCountries to <.country-select option:checked[value='${currentCountry}']/>

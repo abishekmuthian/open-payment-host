@@ -11,6 +11,7 @@ import (
 var errPaymentPending = errors.New("payment confirmation pending")
 
 type razorpayPayment struct {
+	CreatedAt      int64  `json:"created_at"`
 	ID             string `json:"id"`
 	OrderID        string `json:"order_id"`
 	InvoiceID      string `json:"invoice_id"`
@@ -48,7 +49,7 @@ func fetchRazorpayPaymentFacts(orderID, paymentID string) (ProviderFacts, error)
 	if o.ID != orderID || o.Receipt != a.Id || o.Status != "paid" || o.Amount != p.Amount || o.AmountPaid != p.Amount || o.Currency != p.Currency {
 		return ProviderFacts{}, errors.New("order identity or amount mismatch")
 	}
-	return ProviderFacts{Gateway: "razorpay", OrderId: o.ID, PaymentId: p.ID, Amount: p.Amount, Currency: p.Currency, Paid: true, Email: p.Email}, nil
+	return ProviderFacts{PaidAt: providerUnix(p.CreatedAt), Gateway: "razorpay", OrderId: o.ID, PaymentId: p.ID, Amount: p.Amount, Currency: p.Currency, Paid: true, Email: p.Email}, nil
 }
 func fetchRazorpaySubscriptionFacts(subscriptionID, paymentID string) (ProviderFacts, error) {
 	var sub struct {
@@ -94,7 +95,7 @@ func fetchRazorpaySubscriptionFacts(subscriptionID, paymentID string) (ProviderF
 	if invoice.ID != p.InvoiceID || invoice.SubscriptionID != subscriptionID || invoice.PaymentID != paymentID || invoice.OrderID != p.OrderID || invoice.Status != "paid" {
 		return ProviderFacts{}, errors.New("subscription payment invoice mismatch")
 	}
-	return ProviderFacts{Gateway: "razorpay", SubscriptionId: subscriptionID, PaymentId: p.ID, PriceId: sub.PlanID, Amount: p.Amount, Currency: p.Currency, Paid: true, Email: p.Email}, nil
+	return ProviderFacts{PaidAt: providerUnix(p.CreatedAt), Gateway: "razorpay", SubscriptionId: subscriptionID, PaymentId: p.ID, PriceId: sub.PlanID, Amount: p.Amount, Currency: p.Currency, Paid: true, Email: p.Email}, nil
 }
 func fetchPaypalOrderDetails(id string) (*PayPalOrderDetailsResult, error) {
 	var order PayPalOrderDetailsResult
@@ -124,7 +125,15 @@ func paypalOrderFacts(o *PayPalOrderDetailsResult, a *PaymentAttempt) (ProviderF
 	if total != amount || !currencyEqual(u.Amount.CurrencyCode, c.Amount.CurrencyCode) {
 		return ProviderFacts{}, errors.New("capture total mismatch")
 	}
-	return ProviderFacts{Gateway: "paypal", OrderId: o.ID, PaymentId: c.ID, Amount: amount, Currency: c.Amount.CurrencyCode, Paid: true, Email: o.Payer.EmailAddress, Name: o.Payer.Name.GivenName}, nil
+	var nativeTax *int64
+	if u.Amount.Breakdown.TaxTotal.Value != "" {
+		n, e := majorValueToMinor(u.Amount.Breakdown.TaxTotal.Value, u.Amount.Breakdown.TaxTotal.CurrencyCode)
+		if e != nil || !currencyEqual(u.Amount.Breakdown.TaxTotal.CurrencyCode, c.Amount.CurrencyCode) {
+			return ProviderFacts{}, errors.New("invalid provider tax breakdown")
+		}
+		nativeTax = &n
+	}
+	return ProviderFacts{TaxAmount: nativeTax, PaidAt: c.CreateTime, Gateway: "paypal", OrderId: o.ID, PaymentId: c.ID, Amount: amount, Currency: c.Amount.CurrencyCode, Paid: true, Email: o.Payer.EmailAddress, Name: o.Payer.Name.GivenName}, nil
 }
 func fetchPaypalSubscriptionFacts(a *PaymentAttempt) (ProviderFacts, error) {
 	return fetchPaypalSubscriptionTransactionFacts(a, "")
@@ -181,5 +190,12 @@ func fetchPaypalSubscriptionTransactionFacts(a *PaymentAttempt, transactionID st
 	if err != nil {
 		return ProviderFacts{}, err
 	}
-	return ProviderFacts{Gateway: "paypal", SubscriptionId: sub.ID, PaymentId: t.ID, PriceId: sub.PlanID, Amount: amount, Currency: t.AmountWithBreakdown.GrossAmount.CurrencyCode, Paid: true, Email: sub.Subscriber.Email}, nil
+	return ProviderFacts{PaidAt: t.Time, Gateway: "paypal", SubscriptionId: sub.ID, PaymentId: t.ID, PriceId: sub.PlanID, Amount: amount, Currency: t.AmountWithBreakdown.GrossAmount.CurrencyCode, Paid: true, Email: sub.Subscriber.Email}, nil
+}
+
+func providerUnix(v int64) time.Time {
+	if v <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(v, 0).UTC()
 }

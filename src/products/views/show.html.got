@@ -26,36 +26,36 @@
           type="hidden"
           value="{{.authenticity_token}}"
         />
-        <button type="submit" id="checkout_button" class="btn btn-wide btn-neutral">
-          {{ .price }}
+        <button type="submit" id="checkout_button" class="btn btn-wide btn-neutral{{ if .gstDomestic }} h-auto flex-col gap-1 py-3{{ end }}">
+          {{ template "products/views/checkout_label.html.got" . }}
         </button>
       </form>
       {{ else if .square }}
       <a
         type="submit"
         id="square_checkout"
-        class="btn btn-wide btn-neutral checkout"
+        class="btn btn-wide btn-neutral checkout{{ if .gstDomestic }} h-auto flex-col gap-1 py-3{{ end }}"
         method="get"
         href="/subscriptions/billing?amount={{ .amount }}&currency={{ .currency }}&type={{ .type }}&productId={{ .story.ID }}"
-        >{{ .price }}</a
+        >{{ template "products/views/checkout_label.html.got" . }}</a
       >
       {{ else if .paypal}}
       <a
         type="submit"
         id="paypal_checkout"
-        class="btn btn-wide btn-neutral checkout"
+        class="btn btn-wide btn-neutral checkout{{ if .gstDomestic }} h-auto flex-col gap-1 py-3{{ end }}"
         method="get"
         href="{{ .paypal_payment_link }}"
-        >{{ .price }}</a
+        >{{ template "products/views/checkout_label.html.got" . }}</a
       >
       {{ else if .razorpay}}
       <a
         type="submit"
         id="razorpay_checkout"
-        class="btn btn-wide btn-neutral checkout"
+        class="btn btn-wide btn-neutral checkout{{ if .gstDomestic }} h-auto flex-col gap-1 py-3{{ end }}"
         method="get"
         href="{{ .razorpay_payment_link }}"
-        >{{ .price }}</a
+        >{{ template "products/views/checkout_label.html.got" . }}</a
       >
       {{ end }}
     </div>

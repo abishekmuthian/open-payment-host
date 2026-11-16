@@ -1,45 +1,43 @@
-<p class="text-sm/6 razorpay-price-label">
-    Enter the Webhook URL and Webhook secret of the server
-    from where you're calling OPH API
-</p>
-<div
-    class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
->
+<p class="text-sm/6">Enter the Webhook URL and Webhook secret of the server from where you're calling OPH API.</p>
+<div class="flex flex-col gap-5">
+  <div class="flex flex-col gap-3">
+    <label for="webhook_url" class="block text-sm/6 font-medium"><span class="label-text text-xl">Webhook URL</span></label>
     <input
-        type="url"
-        name="webhook_url"
-        placeholder="https://"
-        value="https://"
-        pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
-        class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
-        title="Must be valid URL"
-        required
+      type="url"
+      id="webhook_url"
+      name="webhook_url"
+      placeholder="https://"
+      value="https://"
+      pattern="^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-].*[a-zA-Z0-9])?.)+[a-zA-Z].*$"
+      class="input validator w-full max-w-lg rounded-sm prose lg:prose-xl"
+      title="Must be valid URL"
+      required
     />
-    <p class="validator-hint">Must be valid URL</p>
+    <p class="validator-hint hidden">Must be a valid URL.</p>
+  </div>
+  <div class="flex flex-col gap-3">
+    <label for="webhook_secret" class="block text-sm/6 font-medium"><span class="label-text text-xl">Webhook secret</span></label>
     <input
-        type="text"
-        name="webhook_secret"
-        placeholder="Minimum 8 characters"
-        minlength="8"
-        class="input validator w-full rounded-sm max-w-96 prose lg:prose-xl"
-        title="Must be at least 8 characters"
-        required
+      type="text"
+      id="webhook_secret"
+      name="webhook_secret"
+      placeholder="Minimum 8 characters"
+      minlength="8"
+      class="input validator w-full rounded-sm max-w-96 prose lg:prose-xl"
+      title="Must be at least 8 characters"
+      required
     />
-    <p class="validator-hint">
-        Must be at least 8 characters. For security, consider using numerals, uppercase letters, and special characters.
-        <br />Example: Use `openssl rand -hex 32` to generate a strong secret
-    </p>
-</div>
-
-<div class="flex flex-col space-y-3">
-    <label class="block text-sm/6 font-medium">
-        <span class="label-text text-xl">Additional Allowed Redirect Origins</span>
-    </label>
-    <p class="text-sm/6">Optional additional redirect origins, one per line</p>
+    <p class="validator-hint hidden">Must be at least 8 characters. Use numerals, uppercase letters and special characters.<br />Example: Use <code>openssl rand -hex 32</code> to generate a strong secret.</p>
+  </div>
+  <div class="flex flex-col gap-3">
+    <label for="allowed_redirect_origins" class="block text-sm/6 font-medium"><span class="label-text text-xl">Additional Allowed Redirect Origins</span></label>
+    <p class="text-sm/6">Optional additional redirect origins, one per line.</p>
     <textarea
-        name="allowed_redirect_origins"
-        rows="3"
-        placeholder="http://localhost:3000"
-        class="textarea w-full max-w-lg rounded-sm prose lg:prose-xl"
+      id="allowed_redirect_origins"
+      name="allowed_redirect_origins"
+      rows="3"
+      placeholder="http://localhost:3000"
+      class="textarea w-full max-w-lg rounded-sm prose lg:prose-xl"
     ></textarea>
+  </div>
 </div>
