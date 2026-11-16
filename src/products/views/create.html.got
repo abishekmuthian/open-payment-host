@@ -1,13 +1,14 @@
 <div class="flex justify-items-center-safe p-12">
     <div class="mx-auto w-full lg:max-w-[680px] max-w-xl">
         <form
-            class="space-y-5 mt-5"
+            class="flex flex-col gap-5 mt-5"
             method="post"
             enctype="multipart/form-data"
         >
             <h1 class="text-4xl font-medium">Add Product</h1>
 
-            <div class="flex flex-col space-y-3">
+
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">Product Name</span>
                 </label>
@@ -21,7 +22,7 @@
                 />
             </div>
 
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">Product Summary</span>
                 </label>
@@ -38,7 +39,7 @@
                 />
             </div>
 
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">Featured Image</span>
                 </label>
@@ -50,7 +51,7 @@
                 />
             </div>
 
-            <div class="flex flex-col space-y-3" id="product-description">
+            <div class="flex flex-col gap-3" id="product-description">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">Product Description</span>
                 </label>
@@ -69,7 +70,7 @@
                 ></trix-editor>
             </div>
 
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">Download File</span>
                 </label>
@@ -96,7 +97,7 @@
                 />
             </div>
 
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl"
                         >Mailchimp Audience ID</span
@@ -113,7 +114,7 @@
                     class="input w-full max-w-lg prose lg:prose-xl"
                 />
             </div>
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">Listmonk List ID</span>
                 </label>
@@ -130,7 +131,7 @@
                 />
             </div>
             <hr />
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">Schedule</span>
                 </label>
@@ -192,7 +193,7 @@
             </div>
             {{ if .stripe }}
             <hr />
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl"
                         >Stripe Payment Details</span
@@ -212,11 +213,11 @@
                     _="on load set my.checked to false"
                 />
 
-                <div id="stripe-pricing"></div>
+                <div id="stripe-pricing" class="flex flex-col gap-3"></div>
             </div>
             {{ end }} {{ if .square }}
             <hr />
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl"
                         >Square Payment Details</span
@@ -236,11 +237,11 @@
                     _="on load set my.checked to false"
                 />
 
-                <div id="square-pricing"></div>
+                <div id="square-pricing" class="flex flex-col gap-3"></div>
             </div>
             {{ end }} {{ if .paypal }}
             <hr />
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl"
                         >Paypal Payment Details</span
@@ -260,12 +261,12 @@
                     _="on load set my.checked to false"
                 />
 
-                <div id="paypal-pricing"></div>
+                <div id="paypal-pricing" class="flex flex-col gap-3"></div>
             </div>
 
             {{ end }} {{ if .razorpay }}
             <hr />
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl"
                         >Razorpay Payment Details</span
@@ -285,13 +286,13 @@
                     _="on load set my.checked to false"
                 />
 
-                <div id="razorpay-pricing"></div>
+                <div id="razorpay-pricing" class="flex flex-col gap-3"></div>
             </div>
 
             {{ end }}
 
             <hr />
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col gap-3">
                 <label class="block text-sm/6 font-medium">
                     <span class="label-text text-xl">API</span>
                 </label>
@@ -308,8 +309,10 @@
                     _="on load set my.checked to false"
                 />
 
-                <div id="webhook-details"></div>
+                <div id="webhook-details" class="flex flex-col gap-3"></div>
             </div>
+
+            {{ template "products/views/gst.html.got" . }}
 
             <div class="flex justify-center-safe">
                 <button

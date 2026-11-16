@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux/middleware/gzip"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux/middleware/secure"
@@ -23,6 +24,17 @@ func SetupRoutes() *mux.Mux {
 
 	// Add the home page route
 	router.Get("/", appactions.HandleHome)
+	router.Get("/admin/invoicing", invoices.HandleSettings)
+	router.Post("/admin/invoicing", invoices.HandleSettings)
+	router.Post("/admin/invoicing/delivery", invoices.HandleDeliveryFields)
+	router.Get("/admin/invoicing/signature", invoices.HandleSignature)
+	router.Get("/admin/invoices", invoices.HandleIndex)
+	// Parameterized routes also match path suffixes: register downloads first.
+	router.Get("/admin/invoices/{id:[a-zA-Z0-9-]+}/download", invoices.HandleDownload)
+	router.Get("/admin/invoices/{id:[a-zA-Z0-9-]+}", invoices.HandleDocument)
+	router.Post("/admin/invoices/{id:[a-zA-Z0-9-]+}", invoices.HandleDocument)
+	router.Post("/subscriptions/invoice-billing", subscriptions.HandleInvoiceBilling)
+	router.Get("/subscriptions/invoice", subscriptions.HandleInvoiceDownload)
 
 	// Add a route to handle static files
 	router.Get("/favicon.ico", fileHandler)
@@ -36,16 +48,19 @@ func SetupRoutes() *mux.Mux {
 	router.Post("/products/create", storyactions.HandleCreate)
 	router.Get("/products/create/price/{fieldIndex:[0-9]+}/{pg:[a-zA-Z]+}/{schedule:[a-zA-Z ]+}", storyactions.HandlePrice)
 	router.Get("/products/create/schedule", storyactions.HandleSchedule)
+	router.Post("/products/gst-tax/{fieldIndex:[0-9]+}", storyactions.HandleGSTTax)
 	router.Post("/products/toggle/stripe", storyactions.HandleToggleStripe)
 	router.Post("/products/toggle/square", storyactions.HandleToggleSquare)
 	router.Post("/products/toggle/paypal", storyactions.HandleTogglePaypal)
 	router.Post("/products/toggle/razorpay", storyactions.HandleToggleRazorpay)
 	router.Post("/products/toggle/api", storyactions.HandleToggleAPI)
+	router.Post("/products/toggle/gst", storyactions.HandleToggleGST)
 	router.Post("/products/{id:[0-9]+}/toggle/stripe", storyactions.HandleToggleStripeUpdate)
 	router.Post("/products/{id:[0-9]+}/toggle/square", storyactions.HandleToggleSquareUpdate)
 	router.Post("/products/{id:[0-9]+}/toggle/paypal", storyactions.HandleTogglePaypalUpdate)
 	router.Post("/products/{id:[0-9]+}/toggle/razorpay", storyactions.HandleToggleRazorpayUpdate)
 	router.Post("/products/{id:[0-9]+}/toggle/api", storyactions.HandleToggleAPIUpdate)
+	router.Post("/products/{id:[0-9]+}/toggle/gst", storyactions.HandleToggleGSTUpdate)
 
 	// Add suggestion route
 	router.Post("/product/editor/suggestion", storyactions.HandleGetSuggestion)

@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       async createOrder() {
         try {
+          await saveInvoiceBilling();
           const response = await fetch("/subscriptions/paypal/orders", {
             method: "POST",
             headers: {
@@ -51,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           console.error(error);
           Swal.fire({
             title: "Error processing Paypal payment!",
-            text: "Please contact support.",
+            text: error.invoiceBilling ? error.message : "Please contact support.",
             icon: "error",
             confirmButtonText: "Dismiss",
           });

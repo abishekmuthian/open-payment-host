@@ -1,0 +1,27 @@
+{{ if eq .seller.DeliveryProvider "listmonk" }}
+<p class="text-sm/6">Use transactional templates from your Listmonk instance. Recipients do not need a newsletter subscription. Listmonk credentials: {{ if .listmonkConfigured }}configured{{ else }}not configured; set listmonk_URL and listmonk_API_token in secrets{{ end }}.</p>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Invoice template ID</span>
+  <input class="input validator w-full max-w-48" type="number" name="listmonk_invoice_template" min="1" step="1" value="{{ if .seller.ListmonkInvoiceTemplate }}{{ .seller.ListmonkInvoiceTemplate }}{{ end }}" required>
+  <span class="validator-hint hidden">Enter the numeric ID of a transactional invoice template.</span>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Credit-note template ID</span>
+  <input class="input validator w-full max-w-48" type="number" name="listmonk_credit_template" min="1" step="1" value="{{ if .seller.ListmonkCreditTemplate }}{{ .seller.ListmonkCreditTemplate }}{{ end }}" required>
+  <span class="validator-hint hidden">Enter the numeric ID of a transactional credit-note template.</span>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Transactional messenger (optional)</span>
+  <span class="text-sm/6">Leave empty to use Listmonk's default email messenger.</span>
+  <input class="input w-full" name="listmonk_messenger" maxlength="255" value="{{ .seller.ListmonkMessenger }}" placeholder="email">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">From address (optional)</span>
+  <span class="text-sm/6">Leave empty to use Listmonk's default sender.</span>
+  <input class="input validator w-full" type="email" name="listmonk_from" value="{{ .seller.ListmonkFrom }}" placeholder="billing@example.com">
+  <span class="validator-hint hidden">Enter a valid sender email address.</span>
+</label>
+<p class="text-sm/6">Submitted means accepted by Listmonk, not delivered to the recipient. Check Listmonk logs for later delivery failures and resend from the invoice page when needed.</p>
+{{ else }}
+<p id="current-mail-service-help" class="text-sm/6">Configure SMTP host, port, username, password, From address and TLS mode in secrets for the active environment. Restart OPH after changing these settings.</p>
+{{ end }}

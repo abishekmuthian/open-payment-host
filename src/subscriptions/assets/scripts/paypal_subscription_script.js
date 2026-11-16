@@ -12,7 +12,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   paypal
     .Buttons({
-      createSubscription: function (data, actions) {
+      createSubscription: async function (data, actions) {
+        await saveInvoiceBilling();
         // The subscription is created server-side so the plan is derived
         // from the product configuration, never from the browser
         return fetch("/subscriptions/paypal/subscriptions", {
@@ -60,7 +61,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         console.error(err);
         Swal.fire({
           title: "Error processing Paypal payment!",
-          text: "Please contact support.",
+          text: err.invoiceBilling ? err.message : "Please contact support.",
           icon: "error",
           confirmButtonText: "Dismiss",
         });

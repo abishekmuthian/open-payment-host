@@ -1,0 +1,70 @@
+{{/* Required context: .story, with saved values on update and defaults on create. */}}
+<div class="flex flex-col gap-5" _="on change trigger gstPricingChanged on body">
+  {{ if .gstSetupRequired }}
+  <p class="text-sm/6">Save your seller details in <a class="link" href="/admin/invoicing">Invoicing settings</a> before enabling GST invoicing.</p>
+  {{ end }}
+  <div class="flex flex-col gap-3">
+    <label for="gst_code" class="block text-sm/6 font-medium">
+      <span class="label-text text-xl">HSN/SAC code</span>
+    </label>
+    <input
+      type="text"
+      id="gst_code"
+      name="gst_code"
+      class="input validator w-full max-w-lg prose lg:prose-xl"
+      pattern="[0-9]{4}([0-9]{2})?([0-9]{2})?"
+      value="{{ .story.GSTCode }}"
+      placeholder="998439"
+      required
+    />
+    <p class="validator-hint hidden">Enter a 4, 6 or 8 digit HSN/SAC code.</p>
+  </div>
+
+  <div class="flex flex-col gap-3">
+    <label for="gst_rate" class="block text-sm/6 font-medium">
+      <span class="label-text text-xl">GST rate (%)</span>
+    </label>
+    <input
+      type="number"
+      id="gst_rate"
+      name="gst_rate"
+      class="input validator w-full max-w-24 prose lg:prose-xl"
+      min="0"
+      max="100"
+      step="0.01"
+      value="{{ .story.GSTRate }}"
+      placeholder="18"
+      required
+    />
+    <p class="validator-hint hidden">Enter a GST rate between 0 and 100.</p>
+  </div>
+
+  <div class="flex flex-col gap-3">
+    <label for="gst_inclusive" class="block text-sm/6 font-medium">
+      <span class="label-text text-xl">Amount includes GST</span>
+    </label>
+    <p class="text-sm/6">When switched off, GST is added to the configured base amount. Provider prices/plans must match. Existing subscriptions keep their original pricing.</p>
+    <input
+      type="checkbox"
+      id="gst_inclusive"
+      name="gst_inclusive"
+      class="toggle"
+      {{ if .story.GSTInclusive }}checked{{ end }}
+    />
+  </div>
+
+  <div class="flex flex-col gap-3">
+    <label for="gst_export" class="block text-sm/6 font-medium">
+      <span class="label-text text-xl">Eligible for export under LUT</span>
+    </label>
+    <input
+      type="checkbox"
+      id="gst_export"
+      name="gst_export"
+      class="toggle"
+      {{ if .story.GSTExport }}checked{{ end }}
+    />
+  </div>
+
+  <p class="text-sm/6"><a class="link" href="/admin/invoicing">Seller and LUT settings</a></p>
+</div>

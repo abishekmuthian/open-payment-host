@@ -8,7 +8,7 @@
 <!-- All countries -->
 <!-- Code and Name -->
 <select
-  class="select w-full max-w-60 rounded-sm country-select"
+  class="select min-w-0 sm:flex-[2_1_0%] w-full max-w-60 rounded-sm country-select"
   autocomplete="country"
   id="{{ .pg }}_country_{{ $fieldIndex }}"
   name="{{ .pg }}_country_{{ $fieldIndex }}"

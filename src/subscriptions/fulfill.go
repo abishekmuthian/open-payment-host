@@ -8,12 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/query"
 	"github.com/abishekmuthian/open-payment-host/src/lib/s3"
 	"github.com/abishekmuthian/open-payment-host/src/products"
 )
 
 type ProviderFacts struct {
+	TaxAmount      *int64
+	Billing        *invoices.Billing
+	PaidAt         time.Time
 	Gateway        string
 	OrderId        string
 	PaymentId      string
@@ -68,15 +72,49 @@ func verifyAndFulfill(a *PaymentAttempt, f ProviderFacts) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	legacyInvoiceContext := ""
+	if a.InvoiceContext == "" && product.GSTEnabled != 0 {
+		seller, e := invoices.LoadSettings()
+		ctx := invoices.Context{Seller: seller, Product: product.GST(), Description: product.Name, ReviewReason: "existing subscription has no frozen GST pricing; review billing and tax mode before issuance"}
+		if e != nil {
+			ctx.ReviewReason = "seller settings unavailable; complete invoicing setup"
+		}
+		legacyInvoiceContext = invoices.JSON(ctx)
+	}
+
+	currentInvoiceContext := a.InvoiceContext
+	if currentInvoiceContext != "" {
+		var ctx invoices.Context
+		if e := json.Unmarshal([]byte(currentInvoiceContext), &ctx); e != nil {
+			return false, e
+		}
+		if seller, e := invoices.LoadSettings(); e == nil {
+			if seller.GSTIN == ctx.Seller.GSTIN {
+				paid := f.PaidAt
+				if paid.IsZero() {
+					paid = time.Now()
+				}
+				fy := invoices.FinancialYear(paid)
+				if seller.LUTYear != fy && ctx.Seller.LUTYear == fy {
+					seller.LUT = ctx.Seller.LUT
+					seller.LUTYear = ctx.Seller.LUTYear
+				}
+				ctx.Seller = seller
+			} else {
+				ctx.ReviewReason = "seller GST registration changed; review existing subscription billing"
+			}
+		}
+		currentInvoiceContext = invoices.JSON(ctx)
+	}
 	changed := false
 	err = query.Transaction(func(tx *query.Tx) error {
 		// Acquire the write lock before reading state (also serializes SQLite writers).
 		if _, err := tx.Exec("UPDATE payment_attempts SET id=id WHERE id=?", a.Id); err != nil {
 			return err
 		}
-		var status, initial, completed string
+		var status, initial, completed, invoiceCtx, invoiceBilling string
 		var counted int
-		if err := tx.QueryRow("SELECT status,provider_payment_id,counted,COALESCE(completed_at,'') FROM payment_attempts WHERE id=?", a.Id).Scan(&status, &initial, &counted, &completed); err != nil {
+		if err := tx.QueryRow("SELECT status,provider_payment_id,counted,COALESCE(completed_at,''),invoice_context,invoice_billing FROM payment_attempts WHERE id=?", a.Id).Scan(&status, &initial, &counted, &completed, &invoiceCtx, &invoiceBilling); err != nil {
 			return err
 		}
 		var existing string
@@ -142,6 +180,25 @@ func verifyAndFulfill(a *PaymentAttempt, f ProviderFacts) (bool, error) {
 			if err := enqueuePaymentEffect(tx, a, f, eventType, "active"); err != nil {
 				return err
 			}
+		}
+		if currentInvoiceContext != "" {
+			invoiceCtx = currentInvoiceContext
+		}
+		paidAt := f.PaidAt
+		if paidAt.IsZero() {
+			paidAt = time.Now().UTC()
+		}
+		if invoiceCtx == "" && product.GSTEnabled != 0 {
+			invoiceCtx = legacyInvoiceContext
+		}
+		if f.Billing != nil {
+			invoiceBilling = invoices.JSON(f.Billing)
+			if _, err := tx.Exec("UPDATE payment_attempts SET invoice_billing=? WHERE id=? AND invoice_billing=''", invoiceBilling, a.Id); err != nil {
+				return err
+			}
+		}
+		if err := invoices.QueuePaidInvoice(tx, a.Id, a.Gateway, f.PaymentId, invoiceCtx, invoiceBilling, f.Currency, f.Amount, paidAt, f.TaxAmount); err != nil {
+			return err
 		}
 		a.ProviderPaymentId = initial
 		a.Status = "completed"
@@ -358,6 +415,9 @@ func applyRefund(gateway, transactionID, refundID string, amount int64, currency
 			kind = "subscription."
 		}
 		if err := enqueuePaymentEffect(tx, a, ProviderFacts{}, kind+status, status); err != nil {
+			return err
+		}
+		if err := invoices.QueueRefundCreditNote(tx, gateway, transactionID, refundID, amount, refunded+amount); err != nil {
 			return err
 		}
 		return recordEvent(tx, gateway, "refund:"+refundID)

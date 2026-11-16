@@ -1,0 +1,40 @@
+<div class="mx-auto max-w-2xl p-8 space-y-5"><h1 class="text-3xl">{{ if .number }}{{ .number }}{{ else }}Invoice awaiting issuance{{ end }}</h1><p class="text-sm/6">{{ .status }} {{ .error }}</p><p class="text-sm/6">{{ .document.Context.Description }} — {{ .document.Currency }} {{ .document.Gross }} minor units</p>
+{{ if .ready }}<a class="btn" href="/admin/invoices/{{ .id }}/download">Download PDF</a>{{ end }}
+<p class="text-sm/6">Email: {{ if .submitted }}Submitted to email service{{ else }}Not submitted{{ end }}. Submission does not confirm delivery to the recipient.</p>
+{{ if .submitted }}
+<form method="post" class="flex flex-col gap-5">
+  <input type="hidden" name="authenticity_token" value="{{ .authenticity_token }}">
+  <input type="hidden" name="action" value="resend">
+  <p class="text-sm/6">Resending submits another copy of the same PDF. Check your email service for delivery failures first.</p>
+  <button class="btn btn-neutral self-start" type="submit">Resend email</button>
+</form>
+{{ else }}
+<form method="post" class="flex flex-col gap-5"><input type="hidden" name="authenticity_token" value="{{ .authenticity_token }}">
+{{ if and (not .number) (not .document.RefundAmount) }}<p class="text-sm/6">Correct incomplete billing details before retrying. Issued documents cannot be edited.</p>{{ template "invoices/views/billing_fields.html.got" . }}
+<fieldset class="flex min-w-0 flex-col gap-5"><legend class="mb-3 text-xl font-medium">Review invoice tax data</legend>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">HSN/SAC</span>
+  <input class="input" name="invoice_code" value="{{ .document.Context.Product.Code }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">GST rate (%)</span>
+  <input class="input" type="number" min="0" max="100" step="0.01" name="invoice_rate" value="{{ .document.Context.Product.Rate }}" required>
+</label>
+<label class="flex flex-col items-start gap-3">
+  <span class="label-text text-xl font-medium">Base amount below includes GST</span>
+  <input class="toggle" type="checkbox" name="invoice_inclusive" {{ if .document.Context.Product.Inclusive }}checked{{ end }}>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Expected base / inclusive amount in currency minor units</span>
+  <input class="input" type="number" min="1" name="invoice_base" value="{{ if .document.Context.Base }}{{ .document.Context.Base }}{{ else }}{{ .document.Gross }}{{ end }}" required>
+</label>
+<p class="text-sm/6">The verified gross payment cannot change. Existing fixed subscriptions may require inclusive treatment. Review before issuing.</p>
+</fieldset>
+{{ if .recurring }}<label class="flex flex-col items-start gap-3">
+  <span class="label-text text-xl font-medium">Use these billing and tax settings for future renewals of this subscription</span>
+  <input class="checkbox" type="checkbox" name="save_profile" checked>
+</label>{{ end }}
+{{ end }}
+<button class="btn btn-neutral self-start" type="submit">Retry generation / email</button></form>
+{{ end }}
+<a class="link" href="/admin/invoices">Back to invoices</a></div>

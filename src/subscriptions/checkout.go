@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
@@ -105,6 +106,11 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return server.InternalError(err)
 	}
+	if story.GSTEnabled != 0 {
+		if err = validateStripeGST(story.GST(), p.UnitAmount, expectedAmount, config.Get(fmt.Sprintf("stripe_tax_rate_%s", taxCountry)), taxCountry); err != nil {
+			return server.BadRequestError(err)
+		}
+	}
 	// Subscription or One Time Payment
 	var mode *string
 	var taxRate []*string
@@ -139,6 +145,9 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
+	if err = setInvoiceBase(attempt, story, p.UnitAmount, taxCountry); err != nil {
+		return server.BadRequestError(err)
+	}
 	successURL := stripe.String(config.Get("stripe_callback_domain") + "/subscriptions/stripe-success?session_id={CHECKOUT_SESSION_ID}")
 
 	sessionParams := &stripe.CheckoutSessionParams{
@@ -158,13 +167,16 @@ func HandleCreateCheckoutSession(w http.ResponseWriter, r *http.Request) error {
 		SuccessURL:         successURL,
 	}
 
+	if story.GSTEnabled != 0 && taxCountry == "IN" {
+		sessionParams.AddExtra("tax_id_collection[enabled]", "true")
+	}
 	if schedule != "onetime" {
 		if sessionParams.SubscriptionData == nil {
 			sessionParams.SubscriptionData = &stripe.CheckoutSessionSubscriptionDataParams{}
 		}
 		sessionParams.SubscriptionData.AddMetadata("attempt_id", attempt.Id)
 	}
-	sessionParams.AddMetadata("plan", story.NameDisplay())
+	sessionParams.AddMetadata("plan", strings.TrimSpace(story.NameDisplay()))
 	sessionParams.AddMetadata("product_id", strconv.FormatInt(story.ID, 10))
 	sessionParams.AddMetadata("attempt_id", attempt.Id)
 

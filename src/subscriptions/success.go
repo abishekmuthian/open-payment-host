@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -27,6 +28,12 @@ func renderPaymentSuccessWithDownload(w http.ResponseWriter, r *http.Request, do
 	view.AddKey("year", time.Now().Year())
 	if downloadUrl != "" {
 		view.AddKey("downloadUrl", downloadUrl)
+	}
+	if a, e := FindAttempt(r.URL.Query().Get("attempt_id")); e == nil && completionCookieValid(r, a) {
+		exists, ready, _ := invoices.Ready(a.Id)
+		view.AddKey("invoiceExists", exists)
+		view.AddKey("invoiceReady", ready)
+		view.AddKey("invoiceAttempt", a.Id)
 	}
 	view.Template("subscriptions/views/payment_success.html.got")
 	return view.Render()

@@ -1,6 +1,7 @@
 package storyactions
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/abishekmuthian/open-payment-host/src/internal/testenv"
 	"github.com/abishekmuthian/open-payment-host/src/products"
 )
@@ -52,11 +54,13 @@ func setupHandlers(t *testing.T, overrides map[string]string) fixture {
 	testenv.Route(http.MethodPost, "/products/toggle/paypal", HandleTogglePaypal)
 	testenv.Route(http.MethodPost, "/products/toggle/razorpay", HandleToggleRazorpay)
 	testenv.Route(http.MethodPost, "/products/toggle/api", HandleToggleAPI)
+	testenv.Route(http.MethodPost, "/products/toggle/gst", HandleToggleGST)
 	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/toggle/stripe", HandleToggleStripeUpdate)
 	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/toggle/square", HandleToggleSquareUpdate)
 	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/toggle/paypal", HandleTogglePaypalUpdate)
 	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/toggle/razorpay", HandleToggleRazorpayUpdate)
 	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/toggle/api", HandleToggleAPIUpdate)
+	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/toggle/gst", HandleToggleGSTUpdate)
 	testenv.Route(http.MethodGet, "/products/{id:[0-9]+}/update", HandleUpdateShow)
 	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/update", HandleUpdate)
 	testenv.Route(http.MethodPost, "/products/{id:[0-9]+}/destroy", HandleDestroy)
@@ -193,6 +197,52 @@ func TestUpdateTogglesPrefillOnlyForMatchingSchedule(t *testing.T) {
 	}
 }
 
+func TestUpdateTogglesRestoreCountriesWithoutSourceTree(t *testing.T) {
+	f := setupHandlers(t, nil)
+	ids := map[string]int64{}
+	for _, schedule := range schedules {
+		prices := map[string]interface{}{
+			"DF": map[string]interface{}{"amount": 12, "currency": "USD", "plan_id": "default-plan"},
+			"IN": map[string]interface{}{"amount": 1200, "currency": "INR", "plan_id": "india-plan"},
+		}
+		ids[schedule] = testenv.SeedProduct(t, map[string]interface{}{
+			"schedule": schedule, "user_id": f.admin,
+			"stripe_price": map[string]string{"DF": "price_default", "IN": "price_india"},
+			"square_price": prices, "paypal_price": prices, "razorpay_price": prices,
+		})
+	}
+	// Development template scans temporarily change the process directory.
+	// Cached templates must still restore saved prices without relative file IO.
+	t.Chdir(t.TempDir())
+	for _, gateway := range []string{"stripe", "square", "paypal", "razorpay"} {
+		for _, schedule := range schedules {
+			t.Run(gateway+"/"+schedule, func(t *testing.T) {
+				path := fmt.Sprintf("/products/%d/toggle/%s", ids[schedule], gateway)
+				w := testenv.Serve(t, testenv.AuthedPOST(t, path, toggleForm(gateway, schedule, true), f.admin))
+				if w.Code != http.StatusOK {
+					t.Fatalf("toggle status=%d", w.Code)
+				}
+				doc, err := goquery.NewDocumentFromReader(strings.NewReader(w.Body.String()))
+				if err != nil {
+					t.Fatal(err)
+				}
+				selects := doc.Find("select.country-select")
+				if selects.Length() != 2 {
+					t.Fatalf("country rows=%d, want 2", selects.Length())
+				}
+				for index, country := range []struct{ code, name string }{{"DF", "Any Country (Default)"}, {"IN", "India"}} {
+					field := selects.Eq(index)
+					selected := field.Find("option[selected]")
+					code, _ := selected.Attr("value")
+					if field.Find("option").Length() < 200 || selected.Length() != 1 || code != country.code || strings.TrimSpace(selected.Text()) != country.name {
+						t.Errorf("row %d: missing options or wrong saved country (code=%q, label=%q)", index, code, strings.TrimSpace(selected.Text()))
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestUpdateAPIToggleShowsWebhookToOwnerOnly(t *testing.T) {
 	f := setupHandlers(t, nil)
 	id := seedPricedProduct(t, "onetime", f.admin)
@@ -279,6 +329,19 @@ func squareCatalog(t *testing.T, calls *int) {
 	testenv.MockTransport(t, func(r *http.Request) (*http.Response, error) {
 		if r.URL.Host != "square.test" || !strings.HasSuffix(r.URL.Path, "/catalog/object") {
 			return nil, fmt.Errorf("unexpected request %s", r.URL)
+		}
+		var payload struct {
+			Object struct {
+				Plan struct {
+					Name string `json:"name"`
+				} `json:"subscription_plan_data"`
+			} `json:"object"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload.Object.Plan.Name != "Subscription for Handbook" {
+			t.Errorf("Square received product title %q", payload.Object.Plan.Name)
 		}
 		*calls++
 		return testenv.Response(http.StatusOK, `{"catalog_object":{"id":"CAT_PLAN","type":"SUBSCRIPTION_PLAN"}}`), nil

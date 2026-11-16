@@ -23,7 +23,11 @@ func syncPaymentMailingLists(p *products.Story, email, status string) error {
 	if p.ListmonkListID > 0 && config.Get("listmonk_URL") != "" && config.Get("listmonk_API_token") != "" {
 		var err error
 		if active {
-			_, err = listmonk.UpsertSubscriber(config.Get("listmonk_URL"), config.Get("listmonk_API_token"), email, "", int(p.ListmonkListID), listmonkPreconfirmSubscriptions())
+			preconfirm, configErr := config.GetBoolStrict("listmonk_preconfirm_subscriptions")
+			if configErr != nil {
+				return configErr
+			}
+			_, err = listmonk.UpsertSubscriber(config.Get("listmonk_URL"), config.Get("listmonk_API_token"), email, "", int(p.ListmonkListID), preconfirm)
 		} else {
 			err = listmonk.RemoveSubscriberFromList(config.Get("listmonk_URL"), config.Get("listmonk_API_token"), email, int(p.ListmonkListID))
 		}

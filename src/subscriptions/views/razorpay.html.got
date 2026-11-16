@@ -1,62 +1,76 @@
 <div
-  class="flex flex-col space-y-10 justify-items-center items-center"
+  class="flex w-full flex-col items-center gap-10"
 >
 <h1 class="prose lg:prose-xl">Please complete the payment for {{ .story.NameDisplay }} using Razorpay!</h1>
 <h2 class="prose lg:prose-lg">Billing Details</h2>
-<div id="razorpay-button-container" class="flex flex-col space-y-3 w-96 shadow-xl rounded p-5">
+<div {{ if .invoiceAttempt }}data-invoice-attempt="{{ .invoiceAttempt }}"{{ end }} id="razorpay-button-container" class="flex w-full max-w-96 flex-col gap-5 rounded p-5 shadow-xl">
 {{/* Add input fields for name, email and Indian state */}}
-<label class="block text-sm/6 font-medium">
+<div class="flex flex-col gap-3">
+<label for="name" class="block text-sm/6 font-medium">
     <span class="label-text text-xl">Name</span>
 </label>
-<input class="razorpay-input-name input input-neutral validator" pattern="^[A-Za-z]+( [A-Za-z]+)?$"
+<input class="razorpay-input-name input input-neutral validator w-full"
  type="text" id="name" value="{{ .customerName }}" />
-<p class="validator-hint">
-  Enter your name as Firstname Lastname
+<p class="validator-hint hidden">
+  Enter your full name
 </p>
+</div>
 
-<label class="block text-sm/6 font-medium">
+<div class="flex flex-col gap-3">
+<label for="email" class="block text-sm/6 font-medium">
     <span class="label-text text-xl">Email</span>
 </label>
-<input class="razorpay-input-email input input-neutral validator" type="email" id="email" value="{{ .customerEmail }}" />
-<p class="validator-hint">
+<input class="razorpay-input-email input input-neutral validator w-full" type="email" id="email" value="{{ .customerEmail }}" />
+<p class="validator-hint hidden">
   Enter a valid email address
 </p>
+</div>
 
 {{ if eq .clientCountry "IN" }}
-<label class="block text-sm/6 font-medium">
+<div class="flex flex-col gap-3">
+<label for="phone" class="block text-sm/6 font-medium">
     <span class="label-text text-xl">Phone</span>
 </label>
-<input class="razorpay-input-phone input input-neutral validator" type="phone" pattern="^\+91[6-9]\d{9}$" id="phone" value="+91" title="Must be a valid Indian phone number starting with +91" placeholder="+919876543210" />
-<p class="validator-hint">
+<input class="razorpay-input-phone input input-neutral validator w-full" type="tel" pattern="^\+91[6-9]\d{9}$" id="phone" value="+91" title="Must be a valid Indian phone number starting with +91" placeholder="+919876543210" />
+<p class="validator-hint hidden">
   Enter a valid phone number with country code e.g. +919000090000 for India. Phone number is only used for verification by Razorpay and is not stored by us.
 </p>
+<span class="text-sm/6 italic text-center">
+  Razorpay payment gateway uses the phone number for verification only and we don't store the phone number.
+</span>
+</div>
 {{ end }}
 
 
-<label class="block text-sm/6 font-medium">
+<div class="flex flex-col gap-3">
+<label for="address" class="block text-sm/6 font-medium">
     <span class="label-text text-xl">Address</span>
 </label>
-<input class="razorpay-input-address input input-neutral" type="text"  id="address"  title="Your address with door/apartment no with street" />
+<input class="razorpay-input-address input input-neutral w-full" type="text"  id="address"  title="Your address with door/apartment no with street" />
+</div>
 
-<label class="block text-sm/6 font-medium">
+<div class="flex flex-col gap-3">
+<label for="city" class="block text-sm/6 font-medium">
     <span class="label-text text-xl">City</span>
 </label>
-<input class="razorpay-input-city input input-neutral" type="text"  id="city"  title="Your address city" />
+<input class="razorpay-input-city input input-neutral w-full" type="text"  id="city"  title="Your address city" />
+</div>
 
 {{/* States of India  */}}
-<label class="block text-sm/6 font-medium">
+<div class="flex flex-col gap-3">
+<label for="state" class="block text-sm/6 font-medium">
     <span class="label-text text-xl">{{ if eq .clientCountry "IN" }}Select State{{ else }}State{{ end }}</span>
 </label>
 {{ if eq .clientCountry "IN" }}
-<select class="razorpay-input-state select select-neutral"
+<select id="state" class="razorpay-input-state select select-neutral w-full"
 >
-  <option>Select State</state>
+  <option>Select State</option>
 	<option value="AP">Andhra Pradesh</option>
 	<option value="AR">Arunachal Pradesh</option>
 	<option value="AS">Assam</option>
 	<option value="BR">Bihar</option>
 	<option value="CT">Chhattisgarh</option>
-	<option value="GA">Gujarat</option>
+	<option value="GJ">Gujarat</option>
 	<option value="HR">Haryana</option>
 	<option value="HP">Himachal Pradesh</option>
 	<option value="JK">Jammu and Kashmir</option>
@@ -82,41 +96,56 @@
 	<option value="WB">West Bengal</option>
 	<option value="AN">Andaman and Nicobar Islands</option>
 	<option value="CH">Chandigarh</option>
-	<option value="DN">Dadra and Nagar Haveli</option>
-	<option value="DD">Daman and Diu</option>
+	<option value="DN">Dadra and Nagar Haveli and Daman and Diu</option>
+
 	<option value="DL">Delhi</option>
 	<option value="LD">Lakshadweep</option>
+ <option value="LA">Ladakh</option>
 	<option value="PY">Puducherry</option>
 </select>
 {{ else }}
-<input class="razorpay-input-state input input-neutral" type="text" id="state" title="Your state/province" />
+<input class="razorpay-input-state input input-neutral w-full" type="text" id="state" title="Your state/province" />
+{{ end }}
+</div>
+
+{{ if eq .clientCountry "IN" }}
+<input type="hidden" class="razorpay-input-country" name="billing_country" value="IN">
+{{ else }}
+<div class="flex flex-col gap-3">
+<label for="country" class="block text-sm/6 font-medium">
+    <span class="label-text text-xl">Country</span>
+</label>
+<select id="country" class="razorpay-input-country select select-neutral w-full" name="billing_country" required
+  {{ if .invoiceAttempt }}_="on load send billingCountryChanged(country: my.value) to #domestic-billing-fields
+    on change send billingCountryChanged(country: my.value) to #domestic-billing-fields"{{ end }}>
+  {{ template "invoices/views/country_options.html.got" . }}
+</select>
+</div>
 {{ end }}
 
-<label class="block text-sm/6 font-medium">
+<div class="flex flex-col gap-3">
+<label for="pincode" class="block text-sm/6 font-medium">
     <span class="label-text text-xl">{{ if eq .clientCountry "IN" }}Pincode{{ else }}Zipcode{{ end }}</span>
 </label>
 {{ if eq .clientCountry "IN" }}
-<input class="razorpay-input-pincode input input-neutral validator" type="text" pattern="^(?:\d{6})$"  id="pincode"  title="Your address pincode" />
-<p class="validator-hint">
+<input class="razorpay-input-pincode input input-neutral validator w-full" type="text" pattern="^(?:\d{6})$"  id="pincode"  title="Your address pincode" />
+<p class="validator-hint hidden">
   Enter a valid pin code.
 </p>
 {{ else }}
-<input class="razorpay-input-pincode input input-neutral" type="text" id="pincode" title="Your zipcode" />
-<p class="validator-hint" disabled>
-  Enter a valid zipcode.
-</p>
+<input class="razorpay-input-pincode input input-neutral w-full" type="text" id="pincode" title="Your zipcode" />
 {{ end }}
+</div>
 
-{{ if eq .clientCountry "IN" }}
-<span class="text-sm text-gray-800 dark:text-gray-300 italic block text-center mb-3">
-  Razorpay payment gateway uses the phone number for verification only and we don't store the phone number.
-</span>
-{{ else }}
-<span class="text-sm text-gray-800 dark:text-gray-300 italic block text-center mb-3">
-  In the next screen Razorpay Payment Gateway might ask for phone number for verification. We don't store the phone number.
+{{ if ne .clientCountry "IN" }}
+<span class="text-sm/6 italic text-center">
+  On the next screen, Razorpay may ask for your phone number for verification. We don't store your phone number.
 </span>
 {{ end }}
 
+{{ if .invoiceAttempt }}
+{{ template "invoices/views/domestic_billing_fields.html.got" (map (map (empty) "billing" .billing) "neutral" true) }}
+{{ end }}
 <div class="flex justify-center-safe">
 <button id="rzp-button1" class="btn btn-lg btn-neutral"
 >Pay with Razorpay</button>

@@ -11,7 +11,7 @@
 
 <div
   id="price_fields_{{ $fieldIndex }}"
-  class="join join-vertical sm:join-horizontal space-y-2 space-x-2"
+  class="flex flex-col gap-3 sm:flex-row sm:flex-nowrap sm:items-start"
 >
   {{ template "products/views/countries.html.got" $data}}
 
@@ -23,7 +23,7 @@
     aria-label="Amount in currency minor units"
     min="1"
     step="1"
-    class="input w-full rounded-sm max-w-42 prose lg:prose-xl"
+    class="input min-w-0 sm:flex-1 w-full rounded-sm max-w-42 prose lg:prose-xl"
     required
     _="on click or input
       if value of #{{ $pg }}_country_{{
@@ -40,7 +40,7 @@
     name="{{ $pg }}_currency_{{ $fieldIndex }}"
     id="{{ $pg }}_currency_{{ $fieldIndex }}"
     placeholder="USD"
-    class="input w-full rounded-sm max-w-24 prose lg:prose-xl"
+    class="input min-w-0 sm:flex-1 w-full rounded-sm max-w-24 prose lg:prose-xl"
     required
     _="on click or input
     if value of #{{ $pg }}_country_{{
@@ -56,7 +56,7 @@
   />
 
   {{ if gt $fieldIndex 0}}
-  <div class="flex">
+  <div class="flex shrink-0">
     <button
       _="on click halt the event default call Swal.fire({ theme: 'auto', title: 'Are you sure?', text: 'You won\'t be able to revert this!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'}) 
     if result.isConfirmed then remove #price_fields_{{ $fieldIndex }} end "

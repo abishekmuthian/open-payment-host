@@ -1,0 +1,1 @@
+<input class="input w-full rounded-sm max-w-24" type="number" step="0.001" name="paypal_tax_{{ .fieldIndex }}" id="paypal_tax_{{ .fieldIndex }}" value="{{ .tax }}" aria-label="Tax amount" {{ if .readonly }}readonly{{ end }} required>

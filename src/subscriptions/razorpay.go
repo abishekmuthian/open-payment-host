@@ -2,6 +2,7 @@ package subscriptions
 
 import (
 	"errors"
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -10,6 +11,7 @@ import (
 	"github.com/abishekmuthian/open-payment-host/src/products"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -40,7 +42,7 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 	if price == nil || price[field] == nil {
 		return server.BadRequestError(errors.New("Razorpay price not configured"))
 	}
-	var amount int64
+	var amount, baseAmount int64
 	var currency, planID string
 	if p.Schedule == "onetime" {
 		currency, _ = price["currency"].(string)
@@ -48,7 +50,13 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return server.BadRequestError(err)
 		}
-		if price["tax"] != nil {
+		baseAmount = amount
+		if p.GSTEnabled != 0 {
+			amount, err = invoices.Total(amount, p.GST(), checkoutCountry(r))
+			if err != nil {
+				return server.BadRequestError(err)
+			}
+		} else if price["tax"] != nil {
 			tax, err := configuredMinor(price["tax"], currency, false)
 			if err != nil {
 				return server.BadRequestError(err)
@@ -77,10 +85,25 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 		}
 		amount = plan.Item.Amount
 		currency = plan.Item.Currency
+		baseAmount = amount
+		if p.GSTEnabled != 0 && p.GSTInclusive == 0 && checkoutCountry(r) == "IN" {
+			baseAmount, err = configuredMinor(price["amount"], currency, false)
+			if err != nil {
+				return server.BadRequestError(errors.New("set the Razorpay recurring base amount for exclusive GST"))
+			}
+			expected, e := invoices.Total(baseAmount, p.GST(), "IN")
+			if e != nil || expected != amount {
+				return server.BadRequestError(errors.New("Razorpay plan must charge base amount plus GST"))
+			}
+		}
+
 	}
 	a, err := newAttempt(p.ID, "razorpay", p.Schedule, country, amount, currency, planID, params.Get("custom_id"), redirect)
 	if err != nil {
 		return server.InternalError(err)
+	}
+	if err = setInvoiceBase(a, p, baseAmount, checkoutCountry(r)); err != nil {
+		return server.BadRequestError(err)
 	}
 	var resource struct {
 		ID string `json:"id"`
@@ -114,16 +137,20 @@ func HandleRazorpayShow(w http.ResponseWriter, r *http.Request) error {
 	v := view.NewRenderer(w, r)
 	v.AddKey("currentUser", session.CurrentUser(w, r))
 	v.AddKey("story", p)
+	if a.InvoiceContext != "" {
+		v.AddKey("invoiceAttempt", a.Id)
+	}
 	v.AddKey("name", config.Get("name"))
 	v.AddKey("year", time.Now().Year())
 	v.AddKey("clientCountry", checkoutCountry(r))
+	v.AddKey("billing", invoices.Billing{Country: checkoutCountry(r)})
 	v.AddKey("customerName", params.Get("customer_name"))
 	v.AddKey("customerEmail", params.Get("customer_email"))
 	v.AddKey("loadRazorpayScript", true)
 	v.AddKey("loadHypermedia", true)
 	v.AddKey("loadSweetAlert", true)
 	v.AddKey("meta_product_id", p.ID)
-	v.AddKey("meta_product_title", p.Name)
+	v.AddKey("meta_product_title", strings.TrimSpace(p.NameDisplay()))
 	v.AddKey("meta_razorpay_key_id", config.Get("razorpay_key_id"))
 	if p.Schedule == "onetime" {
 		v.AddKey("meta_payment_script_type", "checkout")

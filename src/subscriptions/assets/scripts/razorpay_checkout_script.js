@@ -10,10 +10,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   const customId = urlParams.get("custom_id") || "";
   const redirectURI = urlParams.get("redirect_uri") || "";
 
-  document.getElementById("rzp-button1").onclick = function (e) {
+  document.getElementById("rzp-button1").onclick = async function (e) {
     // Check if phone field exists (for Indian users only)
     const phoneField = document.querySelector(".razorpay-input-phone");
     const stateField = document.querySelector(".razorpay-input-state");
+    const countryField = document.querySelector(".razorpay-input-country");
 
     // if .razorpay-input-name input has no value
     if (
@@ -88,6 +89,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
     }
 
+    // Country options display names and submit their ISO country codes.
+    else if (countryField && (!countryField.value || !countryField.checkValidity())) {
+      Swal.fire({
+        text: "Please select your country",
+        icon: "error",
+        theme: "auto",
+      });
+    }
+
     // if .razorpay-input-pincode input has no value
     else if (
       !document.querySelector(".razorpay-input-pincode").value ||
@@ -99,6 +109,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         theme: "auto",
       });
     } else {
+      try { await saveInvoiceBilling(); } catch (error) { Swal.fire({text:error.message, icon:'error', theme:'auto'}); return; }
       // Razorpay keeps its modal open for retries after a failed attempt, so the
       // error is shown only if the buyer closes the modal without paying.
       let lastPaymentError = null;
@@ -128,6 +139,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           address: document.querySelector(".razorpay-input-address").value,
           address_city: document.querySelector(".razorpay-input-city").value,
           address_state: stateField.value,
+          address_country: countryField ? countryField.value : "",
           address_pincode: document.querySelector(".razorpay-input-pincode")
             .value,
         },

@@ -69,10 +69,12 @@ function displayPaymentResults(status) {
 // Required in SCA Mandated Regions: Learn more at https://developer.squareup.com/docs/sca-overview
 async function verifyBuyer(payments, token) {
   const queryString = window.location.search;
-  console.log(queryString);
+
 
   const urlParams = new URLSearchParams(queryString);
 
+  const storedBilling = document.getElementById('payment-form').dataset.billing;
+  if (storedBilling) { const b=JSON.parse(storedBilling); const names={addressLine1:'Address',givenName:'Name',email:'Email',country:'Country',city:'City',state:'State',postalcode:'PostalCode'};for (const [key,field] of Object.entries(names)) urlParams.set(key,b[field]); }
   const addressLines = [];
   addressLines.push(urlParams.get("addressLine1"));
   addressLines.push(urlParams.get("addressLine2"));
@@ -126,7 +128,7 @@ async function createPayment(token, verificationToken) {
   }); */
 
   const queryString = window.location.search;
-  console.log(queryString);
+
 
   const urlParams = new URLSearchParams(queryString);
 

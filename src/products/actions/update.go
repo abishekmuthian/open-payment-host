@@ -1,15 +1,16 @@
 package storyactions
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -188,16 +189,12 @@ func HandleUpdateShow(w http.ResponseWriter, r *http.Request) error {
 
 // CreateCountryMap creates a map of countries given the country codes
 func CreateCountryMap() map[string]string {
-	// Read the HTML
-	htmlFile, err := os.ReadFile("src/products/views/countries.html.got")
-	if err != nil {
-		log.Error(log.V{"Error reading HTML file: %v": err})
-	}
-
-	// Parse the HTML with gquery
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(htmlFile))
+	// Use the embedded country template: other development requests can be
+	// scanning templates with a temporarily different process working directory.
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(products.CountryOptionsHTML()))
 	if err != nil {
 		log.Error(log.V{"Error parsing HTML: %v": err})
+		return nil
 	}
 
 	// Create a map to store country codes and names
@@ -255,7 +252,29 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 	if currentUser.Admin() {
 		accepted = products.AllowedParamsAdmin()
 	}
-	storyParams := story.ValidateParams(params.Map(), accepted)
+	// Disabling API removes these inputs from the form. Explicitly clear absent
+	// values so the saved settings do not re-enable API on the next visit.
+	updateParams := params.Map()
+	updateParams["webhook_url"] = params.Get("webhook_url")
+	updateParams["webhook_secret"] = params.Get("webhook_secret")
+	storyParams := story.ValidateParams(updateParams, accepted)
+	gst, gstErr := gstParams(params.Map())
+	if gstErr != nil {
+		return gstErr
+	}
+	for k, v := range gst {
+		storyParams[k] = v
+	}
+	prices := buildPriceMaps(params.Values, params.Get("schedule"))
+	gstPolicy := story.GST()
+	gstPolicy.Enabled = storyParams["gst_enabled"] == "1"
+	gstPolicy.Code = storyParams["gst_code"]
+	gstPolicy.Rate = storyParams["gst_rate"]
+	gstPolicy.Inclusive = storyParams["gst_inclusive"] == "1"
+	gstPolicy.Export = storyParams["gst_export"] == "1"
+	if e := subscriptions.ValidateGSTPrices(gstPolicy, params.Get("schedule"), subscriptions.GSTPrices{Stripe: prices.Stripe, Paypal: prices.Paypal, Razorpay: prices.Razorpay}); e != nil {
+		return server.BadRequestError(e)
+	}
 	if listID, ok := storyParams["listmonk_list_id"]; ok && listID == "" {
 		storyParams["listmonk_list_id"] = "0"
 	}
@@ -308,7 +327,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Parse the per-country gateway prices, skipping invalid rows
-	prices := buildPriceMaps(params.Values, params.Get("schedule"))
+	// Gateway prices were parsed and validated before saving the product.
 
 	// Store stripe price
 	if config.GetBool("stripe") && config.Get("stripe_key") != "" {
@@ -334,7 +353,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) error {
 		story.Update(storyParams)
 
 		// Recreate the Square plans only when prices or the schedule changed
-		if !reflect.DeepEqual(story.SquarePrice, prices.Square) || story.Schedule != storyParams["schedule"] {
+		if !reflect.DeepEqual(story.SquarePrice, prices.Square) || story.Schedule != storyParams["schedule"] || fmt.Sprint(story.GSTInclusive) != storyParams["gst_inclusive"] || story.GSTRate != storyParams["gst_rate"] || fmt.Sprint(story.GSTEnabled) != storyParams["gst_enabled"] {
 			catalogMap := createSquarePlans(story.ID, prices.Square, storyParams["schedule"])
 			if len(catalogMap) != 0 {
 				catalogMapJson, err := json.Marshal(catalogMap)

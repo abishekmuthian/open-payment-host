@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
 	"github.com/abishekmuthian/open-payment-host/src/subscriptions"
 	"github.com/google/uuid"
@@ -112,6 +114,23 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 		accepted = products.AllowedParamsAdmin()
 	}
 	storyParams := story.ValidateParams(params.Map(), accepted)
+	gst, gstErr := gstParams(params.Map())
+	if gstErr != nil {
+		return gstErr
+	}
+	for k, v := range gst {
+		storyParams[k] = v
+	}
+	prices := buildPriceMaps(params.Values, params.Get("schedule"))
+	gstPolicy := story.GST()
+	gstPolicy.Enabled = storyParams["gst_enabled"] == "1"
+	gstPolicy.Code = storyParams["gst_code"]
+	gstPolicy.Rate = storyParams["gst_rate"]
+	gstPolicy.Inclusive = storyParams["gst_inclusive"] == "1"
+	gstPolicy.Export = storyParams["gst_export"] == "1"
+	if e := subscriptions.ValidateGSTPrices(gstPolicy, params.Get("schedule"), subscriptions.GSTPrices{Stripe: prices.Stripe, Paypal: prices.Paypal, Razorpay: prices.Razorpay}); e != nil {
+		return server.BadRequestError(e)
+	}
 	if listID, ok := storyParams["listmonk_list_id"]; ok && listID == "" {
 		storyParams["listmonk_list_id"] = "0"
 	}
@@ -209,7 +228,7 @@ func HandleCreate(w http.ResponseWriter, r *http.Request) error {
 
 	}
 	// Parse the per-country gateway prices, skipping invalid rows
-	prices := buildPriceMaps(params.Values, params.Get("schedule"))
+	// Gateway prices were parsed and validated before saving the product.
 
 	// Store stripe price
 	if config.GetBool("stripe") && config.Get("stripe_key") != "" && config.Get("stripe_secret") != "" {
@@ -307,7 +326,16 @@ func createSquarePlans(productID int64, squarePrice map[string]map[string]interf
 			log.Error(log.V{"Square plan, skipping invalid price for country": clientCountry})
 			continue
 		}
-		catalogId, planErr := CreateSubscriptionPlan(productID, int64(amount), currency, schedule)
+		total := int64(amount)
+		product, e := products.Find(productID)
+		if e != nil {
+			continue
+		}
+		total, e = invoices.Total(total, product.GST(), clientCountry)
+		if e != nil {
+			continue
+		}
+		catalogId, planErr := CreateSubscriptionPlan(productID, total, currency, schedule)
 		if planErr != nil {
 			log.Error(log.V{"Error creating subscription plan ": planErr})
 			continue
@@ -361,7 +389,7 @@ func CreateSubscriptionPlan(productId int64, amount int64, currency string, sche
 			ID:   fmt.Sprintf("#product%d", productId),
 			Type: "SUBSCRIPTION_PLAN",
 			SubscriptionPlanData: SubscriptionPlanData{
-				Name: fmt.Sprintf("Subscription for %s", product.Name),
+				Name: fmt.Sprintf("Subscription for %s", strings.TrimSpace(product.NameDisplay())),
 				Phases: []Phases{
 					Phases{
 						Cadence: squarePlanCadence(schedule),
