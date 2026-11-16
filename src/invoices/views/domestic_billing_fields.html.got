@@ -1,0 +1,26 @@
+{{/* Optional context: .billing (Billing), .neutral (use the host form's borders). */}}
+{{ $domestic := false }}
+{{ if .billing }}{{ $domestic = eq .billing.Country "IN" }}{{ end }}
+<div id="domestic-billing-fields" class="flex flex-col gap-5" {{ if not $domestic }}hidden{{ end }}
+  _="on billingCountryChanged
+      if event.detail.country is 'IN'
+        remove @hidden from me
+        repeat for field in <input/> in me
+          remove @disabled from field
+        end
+      else
+        set @hidden of me to 'hidden'
+        repeat for field in <input/> in me
+          set field.value to ''
+          set @disabled of field to 'disabled'
+        end
+      end">
+  <label class="flex flex-col gap-3">
+    <span class="label-text text-xl font-medium">Business name (optional)</span>
+    <input id="billing_business" class="input {{ if .neutral }}input-neutral {{ end }}w-full" name="billing_business" {{ if not $domestic }}disabled{{ end }} value="{{ if $domestic }}{{ .billing.Business }}{{ end }}">
+  </label>
+  <label class="flex flex-col gap-3">
+    <span class="label-text text-xl font-medium">GSTIN (optional)</span>
+    <input id="billing_gstin" class="input {{ if .neutral }}input-neutral {{ end }}w-full" name="billing_gstin" {{ if not $domestic }}disabled{{ end }} value="{{ if $domestic }}{{ .billing.GSTIN }}{{ end }}">
+  </label>
+</div>

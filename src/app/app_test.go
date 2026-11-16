@@ -123,6 +123,20 @@ func TestRoutes(t *testing.T) {
 		want         [2]int // anonymous, admin
 	}{
 		{"GET", "/", nil, [2]int{200, 200}},
+		{"GET", "/admin/invoicing", nil, [2]int{401, 200}},
+		{"GET", "/admin/invoicing/signature", nil, [2]int{401, 404}},
+		{"GET", "/admin/invoices", nil, [2]int{401, 200}},
+		{"GET", "/admin/invoices/missing", nil, [2]int{401, 404}},
+		{"GET", "/admin/invoices/missing/download", nil, [2]int{401, 404}},
+		{"POST", "/admin/invoicing", nil, [2]int{401, 400}},
+		{"POST", "/admin/invoicing/delivery", nil, [2]int{401, 200}},
+		{"POST", "/admin/invoices/missing", nil, [2]int{401, 404}},
+		{"POST", "/products/gst-tax/0", nil, [2]int{401, 200}},
+		{"POST", "/products/toggle/gst", nil, [2]int{401, 200}},
+		{"POST", "/products/1/toggle/gst", nil, [2]int{401, 200}},
+		{"POST", "/subscriptions/invoice-billing", nil, [2]int{401, 401}},
+		{"GET", "/subscriptions/invoice?attempt_id=missing", nil, [2]int{401, 401}},
+
 		{"GET", "/favicon.ico", nil, [2]int{200, 200}},
 		{"GET", "/files/missing.txt", nil, [2]int{404, 404}},
 		{"GET", "/assets/scripts/app.js", nil, [2]int{200, 200}},

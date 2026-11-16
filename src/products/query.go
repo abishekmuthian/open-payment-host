@@ -22,18 +22,23 @@ const (
 
 // AllowedParams returns the cols editable by everyone
 func AllowedParams() []string {
-	return []string{"name", "summary", "url", "mailchimp_token", "mailchimp_list_id"}
+	return []string{"gst_enabled", "gst_inclusive", "gst_export", "gst_code", "gst_rate", "name", "summary", "url", "mailchimp_token", "mailchimp_list_id"}
 }
 
 // AllowedParamsAdmin returns the cols editable by admins
 func AllowedParamsAdmin() []string {
-	return []string{"status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "listmonk_list_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "total_onetime_payments", "webhook_url", "webhook_secret", "allowed_redirect_origins"}
+	return []string{"gst_enabled", "gst_inclusive", "gst_export", "gst_code", "gst_rate", "status", "comment_count", "name", "points", "rank", "summary", "description", "url", "s3_bucket", "s3_key", "user_id", "user_name", "mailchimp_audience_id", "listmonk_list_id", "stripe_price", "square_price", "schedule", "square_subscription_plan_Id", "paypal_price", "razorpay_price", "total_subscribers", "total_onetime_payments", "webhook_url", "webhook_secret", "allowed_redirect_origins"}
 }
 
 // NewWithColumns creates a new story instance and fills it with data from the database cols provided.
 func NewWithColumns(cols map[string]interface{}) *Story {
 
 	story := New()
+	story.GSTEnabled = resource.ValidateInt(cols["gst_enabled"])
+	story.GSTInclusive = resource.ValidateInt(cols["gst_inclusive"])
+	story.GSTExport = resource.ValidateInt(cols["gst_export"])
+	story.GSTCode = resource.ValidateString(cols["gst_code"])
+	story.GSTRate = resource.ValidateString(cols["gst_rate"])
 	story.ID = resource.ValidateInt(cols["id"])
 	story.CreatedAt = resource.ValidateTime(cols["created_at"])
 	story.UpdatedAt = resource.ValidateTime(cols["updated_at"])
@@ -94,6 +99,7 @@ func New() *Story {
 	story := &Story{}
 	story.CreatedAt = time.Now()
 	story.UpdatedAt = time.Now()
+	story.GSTInclusive = 1
 	story.TableName = TableName
 	story.KeyName = KeyName
 	story.Status = status.Draft

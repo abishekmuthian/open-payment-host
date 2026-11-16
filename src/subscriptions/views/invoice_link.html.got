@@ -1,0 +1,7 @@
+{{ if .invoiceExists }}
+{{ if .invoiceReady }}
+<div id="invoice-download-status"><a class="btn" href="/subscriptions/invoice?attempt_id={{ .invoiceAttempt }}">Download invoice</a></div>
+{{ else }}
+<div id="invoice-download-status" hx-get="/subscriptions/invoice?attempt_id={{ .invoiceAttempt }}&amp;status=1" hx-trigger="every 5s" hx-swap="outerHTML"><p>Invoice preparing. Your invoice will be emailed when ready.</p></div>
+{{ end }}
+{{ end }}

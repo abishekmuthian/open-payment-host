@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -56,6 +57,10 @@ func HandleSquareShow(w http.ResponseWriter, r *http.Request) error {
 			if err != nil {
 				return server.BadRequestError(err)
 			}
+			minorAmount, err = invoices.Total(minorAmount, product.GST(), checkoutCountry(r))
+			if err != nil {
+				return server.BadRequestError(err)
+			}
 			verificationAmount = minorDecimal(minorAmount, currency)
 			verificationCurrency = currency
 			priceLabel = formatMinorUnits(minorAmount, currency)
@@ -71,6 +76,13 @@ func HandleSquareShow(w http.ResponseWriter, r *http.Request) error {
 	view := view.NewRenderer(w, r)
 
 	view.AddKey("currentUser", currentUser)
+	if params.Get("billing_ref") != "" {
+		b, e := loadBillingDraft(r, params.Get("billing_ref"))
+		if e != nil {
+			return server.NotAuthorizedError(e)
+		}
+		view.AddKey("billingJSON", invoices.JSON(b))
+	}
 	view.AddKey("verificationAmount", verificationAmount)
 	view.AddKey("verificationCurrency", verificationCurrency)
 	view.AddKey("paymentSchedule", product.Schedule)
@@ -116,6 +128,21 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
+	var bill invoices.Billing
+	if ref := params.Get("billing_ref"); ref != "" {
+		bill, err = loadBillingDraft(r, ref)
+		if err != nil {
+			return server.NotAuthorizedError(err)
+		}
+		params.Values.Set("addressLine1", bill.Address)
+		params.Values.Set("addressLine2", "")
+		params.Values.Set("givenName", bill.Name)
+		params.Values.Set("email", bill.Email)
+		params.Values.Set("country", bill.Country)
+		params.Values.Set("city", bill.City)
+		params.Values.Set("state", bill.State)
+		params.Values.Set("postalcode", bill.PostalCode)
+	}
 	paymentToken := params.Get("paymentToken")
 	verificationToken := params.Get("verificationToken")
 	productId := params.GetInt("productId")
@@ -151,6 +178,11 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		return server.BadRequestError(err)
 	}
 	currency := price["currency"].(string)
+	baseAmount := amountMinor
+	amountMinor, err = invoices.Total(baseAmount, product.GST(), checkoutCountry(r))
+	if err != nil {
+		return server.BadRequestError(err)
+	}
 
 	// Create the immutable payment attempt from the server-side configuration
 	attempt, err := newAttempt(productId, "square", "onetime", clientCountry, amountMinor, currency, "", "", "")
@@ -159,12 +191,20 @@ func HandleSquare(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
+	if err = setInvoiceBase(attempt, product, baseAmount, checkoutCountry(r)); err != nil {
+		return server.BadRequestError(err)
+	}
 	// Generate a new Version 4 UUID
 	u, err := uuid.NewRandom()
 	if err != nil {
 		return server.InternalError(err)
 	}
 
+	if product.GSTEnabled != 0 {
+		if err = invoices.SnapshotBilling(attempt.Id, bill); err != nil {
+			return server.BadRequestError(err)
+		}
+	}
 	type AmountMoney struct {
 		Amount   int64  `json:"amount"`
 		Currency string `json:"currency"`
@@ -310,6 +350,21 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
+	var bill invoices.Billing
+	if ref := params.Get("billing_ref"); ref != "" {
+		bill, err = loadBillingDraft(r, ref)
+		if err != nil {
+			return server.NotAuthorizedError(err)
+		}
+		params.Values.Set("addressLine1", bill.Address)
+		params.Values.Set("addressLine2", "")
+		params.Values.Set("givenName", bill.Name)
+		params.Values.Set("email", bill.Email)
+		params.Values.Set("country", bill.Country)
+		params.Values.Set("city", bill.City)
+		params.Values.Set("state", bill.State)
+		params.Values.Set("postalcode", bill.PostalCode)
+	}
 	paymentToken := params.Get("paymentToken")
 	verificationToken := params.Get("verificationToken")
 	productId := params.GetInt("productId")
@@ -350,6 +405,11 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return server.BadRequestError(err)
 	}
+	baseAmount := expectedAmount
+	expectedAmount, err = invoices.Total(baseAmount, product.GST(), checkoutCountry(r))
+	if err != nil {
+		return server.BadRequestError(err)
+	}
 	catalogId := product.SquareSubscriptionPlanId[clientCountry]
 	if catalogId == "" {
 		return server.BadRequestError(errors.New("missing matching Square plan"))
@@ -362,6 +422,14 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) error {
 		return server.InternalError(err)
 	}
 
+	if err = setInvoiceBase(attempt, product, baseAmount, checkoutCountry(r)); err != nil {
+		return server.BadRequestError(err)
+	}
+	if product.GSTEnabled != 0 {
+		if err = invoices.SnapshotBilling(attempt.Id, bill); err != nil {
+			return server.BadRequestError(err)
+		}
+	}
 	// Bind the attempt to this browser so the pending status page is authorized
 	setAttemptCookie(w, r, attempt)
 

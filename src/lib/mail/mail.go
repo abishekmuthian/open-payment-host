@@ -45,6 +45,9 @@ func Send(email *Email, context Context) error {
 		return nil
 	}
 
+	if Service == nil {
+		return errors.New("mail service is not configured")
+	}
 	return Service.Send(email)
 }
 

@@ -1,0 +1,88 @@
+<div class="mx-auto max-w-2xl p-8 space-y-5">
+<h1 class="text-3xl">Invoicing settings</h1>
+<a class="btn" href="/admin/invoices">Invoices and credit notes</a>
+<form method="post" enctype="multipart/form-data" class="flex flex-col gap-5">
+<input type="hidden" name="authenticity_token" value="{{ .authenticity_token }}">
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Legal seller name</span>
+  <input class="input w-full" name="name" value="{{ .seller.Name }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Address</span>
+  <textarea class="textarea w-full" name="address" required>{{ .seller.Address }}</textarea>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">GSTIN</span>
+  <input class="input w-full" name="gstin" value="{{ .seller.GSTIN }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">GST state code (e.g. 33 for Tamil Nadu)</span>
+  <input class="input" name="state" value="{{ .seller.State }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Seller email</span>
+  <input class="input w-full" type="email" name="email" value="{{ .seller.Email }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Authorised signatory</span>
+  <input class="input w-full" name="signatory" value="{{ .seller.Signatory }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Number format</span>
+  <span class="text-sm/6">For 2026-AMJUL-0017, choose Financial year-prefix-sequence, enter AMJUL as the invoice prefix, set sequence padding to 4, and minimum next sequence to 17. The financial year's starting year updates automatically on 1 April.</span>
+  <select class="select w-full" name="numbering_style">
+    <option value="financial_year_prefix" {{ if eq .seller.NumberingStyle "financial_year_prefix" }}selected{{ end }}>Financial year-prefix-sequence</option>
+    <option value="financial_year" {{ if or (eq .seller.NumberingStyle "") (eq .seller.NumberingStyle "financial_year") }}selected{{ end }}>Prefix / financial year / sequence</option>
+    <option value="prefix" {{ if eq .seller.NumberingStyle "prefix" }}selected{{ end }}>Exact prefix + sequence</option>
+  </select>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Invoice prefix</span>
+  <input class="input validator w-full" name="prefix" value="{{ .seller.Prefix }}" pattern="[A-Za-z0-9\/\-]+" maxlength="15" required>
+  <span class="validator-hint hidden">Use letters, digits, hyphens or slashes.</span>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Credit-note prefix</span>
+  <input class="input validator w-full" name="credit_prefix" value="{{ .seller.CreditPrefix }}" pattern="[A-Za-z0-9\/\-]+" maxlength="15" required>
+  <span class="validator-hint hidden">Use a distinct prefix, such as CN.</span>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Sequence padding (digits)</span>
+  <span class="text-sm/6">Padding is the minimum width. The complete invoice or credit-note number must fit within 16 characters, including separators.</span>
+  <input class="input w-full max-w-48" type="number" name="sequence_digits" min="1" max="6" step="1" value="{{ if .seller.SequenceDigits }}{{ .seller.SequenceDigits }}{{ else }}6{{ end }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Minimum next sequence</span>
+  <span class="text-sm/6">Applies to invoices and credit notes. A higher value advances each counter; a lower value never rewinds it. Each financial year has separate counters, starting at the configured minimum.</span>
+  <input class="input w-full max-w-48" type="number" min="1" max="999999" name="start" value="{{ .seller.Start }}" required>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">LUT ARN</span>
+  <input class="input w-full" name="lut" value="{{ .seller.LUT }}">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">LUT financial year (e.g. 2026-27)</span>
+  <span class="text-sm/6" id="lut-year-help">Financial years run from 1 April to 31 March. For example, 2026-27 covers 1 April 2026 to 31 March 2027.</span>
+  <input class="input w-full max-w-48" name="lut_year" value="{{ .seller.LUTYearDisplay }}" placeholder="2026-27" pattern="(20[0-9]{2}-[0-9]{2}|[0-9]{4})" title="Enter a financial year such as 2026-27." aria-describedby="lut-year-help">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Upload signature (PNG/JPEG, up to 1 MB)</span>
+  <input class="file-input w-full" type="file" name="signature" accept="image/png,image/jpeg">
+</label>
+{{ if .seller.Signature }}<img src="/admin/invoicing/signature" alt="Current signature" width="200"><label class="flex flex-col items-start gap-3">
+  <span class="label-text text-xl font-medium">Remove signature</span>
+  <input class="checkbox" type="checkbox" name="remove_signature">
+</label>{{ end }}
+<fieldset class="flex min-w-0 flex-col gap-5"><legend class="mb-3 text-xl font-medium">Invoice email delivery</legend>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Email provider</span>
+  <select class="select w-full" name="delivery_provider" hx-post="/admin/invoicing/delivery" hx-trigger="load, change" hx-include="this" hx-target="#invoice-delivery-fields" hx-swap="innerHTML" hx-disabled-elt="#invoice-settings-submit">
+    <option value="default" {{ if ne .seller.DeliveryProvider "listmonk" }}selected{{ end }}>Current mail service</option>
+    <option value="listmonk" {{ if eq .seller.DeliveryProvider "listmonk" }}selected{{ end }}>Listmonk</option>
+  </select>
+</label>
+<div id="invoice-delivery-fields" class="flex flex-col gap-5"></div>
+</fieldset>
+<button id="invoice-settings-submit" class="btn btn-neutral self-start" type="submit">Save settings</button>
+</form>
+</div>

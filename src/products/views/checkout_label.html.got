@@ -1,0 +1,4 @@
+<span>{{ .price }}</span>
+{{ if .gstDomestic }}
+<span class="text-xs font-normal leading-tight">{{ if .story.GSTInclusive }}GST included{{ else }}GST will be added{{ end }}</span>
+{{ end }}

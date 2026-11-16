@@ -1,0 +1,34 @@
+{{/* Optional context: .billing; fields use the invoice billing schema. */}}
+<div id="invoice-billing-fields" class="flex flex-col gap-5">
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Name</span>
+  <input class="input w-full" name="billing_name" required value="{{ if .billing }}{{ .billing.Name }}{{ end }}">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Email</span>
+  <input class="input w-full" type="email" name="billing_email" required value="{{ if .billing }}{{ .billing.Email }}{{ end }}">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Address</span>
+  <input class="input w-full" name="billing_address" required value="{{ if .billing }}{{ .billing.Address }}{{ end }}">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">City</span>
+  <input class="input w-full" name="billing_city" required value="{{ if .billing }}{{ .billing.City }}{{ end }}">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Country</span>
+  <select class="select w-full" name="billing_country" required
+    _="on load send billingCountryChanged(country: my.value) to #domestic-billing-fields
+      on change send billingCountryChanged(country: my.value) to #domestic-billing-fields">{{ template "invoices/views/country_options.html.got" . }}</select>
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">State / GST state code</span>
+  <input class="input" name="billing_state" required value="{{ if .billing }}{{ .billing.State }}{{ end }}">
+</label>
+<label class="flex flex-col gap-3">
+  <span class="label-text text-xl font-medium">Postcode</span>
+  <input class="input" name="billing_postcode" required value="{{ if .billing }}{{ .billing.PostalCode }}{{ end }}">
+</label>
+{{ template "invoices/views/domestic_billing_fields.html.got" . }}
+</div>

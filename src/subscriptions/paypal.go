@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/abishekmuthian/open-payment-host/src/invoices"
 	"github.com/abishekmuthian/open-payment-host/src/lib/mux"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -58,7 +59,7 @@ func HandlePaypalShow(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return server.BadRequestError(err)
 	}
-	var amount int64
+	var amount, baseAmount int64
 	var currency, planID string
 	if p.Schedule == "onetime" {
 		currency, _ = price["currency"].(string)
@@ -66,7 +67,13 @@ func HandlePaypalShow(w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return server.BadRequestError(err)
 		}
-		if tax := price["tax"]; tax != nil {
+		baseAmount = amount
+		if p.GSTEnabled != 0 {
+			amount, err = invoices.Total(amount, p.GST(), checkoutCountry(r))
+			if err != nil {
+				return server.BadRequestError(err)
+			}
+		} else if tax := price["tax"]; tax != nil {
 			taxMinor, err := configuredMinor(tax, currency, false)
 			if err != nil {
 				return server.BadRequestError(err)
@@ -78,19 +85,54 @@ func HandlePaypalShow(w http.ResponseWriter, r *http.Request) error {
 		}
 	} else {
 		planID, _ = price["plan_id"].(string)
-		amount, currency, err = fetchPaypalPlanPrice(planID, p.Schedule)
+		policy := p.GST()
+		if checkoutCountry(r) != "IN" {
+			policy.Rate = "0"
+		}
+		amount, currency, err = fetchPaypalPlanPrice(planID, p.Schedule, policy)
 		if err != nil {
 			return server.BadRequestError(err)
+		}
+	}
+	if p.GSTEnabled != 0 && p.Schedule != "onetime" && price["amount"] != nil {
+		configuredCurrency, _ := price["currency"].(string)
+		if configuredCurrency != "" && !currencyEqual(configuredCurrency, currency) {
+			return server.BadRequestError(errors.New("PayPal plan currency differs from configured amount"))
+		}
+		base, e := configuredMinor(price["amount"], currency, false)
+		if e != nil {
+			return server.BadRequestError(e)
+		}
+		expected, e := invoices.Total(base, p.GST(), checkoutCountry(r))
+		if e != nil || expected != amount {
+			return server.BadRequestError(errors.New("PayPal recurring plan total must match configured GST amount"))
+		}
+		baseAmount = base
+	}
+	if baseAmount == 0 {
+		baseAmount = amount
+		if p.GSTEnabled != 0 && p.GSTInclusive == 0 && checkoutCountry(r) == "IN" {
+			baseAmount, err = invoices.BaseFromGross(amount, p.GSTRate)
+			if err != nil {
+				return server.BadRequestError(err)
+			}
 		}
 	}
 	a, err := newAttempt(p.ID, "paypal", p.Schedule, country, amount, currency, planID, params.Get("custom_id"), redirect)
 	if err != nil {
 		return server.InternalError(err)
 	}
+	if err = setInvoiceBase(a, p, baseAmount, checkoutCountry(r)); err != nil {
+		return server.BadRequestError(err)
+	}
 	setAttemptCookie(w, r, a)
 	v := view.NewRenderer(w, r)
 	v.AddKey("currentUser", session.CurrentUser(w, r))
 	v.AddKey("story", p)
+	if a.InvoiceContext != "" {
+		v.AddKey("invoiceAttempt", a.Id)
+		v.AddKey("billing", invoices.Billing{Country: checkoutCountry(r)})
+	}
 	v.AddKey("name", config.Get("name"))
 	v.AddKey("year", time.Now().Year())
 	v.AddKey("clientId", config.Get("paypal_client_id"))
@@ -138,6 +180,9 @@ func HandlePaypalCreateOrder(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return server.NotFoundError(err)
 	}
+	if a.InvoiceContext != "" && a.InvoiceBilling == "" {
+		return server.BadRequestError(errors.New("complete billing details first"))
+	}
 	if a.ProviderOrderId != "" {
 		return paymentJSON(w, map[string]string{"id": a.ProviderOrderId})
 	}
@@ -145,8 +190,32 @@ func HandlePaypalCreateOrder(w http.ResponseWriter, r *http.Request) error {
 	data := map[string]interface{}{"intent": "CAPTURE", "purchase_units": []interface{}{map[string]interface{}{
 		"reference_id": a.Id, "custom_id": a.CustomId,
 		"amount": map[string]interface{}{"currency_code": a.Currency, "value": minorDecimal(a.Amount, a.Currency), "breakdown": map[string]interface{}{"item_total": map[string]string{"currency_code": a.Currency, "value": minorDecimal(a.Amount, a.Currency)}}},
-		"items":  []interface{}{map[string]interface{}{"name": p.Name, "sku": formatInt(a.ProductId), "quantity": "1", "unit_amount": map[string]string{"currency_code": a.Currency, "value": minorDecimal(a.Amount, a.Currency)}}},
+		"items":  []interface{}{map[string]interface{}{"name": strings.TrimSpace(p.NameDisplay()), "sku": formatInt(a.ProductId), "quantity": "1", "unit_amount": map[string]string{"currency_code": a.Currency, "value": minorDecimal(a.Amount, a.Currency)}}},
 	}}}
+	if a.InvoiceContext != "" {
+		var snap invoices.Snapshot
+		snap.Currency = a.Currency
+		snap.Gross = a.Amount
+		snap.PaidAt = time.Now().UTC().Format(time.RFC3339)
+		if err = json.Unmarshal([]byte(a.InvoiceContext), &snap.Context); err != nil {
+			return server.InternalError(err)
+		}
+		if err = json.Unmarshal([]byte(a.InvoiceBilling), &snap.Billing); err != nil {
+			return server.BadRequestError(err)
+		}
+		if err = invoices.Calculate(&snap); err != nil {
+			return server.BadRequestError(err)
+		}
+		unit := data["purchase_units"].([]interface{})[0].(map[string]interface{})
+		amount := unit["amount"].(map[string]interface{})
+		money := func(n int64) map[string]string {
+			return map[string]string{"currency_code": a.Currency, "value": minorDecimal(n, a.Currency)}
+		}
+		amount["breakdown"] = map[string]interface{}{"item_total": money(snap.Net), "tax_total": money(snap.Gross - snap.Net)}
+		item := unit["items"].([]interface{})[0].(map[string]interface{})
+		item["unit_amount"] = money(snap.Net)
+		item["tax"] = money(snap.Gross - snap.Net)
+	}
 	var result PaypalCreateOrderResult
 	if err := providerJSON("paypal", http.MethodPost, "/v2/checkout/orders", data, &result, a.Id); err != nil {
 		return server.InternalError(err)
@@ -166,6 +235,9 @@ func HandlePaypalCreateSubscription(w http.ResponseWriter, r *http.Request) erro
 	a, err := paypalAttempt(r, true)
 	if err != nil {
 		return server.NotAuthorizedError(err)
+	}
+	if a.InvoiceContext != "" && a.InvoiceBilling == "" {
+		return server.BadRequestError(errors.New("complete billing details first"))
 	}
 	if a.ProviderSubscriptionId != "" {
 		return paymentJSON(w, map[string]string{"id": a.ProviderSubscriptionId})
@@ -236,7 +308,7 @@ func GetPaypalAuthorizationToken() (string, error) {
 	}
 	return result.Token, nil
 }
-func fetchPaypalPlanPrice(id, schedule string) (int64, string, error) {
+func fetchPaypalPlanPrice(id, schedule string, policies ...invoices.Product) (int64, string, error) {
 	var p struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
@@ -285,6 +357,18 @@ func fetchPaypalPlanPrice(id, schedule string) (int64, string, error) {
 		setup, err := majorValueToMinor(p.Preferences.Setup.Value, c.Pricing.Price.Currency)
 		if err != nil || setup != 0 {
 			return 0, "", errors.New("PayPal setup fees require a separate payment policy")
+		}
+	}
+	if len(policies) > 0 && policies[0].Enabled {
+		g := policies[0]
+		pct := p.Taxes.Percentage
+		if pct == "" {
+			pct = "0"
+		}
+		a, ok := new(big.Rat).SetString(pct)
+		b, bok := new(big.Rat).SetString(g.Rate)
+		if !ok || !bok || a.Cmp(b) != 0 || (b.Sign() != 0 && p.Taxes.Inclusive != g.Inclusive) {
+			return 0, "", errors.New("PayPal plan tax percentage/inclusive setting must match product GST")
 		}
 	}
 	if !p.Taxes.Inclusive && p.Taxes.Percentage != "" {

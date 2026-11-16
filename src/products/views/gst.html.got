@@ -1,0 +1,27 @@
+<hr />
+<div id="gst-invoicing" class="flex flex-col space-y-3">
+  <label for="gst_enabled" class="block text-sm/6 font-medium">
+    <span class="label-text text-xl">GST invoicing</span>
+  </label>
+  <input
+    id="gst_enabled"
+    name="gst_enabled"
+    type="checkbox"
+    class="toggle"
+    aria-controls="gst-details"
+    {{ if .story.GSTEnabled }}checked{{ end }}
+    hx-post="{{ if .story.ID }}/products/{{ .story.ID }}/toggle/gst{{ else }}/products/toggle/gst{{ end }}"
+    hx-include="[name='gst_enabled']"
+    hx-target="#gst-details"
+    hx-swap="innerHTML"
+    hx-trigger="change"
+    _="on load
+      {{ if .story.GSTEnabled }}
+      set my.checked to true
+      trigger change
+      {{ else }}
+      set my.checked to false
+      {{ end }}"
+  />
+  <div id="gst-details"></div>
+</div>

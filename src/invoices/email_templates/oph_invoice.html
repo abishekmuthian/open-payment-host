@@ -1,0 +1,9 @@
+<p>Hello {{ .Tx.Data.customer_name }},</p>
+<p>
+  Your invoice <strong>{{ .Tx.Data.document_number }}</strong>
+  for <strong>{{ .Tx.Data.product_name }}</strong>
+  from {{ .Tx.Data.seller_name }} is attached as a PDF.
+</p>
+<p>Thank you for your purchase!</p>
+<p>If you need any help with the product, please reply to this email any time.</p>
+<p>{{ .Tx.Data.seller_name }}</p>

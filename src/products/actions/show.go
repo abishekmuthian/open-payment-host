@@ -89,6 +89,7 @@ func HandleShow(w http.ResponseWriter, r *http.Request) error {
 	view.CacheKey(story.CacheKey())
 	view.AddKey("meta_image", metaImage)
 	view.AddKey("story", story)
+	view.AddKey("gstDomestic", story.GSTEnabled != 0 && ((config.Production() && r.Header.Get("CF-IPCountry") == "IN") || (!config.Production() && config.Get("subscription_client_country") == "IN")))
 	view.AddKey("meta_published_time", story.CreatedAt.Format("2006-01-02T15:04:05-0700"))
 	view.AddKey("meta_modified_time", story.UpdatedAt.Format("2006-01-02T15:04:05-0700"))
 	view.AddKey("meta_title", metaTitle)

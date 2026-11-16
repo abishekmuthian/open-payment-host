@@ -11,6 +11,7 @@ import (
 	"github.com/stripe/stripe-go/v72/sub"
 	"github.com/stripe/stripe-go/v72/webhook"
 	"net/http"
+	"time"
 )
 
 func HandleWebhook(w http.ResponseWriter, r *http.Request) error {
@@ -122,6 +123,24 @@ func fulfillStripeInvoice(id string) error {
 	if item.Price == nil || item.Price.ID != a.PriceId || item.Quantity != 1 {
 		return errors.New("invoice price or quantity mismatch")
 	}
-	_, err = verifyAndFulfill(a, ProviderFacts{Gateway: "stripe", SubscriptionId: inv.Subscription.ID, PaymentId: inv.ID, PriceId: item.Price.ID, Amount: inv.AmountPaid, Currency: string(inv.Currency), Paid: true, Email: inv.CustomerEmail})
+	name := ""
+	if inv.CustomerName != nil {
+		name = *inv.CustomerName
+	}
+	bill := stripeBilling(name, inv.CustomerEmail, inv.CustomerAddress)
+	for _, id := range inv.CustomerTaxIDs {
+		if string(id.Type) == "in_gst" {
+			bill.GSTIN = id.Value
+		}
+	}
+	paidAt := time.Unix(inv.Created, 0).UTC()
+	if inv.StatusTransitions.PaidAt > 0 {
+		paidAt = time.Unix(inv.StatusTransitions.PaidAt, 0).UTC()
+	}
+	tax := int64(0)
+	for _, line := range inv.TotalTaxAmounts {
+		tax += line.Amount
+	}
+	_, err = verifyAndFulfill(a, ProviderFacts{TaxAmount: &tax, Billing: &bill, PaidAt: paidAt, Gateway: "stripe", SubscriptionId: inv.Subscription.ID, PaymentId: inv.ID, PriceId: item.Price.ID, Amount: inv.AmountPaid, Currency: string(inv.Currency), Paid: true, Email: inv.CustomerEmail})
 	return err
 }

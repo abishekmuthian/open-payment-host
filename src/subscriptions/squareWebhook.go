@@ -129,7 +129,7 @@ func fetchSquarePaymentFacts(a *PaymentAttempt, id string) (ProviderFacts, error
 	if err := a.SetProviderIds("", p.ID, ""); err != nil {
 		return ProviderFacts{}, err
 	}
-	return ProviderFacts{Gateway: "square", PaymentId: p.ID, Amount: int64(p.AmountMoney.Amount), Currency: p.AmountMoney.Currency, Paid: true, Email: p.BuyerEmailAddress}, nil
+	return ProviderFacts{PaidAt: p.CreatedAt, Gateway: "square", PaymentId: p.ID, Amount: int64(p.AmountMoney.Amount), Currency: p.AmountMoney.Currency, Paid: true, Email: p.BuyerEmailAddress}, nil
 }
 func fetchSquareInvoiceFacts(a *PaymentAttempt, id string) (ProviderFacts, error) {
 	var result struct {
@@ -184,7 +184,7 @@ func fetchSquareInvoiceFacts(a *PaymentAttempt, id string) (ProviderFacts, error
 	if p.ID != paymentID || p.OrderID != invoice.OrderID || p.Status != "COMPLETED" {
 		return ProviderFacts{}, errors.New("invoice payment mismatch")
 	}
-	return ProviderFacts{Gateway: "square", PaymentId: p.ID, SubscriptionId: a.ProviderSubscriptionId, PriceId: a.PriceId, Amount: int64(p.AmountMoney.Amount), Currency: p.AmountMoney.Currency, Paid: true, Email: invoice.PrimaryRecipient.Email}, nil
+	return ProviderFacts{PaidAt: p.CreatedAt, Gateway: "square", PaymentId: p.ID, SubscriptionId: a.ProviderSubscriptionId, PriceId: a.PriceId, Amount: int64(p.AmountMoney.Amount), Currency: p.AmountMoney.Currency, Paid: true, Email: invoice.PrimaryRecipient.Email}, nil
 }
 
 func validateSquarePlan(id, schedule string, amount int64, currency string) error {

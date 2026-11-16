@@ -1,10 +1,13 @@
 <div
-  class="flex flex-col space-y-10 justify-items-center items-center"
+  class="flex w-full flex-col space-y-10 justify-items-center items-center"
 >
 <h1 class="prose lg:prose-xl">Please complete the payment using Square!</h1>
 <h2 class="prose lg:prose-lg">Billing Details</h2>
-<div class="flex flex-col space-y-3 w-96 shadow-xl rounded p-5">
+<div class="flex w-full max-w-96 flex-col space-y-3 shadow-xl rounded p-5">
   <form class="space-y-3" method="post">
+{{ if .gstEnabled }}
+{{ template "invoices/views/domestic_billing_fields.html.got" (map (empty) "neutral" true) }}
+{{ end }}
     <span class="text-sm text-gray-800 dark:text-gray-300 block text-center">Please enter your details as per the credit card.</span>
 
     <label class="block text-sm/6 font-medium">
@@ -37,7 +40,9 @@
     <label class="block text-sm/6 font-medium">
       <span class="label-text text-xl">Country</span>
     </label>
-    <select class="select select-neutral w-full" id="country" name="country" required>
+    <select class="select select-neutral w-full" id="country" name="country" required
+      {{ if .gstEnabled }}_="on load send billingCountryChanged(country: my.value) to #domestic-billing-fields
+        on change send billingCountryChanged(country: my.value) to #domestic-billing-fields"{{ end }}>
       <option>Select Country</option>
       <option value="AF">Afghanistan</option>
       <option value="AX">Aland Islands</option>

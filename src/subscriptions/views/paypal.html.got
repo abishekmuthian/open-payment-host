@@ -1,7 +1,8 @@
 <div
-  class="h-screen flex flex-col space-y-10 justify-items-center items-center"
+  class="h-screen flex w-full flex-col space-y-10 justify-items-center items-center"
 >
 <h1 class="prose lg:prose-xl">Please complete the payment for {{ .story.NameDisplay }} using Paypal!</h1>
-<div id="paypal-button-container" class="w-96 shadow-xl rounded p-5 bg-white"></div>
+{{ if .invoiceAttempt }}<div data-invoice-attempt="{{ .invoiceAttempt }}" class="w-full max-w-96 p-5">{{ template "invoices/views/billing_fields.html.got" . }}</div>{{ end }}
+<div id="paypal-button-container" class="w-full max-w-96 shadow-xl rounded p-5 bg-white"></div>
 {{/* <div id="paypal-hosted-button-container"></div> */}}
 </div>

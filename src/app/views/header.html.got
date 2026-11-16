@@ -5,10 +5,17 @@
   <div class="flex-none hidden md:block">
     <ul class="menu menu-horizontal p-0">
       {{ if .currentUser.Admin }}
-        <div class="flex">
-          <li><a href="/products">Products</a></li>
-          <li><a href="/products/create">Add Product</a></li>
-        </div>
+        <li><a href="/products">Products</a></li>
+        <li><a href="/products/create">Add Product</a></li>
+        <li>
+          <details>
+            <summary>Invoices</summary>
+            <ul class="right-0 z-50 w-48 bg-base-200 p-2">
+              <li><a href="/admin/invoices">All invoices</a></li>
+              <li><a href="/admin/invoicing">Invoicing settings</a></li>
+            </ul>
+          </details>
+        </li>
       {{ end}}  
       {{ if .currentUser.Anon  }}
       <li><a href="/users/login">Login</a></li>
@@ -28,6 +35,15 @@
     {{ if .currentUser.Admin }}
         <li><a href="/products">Products</a></li>
         <li><a href="/products/create">Add Product</a></li>
+        <li>
+          <details>
+            <summary>Invoices</summary>
+            <ul>
+              <li><a href="/admin/invoices">All invoices</a></li>
+              <li><a href="/admin/invoicing">Invoicing settings</a></li>
+            </ul>
+          </details>
+        </li>
     {{ end}}  
     {{ if .currentUser.Anon  }}
     <li><a href="/users/login">Login</a></li>

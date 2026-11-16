@@ -182,6 +182,7 @@ func paypalCheckout(t *testing.T, schedule string) (*PaymentAttempt, *http.Cooki
 
 func TestPaypalCheckoutHandlers(t *testing.T) {
 	setupHandlers(t)
+	testenv.Exec(t, "UPDATE products SET name='Digital service #newsletter #monthly' WHERE id=1")
 	var created map[string]interface{}
 	api := mockProviderAPI(t, nil)
 	api.routes = map[string]string{
@@ -216,6 +217,9 @@ func TestPaypalCheckoutHandlers(t *testing.T) {
 	unit := created["purchase_units"].([]interface{})[0].(map[string]interface{})
 	if unit["reference_id"] != one.Id || unit["amount"].(map[string]interface{})["value"] != "10.50" {
 		t.Fatalf("order payload: %v", unit)
+	}
+	if item := unit["items"].([]interface{})[0].(map[string]interface{}); item["name"] != "Digital service" || item["sku"] != "1" {
+		t.Fatalf("PayPal item lost its clean title or product identity: %v", item)
 	}
 	// Repeating returns the bound order without another provider call.
 	created = nil
@@ -451,6 +455,7 @@ func checkoutPrices(t *testing.T, prices map[string]string, sessions *url.Values
 
 func TestCheckoutBranches(t *testing.T) {
 	setupHandlers(t)
+	testenv.Exec(t, "UPDATE products SET name='Digital service #newsletter #monthly' WHERE id=1")
 	testenv.Set("subscription_client_country", "IN")
 	testenv.Set("stripe_tax_rate_IN", "txr_IN")
 	testenv.Set("stripe_callback_domain", "https://merchant.test")
@@ -497,6 +502,9 @@ func TestCheckoutBranches(t *testing.T) {
 		t.Fatalf("subscription checkout: %d %s", w.Code, w.Header().Get("Location"))
 	}
 	attemptID := sessions.Get("metadata[attempt_id]")
+	if sessions.Get("metadata[plan]") != "Digital service" {
+		t.Fatalf("Stripe received product title %q", sessions.Get("metadata[plan]"))
+	}
 	if sessions.Get("mode") != "subscription" || sessions.Get("line_items[0][price]") != "price_month" || sessions.Get("subscription_data[default_tax_rates][0]") != "txr_IN" || sessions.Get("line_items[0][tax_rates][0]") != "" {
 		t.Fatalf("session params: %v", sessions)
 	}

@@ -17,6 +17,7 @@ require (
 	github.com/plutov/paypal/v4 v4.11.0
 	github.com/razorpay/razorpay-go v1.3.4
 	github.com/sendgrid/sendgrid-go v3.12.0+incompatible
+	github.com/signintech/gopdf v0.38.4
 	github.com/stripe/stripe-go/v72 v72.122.0
 	golang.org/x/crypto v0.58.0
 )
@@ -27,6 +28,8 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/phpdave11/gofpdi v1.0.14-0.20211212211723-1f10f9844311 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/abishekmuthian/open-payment-host/src/lib/listmonk"
 	"github.com/abishekmuthian/open-payment-host/src/lib/server/config"
@@ -15,8 +14,12 @@ import (
 func addSubscriberToListmonk(listID int64, email string, name string) {
 	baseURL := config.Get("listmonk_URL")
 	apiToken := config.Get("listmonk_API_token")
-	preconfirmSubscriptions := listmonkPreconfirmSubscriptions()
 	if listID <= 0 || baseURL == "" || apiToken == "" || email == "" {
+		return
+	}
+	preconfirmSubscriptions, err := config.GetBoolStrict("listmonk_preconfirm_subscriptions")
+	if err != nil {
+		log.Error(log.V{"Listmonk configuration": err})
 		return
 	}
 
@@ -28,7 +31,6 @@ func addSubscriberToListmonk(listID int64, email string, name string) {
 func addSquareSubscriberToListmonk(listID int64, email string, customerID string) {
 	baseURL := config.Get("listmonk_URL")
 	apiToken := config.Get("listmonk_API_token")
-	preconfirmSubscriptions := listmonkPreconfirmSubscriptions()
 	if listID <= 0 || baseURL == "" || apiToken == "" {
 		return
 	}
@@ -38,6 +40,11 @@ func addSquareSubscriberToListmonk(listID int64, email string, customerID string
 		return
 	}
 	if customerID == "" {
+		return
+	}
+	preconfirmSubscriptions, err := config.GetBoolStrict("listmonk_preconfirm_subscriptions")
+	if err != nil {
+		log.Error(log.V{"Listmonk configuration": err})
 		return
 	}
 
@@ -62,14 +69,6 @@ func upsertSubscriberToListmonk(baseURL string, apiToken string, listID int64, e
 		return
 	}
 	log.Info(log.V{"msg": "Listmonk, Subscriber added to list", "list_id": listID, "email": email})
-}
-
-func listmonkPreconfirmSubscriptions() bool {
-	value := strings.ToLower(strings.TrimSpace(config.Get("listmonk_preconfirm_subscriptions")))
-	if value == "" {
-		return true
-	}
-	return value == "true" || value == "yes" || value == "1" || value == "on"
 }
 
 func fetchSquareCustomer(customerID string) (*CustomerModel, error) {
